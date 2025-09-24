@@ -317,12 +317,15 @@ function bindHotspotEvents() {
 
 function renderHotspotList() {
   syncEditingHotspot();
+  if (!els.hotspotList) return;
+  const previousScrollTop = els.hotspotList.scrollTop;
   els.hotspotList.innerHTML = '';
   if (state.hotspot.hotspots.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.textContent = 'No hotspots yet. Add one from the preview or with the button above.';
     els.hotspotList.appendChild(empty);
+    els.hotspotList.scrollTop = previousScrollTop;
     return;
   }
   state.hotspot.hotspots.forEach((spot, index) => {
@@ -373,6 +376,9 @@ function renderHotspotList() {
 
     els.hotspotList.appendChild(fragment);
   });
+
+  updateHotspotListActiveState();
+  els.hotspotList.scrollTop = previousScrollTop;
 }
 
 function renderFlipCardList() {
@@ -689,6 +695,7 @@ function createHotspotElement(spot, index, theme) {
 function selectHotspot(id, mapEl, editorPanel) {
   editingHotspotId = id;
   updateHotspotSelection(mapEl);
+  updateHotspotListActiveState();
   renderHotspotEditorPanel(editorPanel, state.hotspot, mapEl);
 }
 
@@ -698,6 +705,15 @@ function updateHotspotSelection(mapEl) {
   buttons.forEach((button) => {
     const buttonId = parseInt(button.dataset.id, 10);
     button.classList.toggle('is-active', buttonId === editingHotspotId);
+  });
+}
+
+function updateHotspotListActiveState() {
+  if (!els.hotspotList) return;
+  const rows = Array.from(els.hotspotList.querySelectorAll('.hotspot-row'));
+  rows.forEach((row) => {
+    const rowId = parseInt(row.dataset.id, 10);
+    row.classList.toggle('is-active', rowId === editingHotspotId);
   });
 }
 
@@ -715,6 +731,7 @@ function renderHotspotEditorPanel(panel, config, mapEl) {
   if (!hotspot) return;
   editingHotspotId = hotspot.id;
   updateHotspotSelection(mapEl);
+  updateHotspotListActiveState();
   const index = getHotspotIndex(hotspot.id);
 
   const header = document.createElement('header');
@@ -834,6 +851,7 @@ function enableHotspotDrag(button, id, mapEl, editorPanel) {
       { skipPreview: true, mapEl, refreshList: false }
     );
     updateHotspotSelection(mapEl);
+    updateHotspotListActiveState();
     const active = state.hotspot.hotspots.find((spot) => spot.id === id);
     if (active) {
       const xInput = editorPanel.querySelector('.hotspot-edit-x');
