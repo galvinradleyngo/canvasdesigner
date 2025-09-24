@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas Designer - Interactive Embed Builder</title>
+    <link rel="stylesheet" href="styles/style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-content">
+        <h1>Canvas Designer</h1>
+        <p>Create and customize interactive widgets for Canvas LMS in minutes.</p>
+      </div>
+      <div class="header-actions">
+        <button id="newDesign" class="ghost">New design</button>
+        <button id="saveDesign" class="primary">Save design</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="controls">
+        <h2>Builder</h2>
+        <div class="field">
+          <label for="widgetType">Interactive type</label>
+          <select id="widgetType">
+            <option value="flip-card">Flip card</option>
+            <option value="hotspot">Image hotspots</option>
+          </select>
+        </div>
+
+        <section id="flipCardControls" class="control-group" hidden>
+          <h3>Flip card settings</h3>
+          <div class="field">
+            <label for="flipCardWidth">Width (px)</label>
+            <input type="number" id="flipCardWidth" min="160" value="320" />
+          </div>
+          <div class="field">
+            <label for="flipCardHeight">Height (px)</label>
+            <input type="number" id="flipCardHeight" min="160" value="200" />
+          </div>
+          <div class="field">
+            <label for="flipFrontText">Front text</label>
+            <textarea id="flipFrontText" rows="3" placeholder="Introduce the concept or ask a question"></textarea>
+          </div>
+          <div class="field">
+            <label for="flipBackText">Back text</label>
+            <textarea id="flipBackText" rows="3" placeholder="Reveal additional information or the answer"></textarea>
+          </div>
+          <div class="split">
+            <div class="field">
+              <label for="flipFrontColor">Front background</label>
+              <input type="color" id="flipFrontColor" value="#1b9aaa" />
+            </div>
+            <div class="field">
+              <label for="flipBackColor">Back background</label>
+              <input type="color" id="flipBackColor" value="#ef767a" />
+            </div>
+          </div>
+          <div class="split">
+            <div class="field">
+              <label for="flipFrontTextColor">Front text color</label>
+              <input type="color" id="flipFrontTextColor" value="#ffffff" />
+            </div>
+            <div class="field">
+              <label for="flipBackTextColor">Back text color</label>
+              <input type="color" id="flipBackTextColor" value="#ffffff" />
+            </div>
+          </div>
+        </section>
+
+        <section id="hotspotControls" class="control-group" hidden>
+          <h3>Hotspot settings</h3>
+          <div class="field">
+            <label for="hotspotImageUrl">Image URL</label>
+            <input
+              type="url"
+              id="hotspotImageUrl"
+              placeholder="Paste an image URL (must be publicly accessible)"
+            />
+          </div>
+          <p class="hint">
+            Tip: After the image loads, click anywhere on the preview to add a hotspot.
+          </p>
+          <div class="field">
+            <label for="hotspotTheme">Theme</label>
+            <select id="hotspotTheme">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <button type="button" id="addHotspot" class="ghost full-width">Add hotspot manually</button>
+          <div class="hotspot-list" id="hotspotList"></div>
+        </section>
+      </section>
+
+      <section class="preview">
+        <div class="preview-header">
+          <h2>Live preview</h2>
+          <button id="refreshPreview" class="ghost">Refresh</button>
+        </div>
+        <div id="previewCanvas" class="preview-canvas">
+          <div class="placeholder">
+            Choose an interactive type and start customizing to see the preview.
+          </div>
+        </div>
+      </section>
+
+      <section class="embed">
+        <div class="embed-header">
+          <h2>Embed code</h2>
+          <button id="copyEmbed" class="ghost">Copy</button>
+        </div>
+        <textarea id="embedCode" readonly></textarea>
+        <p class="hint">
+          Paste this code into the Canvas LMS <strong>HTML Editor</strong> to add the widget to your page.
+        </p>
+      </section>
+    </main>
+
+    <template id="hotspotRowTemplate">
+      <div class="hotspot-row">
+        <div class="hotspot-label">Hotspot <span class="hotspot-index"></span></div>
+        <div class="field">
+          <label>Title</label>
+          <input type="text" class="hotspot-title" placeholder="Label shown on hover" />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea class="hotspot-description" rows="2" placeholder="Details shown on click"></textarea>
+        </div>
+        <div class="field split">
+          <div>
+            <label>X (%)</label>
+            <input type="number" class="hotspot-x" min="0" max="100" />
+          </div>
+          <div>
+            <label>Y (%)</label>
+            <input type="number" class="hotspot-y" min="0" max="100" />
+          </div>
+        </div>
+        <div class="row-actions">
+          <button type="button" class="ghost remove-hotspot">Remove</button>
+        </div>
+      </div>
+    </template>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="scripts/main.js"></script>
+  </body>
+</html>
