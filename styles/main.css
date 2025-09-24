@@ -203,6 +203,40 @@ button:disabled,
   box-shadow: none;
 }
 
+.editable {
+  position: relative;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  padding: 0.65rem 0.85rem;
+  min-height: 2.75rem;
+  line-height: 1.6;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.editable[data-single-line] {
+  min-height: 2.4rem;
+  white-space: normal;
+}
+
+.editable.is-empty::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  inset: 0.65rem 0.85rem auto 0.85rem;
+  color: var(--text-soft);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.editable:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  background: rgba(255, 255, 255, 0.85);
+}
+
 .app-layout {
   display: grid;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
@@ -508,6 +542,49 @@ button:disabled,
   display: block;
 }
 
+.flipcard-card {
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-soft);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.flipcard-faces {
+  position: relative;
+  min-height: 180px;
+}
+
+.flipcard-card .card-side {
+  inset: 0;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  height: 100%;
+  display: block;
+}
+
+.flipcard-card .card-side.editable {
+  display: block;
+  height: 100%;
+}
+
+.flipcard-card[data-face="front"] .card-front,
+.flipcard-card[data-face="back"] .card-back {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .add-card {
   border: 2px dashed rgba(99, 102, 241, 0.35);
   background: transparent;
@@ -541,6 +618,36 @@ button:disabled,
 
 .accordion button:focus-visible {
   outline-offset: -3px;
+}
+
+.accordion-editor {
+  display: grid;
+  gap: 1rem;
+}
+
+.accordion-editor .accordion-item {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.accordion-heading {
+  font-weight: 600;
+}
+
+.accordion-content {
+  min-height: 4rem;
+}
+
+.item-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .accordion-panel {
@@ -587,6 +694,81 @@ button:disabled,
 .dropzone.incorrect {
   border-color: rgba(239, 68, 68, 0.6);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+
+.dragdrop-prompt {
+  min-height: 4rem;
+}
+
+.dragdrop-stage.edit-mode {
+  align-items: stretch;
+}
+
+.dropzone-editor {
+  box-shadow: var(--shadow-soft);
+  gap: 0.75rem;
+}
+
+.dropzone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dropzone-title {
+  flex: 1;
+  font-weight: 600;
+}
+
+.assignment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.assignment-empty {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.draggable-pool.edit-mode {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.draggable-item.editor {
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.assignment-control {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.assignment-select {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-strong);
+  font: inherit;
+}
+
+.assignment-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--accent-strong);
+  font-size: 0.85rem;
 }
 
 .draggable-pool,
@@ -639,6 +821,39 @@ button:disabled,
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
 }
 
+.hotspot-alt {
+  max-width: 32rem;
+}
+
+.hotspot-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.hotspot-detail {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.hotspot-detail h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.hotspot-title {
+  font-weight: 600;
+}
+
+.hotspot-text {
+  min-height: 4.5rem;
+}
+
 .hotspot-description {
   margin-top: 0.5rem;
   padding: 0.65rem 0.85rem;
@@ -673,6 +888,22 @@ button:disabled,
 .timeline-event {
   position: relative;
   background: var(--surface-strong);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.timeline-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.timeline-date {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.timeline-text {
+  min-height: 4.5rem;
 }
 
 .timeline-event::before {
@@ -699,6 +930,84 @@ button:disabled,
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.image-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.image-card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.image-frame {
+  border: 1px dashed rgba(99, 102, 241, 0.28);
+  border-radius: var(--radius-md);
+  min-height: 160px;
+  background: rgba(99, 102, 241, 0.08);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  color: var(--text-soft);
+  font-style: italic;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.image-url {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-strong);
+  font: inherit;
+}
+
+.image-label {
+  font-weight: 600;
+}
+
+.image-alt {
+  font-size: 0.95rem;
+}
+
+.word-chip-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.word-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  padding: 0.55rem 0.8rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.word-text {
+  flex: 1;
+  text-align: center;
+  min-width: 120px;
 }
 
 .hotspot-empty-state {

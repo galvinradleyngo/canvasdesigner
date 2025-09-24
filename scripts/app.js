@@ -236,6 +236,111 @@ function el(tag, options = {}, children = []) {
   return node;
 }
 
+function sanitizeEditableText(node, multiline = false) {
+  let text = multiline ? node.innerText : node.textContent;
+  if (!text) return "";
+  text = text.replace(/\u00a0/g, " ");
+  if (multiline) {
+    text = text.replace(/\r/g, "");
+    text = text
+      .split("\n")
+      .map((line) => line.replace(/\s+$/g, ""))
+      .join("\n");
+  } else {
+    text = text.replace(/\s+/g, " ");
+  }
+  return text.trim();
+}
+
+function createEditable({
+  tag = "div",
+  className = "",
+  value = "",
+  placeholder = "",
+  label = "Editable text",
+  multiline = false,
+  onChange,
+} = {}) {
+  const node = document.createElement(tag);
+  node.classList.add("editable");
+  if (className) {
+    node.classList.add(...className.split(" ").filter(Boolean));
+  }
+  node.contentEditable = "true";
+  node.setAttribute("role", "textbox");
+  node.setAttribute("spellcheck", "true");
+  if (label) {
+    node.setAttribute("aria-label", label);
+  }
+  if (multiline) {
+    node.setAttribute("aria-multiline", "true");
+    node.dataset.multiline = "true";
+  } else {
+    node.dataset.singleLine = "true";
+  }
+  if (placeholder) {
+    node.dataset.placeholder = placeholder;
+  }
+  if (value) {
+    node.textContent = value;
+  } else {
+    node.innerHTML = "";
+  }
+
+  let lastValue = sanitizeEditableText(node, multiline);
+  node.classList.toggle("is-empty", !lastValue);
+
+  const emitChange = () => {
+    const text = sanitizeEditableText(node, multiline);
+    node.classList.toggle("is-empty", !text);
+    if (typeof onChange === "function" && text !== lastValue) {
+      lastValue = text;
+      onChange(text);
+    }
+  };
+
+  node.addEventListener("input", emitChange);
+
+  node.addEventListener("blur", () => {
+    const text = sanitizeEditableText(node, multiline);
+    node.textContent = text;
+    if (!text) {
+      node.innerHTML = "";
+    }
+    emitChange();
+  });
+
+  node.addEventListener("paste", (event) => {
+    event.preventDefault();
+    const text = event.clipboardData?.getData("text/plain") || "";
+    if (document.queryCommandSupported?.("insertText")) {
+      document.execCommand("insertText", false, text);
+    } else {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        node.textContent += text;
+        emitChange();
+        return;
+      }
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      range.collapse(false);
+    }
+  });
+
+  if (!multiline) {
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        node.blur();
+      }
+    });
+  }
+
+  return node;
+}
+
 function renderPreview() {
   elements.instructionsPreview.textContent = state.instructions;
   if (elements.previewTitle) {
@@ -289,19 +394,15 @@ function toolbarStub() {
 function renderFlipcards({ container, toolbar, data, editing }) {
   if (editing && data.cards.length < 8) {
     toolbar.append(
-      el(
-        "button",
-        {
-          class: "secondary",
-          type: "button",
-          text: "Add flipcard",
-          onclick: () => {
-            data.cards.push({ id: uid(), front: "New front", back: "New back" });
-            renderPreview();
-          },
+      el("button", {
+        class: "secondary",
+        type: "button",
+        text: "Add flipcard",
+        onclick: () => {
+          data.cards.push({ id: uid(), front: "New front", back: "New back" });
+          renderPreview();
         },
-        []
-      )
+      })
     );
   }
 
@@ -315,45 +416,52 @@ function renderFlipcards({ container, toolbar, data, editing }) {
   if (editing) {
     const grid = el("div", { class: "flipcard-grid" });
     data.cards.forEach((card, index) => {
-      const cardWrapper = el("article", { class: "flipcard" });
-      const frontId = `flip-front-${card.id}`;
-      const backId = `flip-back-${card.id}`;
-      cardWrapper.append(
-        el("div", { class: "card-face" }, [
-          el("label", { for: frontId, text: `Front ${index + 1}` }),
-          el("textarea", {
-            id: frontId,
-            rows: 3,
-            value: card.front,
-            oninput: (event) => {
-              card.front = event.target.value;
-            },
-          }),
-        ]),
-        el("div", { class: "card-face" }, [
-          el("label", { for: backId, text: `Back ${index + 1}` }),
-          el("textarea", {
-            id: backId,
-            rows: 3,
-            value: card.back,
-            oninput: (event) => {
-              card.back = event.target.value;
-            },
-          }),
-        ]),
-        el(
-          "button",
-          {
-            type: "button",
-            class: "secondary",
-            text: "Remove card",
-            onclick: () => {
-              data.cards = data.cards.filter((c) => c.id !== card.id);
-              renderPreview();
-            },
-          }
-        )
-      );
+      const cardWrapper = el("article", { class: "flipcard-card" });
+      cardWrapper.dataset.face = "front";
+      const faces = el("div", { class: "flipcard-faces" });
+      const frontFace = createEditable({
+        className: "card-side card-front",
+        value: card.front,
+        placeholder: "Front content",
+        label: `Front content for card ${index + 1}`,
+        multiline: true,
+        onChange: (text) => {
+          card.front = text;
+        },
+      });
+      const backFace = createEditable({
+        className: "card-side card-back",
+        value: card.back,
+        placeholder: "Back content",
+        label: `Back content for card ${index + 1}`,
+        multiline: true,
+        onChange: (text) => {
+          card.back = text;
+        },
+      });
+      faces.append(frontFace, backFace);
+      const controls = el("div", { class: "card-actions" });
+      const toggle = el("button", {
+        type: "button",
+        class: "secondary",
+        text: "Show back",
+        onclick: () => {
+          const showingBack = cardWrapper.dataset.face === "back";
+          cardWrapper.dataset.face = showingBack ? "front" : "back";
+          toggle.textContent = showingBack ? "Show back" : "Show front";
+        },
+      });
+      const remove = el("button", {
+        type: "button",
+        class: "secondary",
+        text: "Remove card",
+        onclick: () => {
+          data.cards = data.cards.filter((c) => c.id !== card.id);
+          renderPreview();
+        },
+      });
+      controls.append(toggle, remove);
+      cardWrapper.append(faces, controls);
       grid.append(cardWrapper);
     });
     container.append(grid);
@@ -412,41 +520,69 @@ function renderAccordion({ container, toolbar, data, editing }) {
       return;
     }
 
-    const list = el("div", { class: "accordion" });
-    data.panels.forEach((panel) => {
-      const headingId = `accordion-heading-${panel.id}`;
-      const contentId = `accordion-content-${panel.id}`;
-      const panelWrap = el("div", { class: "accordion-panel" });
-      panelWrap.append(
-        el("label", { for: headingId, text: "Heading" }),
-        el("input", {
-          id: headingId,
-          type: "text",
-          value: panel.heading,
-          oninput: (event) => {
-            panel.heading = event.target.value;
-          },
-        }),
-        el("label", { for: contentId, text: "Content" }),
-        el("textarea", {
-          id: contentId,
-          rows: 3,
-          value: panel.content,
-          oninput: (event) => {
-            panel.content = event.target.value;
+    const list = el("div", { class: "accordion-editor" });
+    data.panels.forEach((panel, index) => {
+      const item = el("article", { class: "accordion-item" });
+      const heading = createEditable({
+        className: "accordion-heading",
+        value: panel.heading,
+        placeholder: `Section ${index + 1} heading`,
+        label: `Accordion heading ${index + 1}`,
+        multiline: false,
+        onChange: (text) => {
+          panel.heading = text;
+        },
+      });
+      const content = createEditable({
+        className: "accordion-content",
+        value: panel.content,
+        placeholder: "Describe this accordion section",
+        label: `Accordion content ${index + 1}`,
+        multiline: true,
+        onChange: (text) => {
+          panel.content = text;
+        },
+      });
+      const controls = el("div", { class: "item-controls" });
+      controls.append(
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move up",
+          onclick: () => {
+            const currentIndex = data.panels.findIndex((p) => p.id === panel.id);
+            if (currentIndex > 0) {
+              const [removed] = data.panels.splice(currentIndex, 1);
+              data.panels.splice(currentIndex - 1, 0, removed);
+              renderPreview();
+            }
           },
         }),
         el("button", {
           type: "button",
           class: "secondary",
-          text: "Remove section",
+          text: "Move down",
+          onclick: () => {
+            const currentIndex = data.panels.findIndex((p) => p.id === panel.id);
+            if (currentIndex >= 0 && currentIndex < data.panels.length - 1) {
+              const [removed] = data.panels.splice(currentIndex, 1);
+              data.panels.splice(currentIndex + 1, 0, removed);
+              renderPreview();
+            }
+          },
+        }),
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Remove",
           onclick: () => {
             data.panels = data.panels.filter((p) => p.id !== panel.id);
             renderPreview();
           },
         })
       );
-      list.append(panelWrap);
+      item.append(heading, content, controls);
+      list.append(item);
     });
     container.append(list);
   } else {
@@ -466,115 +602,157 @@ function renderAccordion({ container, toolbar, data, editing }) {
 function renderDragDrop({ container, toolbar, data, editing }) {
   if (editing) {
     const editor = el("div", { class: "dragdrop-editor" });
-    const promptId = `dragprompt-${uid()}`;
+    const promptField = createEditable({
+      className: "dragdrop-prompt",
+      value: data.prompt,
+      placeholder: "Describe what learners should do",
+      label: "Prompt",
+      multiline: true,
+      onChange: (text) => {
+        data.prompt = text;
+      },
+    });
+    editor.append(promptField);
+
+    editor.append(el("div", { class: "helper-text", text: "Drop zones" }));
+
+    const dropGrid = el("div", { class: "dragdrop-stage edit-mode" });
+    const itemList = el("div", { class: "draggable-pool edit-mode" });
+
+    function refreshAssignments() {
+      const assignments = new Map();
+      data.drops.forEach((drop) => assignments.set(drop.id, []));
+      data.items.forEach((item) => {
+        if (item.correctDropId && assignments.has(item.correctDropId)) {
+          assignments.get(item.correctDropId).push(item);
+        }
+      });
+      dropGrid.querySelectorAll(".dropzone-editor").forEach((zone) => {
+        const list = zone.querySelector(".assignment-list");
+        const dropId = zone.getAttribute("data-drop");
+        const entries = assignments.get(dropId) || [];
+        list.innerHTML = "";
+        if (!entries.length) {
+          list.append(el("li", { class: "assignment-empty", text: "No assigned items yet." }));
+        } else {
+          entries.forEach((entry) => {
+            list.append(el("li", { text: entry.label || "Untitled item" }));
+          });
+        }
+      });
+      itemList.querySelectorAll("[data-item]").forEach((card) => {
+        const chip = card.querySelector(".assignment-chip");
+        if (!chip) return;
+        const id = card.getAttribute("data-item");
+        const item = data.items.find((entry) => entry.id === id);
+        if (!item || !item.correctDropId) {
+          chip.textContent = "No match yet";
+          return;
+        }
+        const drop = data.drops.find((target) => target.id === item.correctDropId);
+        chip.textContent = drop && drop.title ? `Matches: ${drop.title}` : "No match yet";
+      });
+    }
+
+    data.drops.forEach((drop, index) => {
+      const dropzone = el("div", { class: "dropzone dropzone-editor", "data-drop": drop.id });
+      const header = el("div", { class: "dropzone-header" });
+      const titleField = createEditable({
+        className: "dropzone-title",
+        value: drop.title,
+        placeholder: `Category ${index + 1}`,
+        label: `Drop zone ${index + 1} title`,
+        multiline: false,
+        onChange: (text) => {
+          drop.title = text;
+          refreshAssignments();
+        },
+      });
+      const removeButton = el("button", {
+        type: "button",
+        class: "secondary",
+        text: "Remove",
+        onclick: () => {
+          data.drops = data.drops.filter((d) => d.id !== drop.id);
+          data.items.forEach((item) => {
+            if (item.correctDropId === drop.id) {
+              item.correctDropId = null;
+            }
+          });
+          renderPreview();
+        },
+      });
+      header.append(titleField, el("div", { class: "item-controls" }, [removeButton]));
+      const assignmentList = el("ul", { class: "assignment-list" });
+      dropzone.append(header, assignmentList);
+      dropGrid.append(dropzone);
+    });
+    editor.append(dropGrid);
+
     editor.append(
-      el("label", { for: promptId, text: "Prompt" }),
-      el("textarea", {
-        id: promptId,
-        rows: 2,
-        value: data.prompt,
-        oninput: (event) => {
-          data.prompt = event.target.value;
+      el("button", {
+        type: "button",
+        class: "secondary",
+        text: "Add drop zone",
+        onclick: () => {
+          data.drops.push({ id: uid(), title: `Category ${data.drops.length + 1}` });
+          renderPreview();
         },
       })
     );
 
-    const dropHeader = el("div", { class: "helper-text", text: "Drop zones" });
-    editor.append(dropHeader);
+    editor.append(el("div", { class: "helper-text", text: "Draggable items" }));
 
-    const dropGrid = el("div", { class: "dragdrop-stage" });
-    data.drops.forEach((drop) => {
-      const dropWrap = el("div", { class: "dropzone" });
-      const dropTitleId = `drop-${drop.id}`;
-      dropWrap.append(
-        el("label", { for: dropTitleId, text: "Title" }),
-        el("input", {
-          id: dropTitleId,
-          type: "text",
-          value: drop.title,
-          oninput: (event) => {
-            drop.title = event.target.value;
-          },
+    data.items.forEach((item, index) => {
+      const card = el("div", { class: "draggable-item editor", "data-item": item.id });
+      const labelField = createEditable({
+        className: "draggable-label",
+        value: item.label,
+        placeholder: `Item ${index + 1}`,
+        label: `Draggable item ${index + 1}`,
+        multiline: false,
+        onChange: (text) => {
+          item.label = text;
+          refreshAssignments();
+        },
+      });
+      const selectId = `item-select-${item.id}`;
+      const select = el("select", { id: selectId, class: "assignment-select" });
+      select.append(el("option", { value: "", text: "No match" }));
+      data.drops.forEach((drop) => {
+        const option = el("option", { value: drop.id, text: drop.title || "Untitled drop" });
+        if (item.correctDropId === drop.id) {
+          option.selected = true;
+        }
+        select.append(option);
+      });
+      select.addEventListener("change", (event) => {
+        item.correctDropId = event.target.value || null;
+        refreshAssignments();
+      });
+      const selectWrapper = el("div", { class: "assignment-control" });
+      selectWrapper.append(
+        el("label", {
+          class: "sr-only",
+          for: selectId,
+          text: `Correct drop for ${item.label || `item ${index + 1}`}`,
         }),
-        el("button", {
-          type: "button",
-          class: "secondary",
-          text: "Remove drop zone",
-          onclick: () => {
-            data.drops = data.drops.filter((d) => d.id !== drop.id);
-            data.items.forEach((item) => {
-              if (item.correctDropId === drop.id) {
-                item.correctDropId = null;
-              }
-            });
-            renderPreview();
-          },
-        })
+        select,
+        el("span", { class: "assignment-chip" })
       );
-      dropGrid.append(dropWrap);
+      const removeButton = el("button", {
+        type: "button",
+        class: "secondary",
+        text: "Remove",
+        onclick: () => {
+          data.items = data.items.filter((i) => i.id !== item.id);
+          renderPreview();
+        },
+      });
+      card.append(labelField, selectWrapper, removeButton);
+      itemList.append(card);
     });
-    editor.append(dropGrid);
 
-    const addDropButton = el("button", {
-      type: "button",
-      class: "secondary",
-      text: "Add drop zone",
-      onclick: () => {
-        data.drops.push({ id: uid(), title: "New category" });
-        renderPreview();
-      },
-    });
-    editor.append(addDropButton);
-
-    const itemsHeader = el("div", { class: "helper-text", text: "Draggable items" });
-    editor.append(itemsHeader);
-
-    const itemList = el("div", { class: "draggable-pool" });
-    data.items.forEach((item) => {
-      const itemWrap = el("div", { class: "draggable-item" });
-      const itemLabelId = `item-${item.id}`;
-      const itemSelectId = `item-select-${item.id}`;
-      itemWrap.append(
-        el("label", { for: itemLabelId, text: "Label" }),
-        el("input", {
-          id: itemLabelId,
-          type: "text",
-          value: item.label,
-          oninput: (event) => {
-            item.label = event.target.value;
-          },
-        }),
-        el("label", { for: itemSelectId, text: "Correct drop" }),
-        (() => {
-          const select = el("select", { id: itemSelectId });
-          select.append(el("option", { value: "", text: "No match" }));
-          data.drops.forEach((drop) => {
-            const option = el("option", {
-              value: drop.id,
-              text: drop.title,
-            });
-            if (item.correctDropId === drop.id) {
-              option.selected = true;
-            }
-            select.append(option);
-          });
-          select.addEventListener("change", (event) => {
-            item.correctDropId = event.target.value || null;
-          });
-          return select;
-        })(),
-        el("button", {
-          type: "button",
-          class: "secondary",
-          text: "Remove item",
-          onclick: () => {
-            data.items = data.items.filter((i) => i.id !== item.id);
-            renderPreview();
-          },
-        })
-      );
-      itemList.append(itemWrap);
-    });
     editor.append(itemList);
 
     editor.append(
@@ -590,6 +768,7 @@ function renderDragDrop({ container, toolbar, data, editing }) {
     );
 
     container.append(editor);
+    refreshAssignments();
   } else {
     const wrapper = el("div", { class: "dragdrop-editor" });
     if (data.prompt) {
@@ -768,7 +947,7 @@ function renderHotspots({ container, toolbar, data, editing }) {
   if (editing) {
     const editor = el("div", { class: "hotspot-editor" });
     const imageFieldId = `hotspot-image-${uid()}`;
-    const altFieldId = `hotspot-alt-${uid()}`;
+    let liveImage = null;
     editor.append(
       el("label", { for: imageFieldId, text: "Image URL" }),
       el("input", {
@@ -778,18 +957,29 @@ function renderHotspots({ container, toolbar, data, editing }) {
         value: data.imageUrl,
         oninput: (event) => {
           data.imageUrl = event.target.value;
+        },
+        onchange: () => {
           renderPreview();
         },
-      }),
-      el("label", { for: altFieldId, text: "Alternative text" }),
-      el("input", {
-        id: altFieldId,
-        type: "text",
-        value: data.altText,
-        oninput: (event) => {
-          data.altText = event.target.value;
-        },
-      }),
+      })
+    );
+
+    const altField = createEditable({
+      className: "hotspot-alt",
+      value: data.altText,
+      placeholder: "Describe the image for screen readers",
+      label: "Alternative text",
+      multiline: false,
+      onChange: (text) => {
+        data.altText = text;
+        if (liveImage) {
+          liveImage.alt = text || "Hotspot graphic";
+        }
+      },
+    });
+    editor.append(altField);
+
+    editor.append(
       el("p", {
         class: "helper-text",
         text: "Click the image to place a hotspot. Drag markers to reposition.",
@@ -797,8 +987,10 @@ function renderHotspots({ container, toolbar, data, editing }) {
     );
 
     const wrapper = el("div", { class: "hotspot-image-wrapper" });
+    const markers = new Map();
     if (data.imageUrl) {
       const image = new Image();
+      liveImage = image;
       image.alt = data.altText || "Hotspot graphic";
       image.src = data.imageUrl;
       image.addEventListener("error", () => {
@@ -832,8 +1024,17 @@ function renderHotspots({ container, toolbar, data, editing }) {
           style: `left: ${spot.x}%; top: ${spot.y}%;`,
           "aria-label": spot.title || `Hotspot ${index + 1}`,
         });
+        marker.addEventListener("click", () => {
+          const detail = editor.querySelector(`[data-spot="${spot.id}"]`);
+          if (detail) {
+            detail.scrollIntoView({ behavior: "smooth", block: "center" });
+            const editable = detail.querySelector(".editable");
+            editable?.focus({ preventScroll: true });
+          }
+        });
         enableHotspotDrag(marker, spot, wrapper);
         wrapper.append(marker);
+        markers.set(spot.id, marker);
       });
     } else {
       wrapper.append(
@@ -847,40 +1048,47 @@ function renderHotspots({ container, toolbar, data, editing }) {
     editor.append(wrapper);
 
     if (data.spots.length) {
-      const list = el("div", { class: "hotspot-description" });
+      const list = el("div", { class: "hotspot-details" });
       data.spots.forEach((spot, index) => {
-        const titleId = `spot-title-${spot.id}`;
-        const descId = `spot-desc-${spot.id}`;
-        list.append(
-          el("h3", { text: `Hotspot ${index + 1}` }),
-          el("label", { for: titleId, text: "Title" }),
-          el("input", {
-            id: titleId,
-            type: "text",
-            value: spot.title,
-            oninput: (event) => {
-              spot.title = event.target.value;
-            },
-          }),
-          el("label", { for: descId, text: "Description" }),
-          el("textarea", {
-            id: descId,
-            rows: 3,
-            value: spot.description,
-            oninput: (event) => {
-              spot.description = event.target.value;
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Remove hotspot",
-            onclick: () => {
-              data.spots = data.spots.filter((s) => s.id !== spot.id);
-              renderPreview();
-            },
-          })
+        const block = el("article", { class: "hotspot-detail", "data-spot": spot.id });
+        block.append(
+          el("h3", { text: `Hotspot ${index + 1}` })
         );
+        const titleField = createEditable({
+          className: "hotspot-title",
+          value: spot.title,
+          placeholder: "Hotspot title",
+          label: `Hotspot ${index + 1} title`,
+          multiline: false,
+          onChange: (text) => {
+            spot.title = text;
+            const marker = markers.get(spot.id);
+            if (marker) {
+              marker.setAttribute("aria-label", text || `Hotspot ${index + 1}`);
+            }
+          },
+        });
+        const descField = createEditable({
+          className: "hotspot-text",
+          value: spot.description,
+          placeholder: "Describe this hotspot",
+          label: `Hotspot ${index + 1} description`,
+          multiline: true,
+          onChange: (text) => {
+            spot.description = text;
+          },
+        });
+        const removeButton = el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Remove",
+          onclick: () => {
+            data.spots = data.spots.filter((s) => s.id !== spot.id);
+            renderPreview();
+          },
+        });
+        block.append(titleField, descField, removeButton);
+        list.append(block);
       });
       editor.append(list);
     }
@@ -989,73 +1197,115 @@ function renderImageSort({ container, toolbar, data, editing }) {
       })
     );
 
-    const grid = el("div", { class: "sorting-editor" });
+    const grid = el("div", { class: "image-card-grid" });
     data.items.forEach((item, index) => {
-      const imageId = `image-${item.id}`;
-      const labelId = `image-label-${item.id}`;
-      const altId = `image-alt-${item.id}`;
-      const card = el("div", { class: "sortable-item" });
+      const card = el("figure", { class: "image-card", "data-item": item.id });
+      const frame = el("div", { class: "image-frame" });
+      let imageElement = null;
+      const updateFrame = () => {
+        frame.innerHTML = "";
+        if (item.imageUrl) {
+          const img = new Image();
+          imageElement = img;
+          img.src = item.imageUrl;
+          img.alt = item.altText || item.label || `Image ${index + 1}`;
+          img.addEventListener("error", () => {
+            frame.innerHTML = "";
+            frame.append(el("div", { class: "image-placeholder", text: "Image unavailable" }));
+          });
+          frame.append(img);
+        } else {
+          imageElement = null;
+          frame.append(el("div", { class: "image-placeholder", text: "Add image URL" }));
+        }
+      };
+      updateFrame();
+
+      const urlId = `image-${item.id}`;
+      const urlInput = el("input", {
+        id: urlId,
+        type: "url",
+        class: "image-url",
+        value: item.imageUrl,
+        placeholder: "https://...",
+        oninput: (event) => {
+          item.imageUrl = event.target.value;
+        },
+        onchange: () => {
+          updateFrame();
+        },
+      });
+
+      const labelField = createEditable({
+        className: "image-label",
+        value: item.label,
+        placeholder: "Image label",
+        label: `Image ${index + 1} label`,
+        multiline: false,
+        onChange: (text) => {
+          item.label = text;
+          if (imageElement) {
+            imageElement.alt = item.altText || text || `Image ${index + 1}`;
+          }
+        },
+      });
+
+      const altField = createEditable({
+        className: "image-alt",
+        value: item.altText,
+        placeholder: "Alt text for screen readers",
+        label: `Image ${index + 1} alternative text`,
+        multiline: false,
+        onChange: (text) => {
+          item.altText = text;
+          if (imageElement) {
+            imageElement.alt = text || item.label || `Image ${index + 1}`;
+          }
+        },
+      });
+
+      const controls = el("div", { class: "item-controls" });
+      controls.append(
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move up",
+          onclick: () => {
+            if (index === 0) return;
+            const [removed] = data.items.splice(index, 1);
+            data.items.splice(index - 1, 0, removed);
+            renderPreview();
+          },
+        }),
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move down",
+          onclick: () => {
+            if (index === data.items.length - 1) return;
+            const [removed] = data.items.splice(index, 1);
+            data.items.splice(index + 1, 0, removed);
+            renderPreview();
+          },
+        }),
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Remove",
+          onclick: () => {
+            data.items = data.items.filter((i) => i.id !== item.id);
+            renderPreview();
+          },
+        })
+      );
+
       card.append(
-        el("label", { for: imageId, text: "Image URL" }),
-        el("input", {
-          id: imageId,
-          type: "url",
-          value: item.imageUrl,
-          oninput: (event) => {
-            item.imageUrl = event.target.value;
-          },
-        }),
-        el("label", { for: labelId, text: "Label" }),
-        el("input", {
-          id: labelId,
-          type: "text",
-          value: item.label,
-          oninput: (event) => {
-            item.label = event.target.value;
-          },
-        }),
-        el("label", { for: altId, text: "Alt text" }),
-        el("input", {
-          id: altId,
-          type: "text",
-          value: item.altText,
-          oninput: (event) => {
-            item.altText = event.target.value;
-          },
-        }),
-        el("div", { class: "preview-toolbar-actions" }, [
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Move up",
-            onclick: () => {
-              if (index === 0) return;
-              const [removed] = data.items.splice(index, 1);
-              data.items.splice(index - 1, 0, removed);
-              renderPreview();
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Move down",
-            onclick: () => {
-              if (index === data.items.length - 1) return;
-              const [removed] = data.items.splice(index, 1);
-              data.items.splice(index + 1, 0, removed);
-              renderPreview();
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Remove",
-            onclick: () => {
-              data.items = data.items.filter((i) => i.id !== item.id);
-              renderPreview();
-            },
-          }),
-        ])
+        frame,
+        el("label", { class: "sr-only", for: urlId, text: `Image ${index + 1} URL` }),
+        urlInput,
+        labelField,
+        altField,
+        controls
       );
       grid.append(card);
     });
@@ -1099,53 +1349,55 @@ function renderWordSort({ container, toolbar, data, editing }) {
         },
       })
     );
-    const list = el("div", { class: "sorting-editor" });
+    const list = el("div", { class: "word-chip-list" });
     data.words.forEach((word, index) => {
-      const inputId = `word-${word.id}`;
-      list.append(
-        el("label", { for: inputId, text: `Word ${index + 1}` }),
-        el("input", {
-          id: inputId,
-          type: "text",
-          value: word.label,
-          oninput: (event) => {
-            word.label = event.target.value;
+      const chip = el("div", { class: "word-chip", "data-word": word.id });
+      const textField = createEditable({
+        className: "word-text",
+        value: word.label,
+        placeholder: `Word ${index + 1}`,
+        label: `Word ${index + 1}`,
+        multiline: false,
+        onChange: (text) => {
+          word.label = text;
+        },
+      });
+      const controls = el("div", { class: "item-controls" });
+      controls.append(
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move up",
+          onclick: () => {
+            if (index === 0) return;
+            const [removed] = data.words.splice(index, 1);
+            data.words.splice(index - 1, 0, removed);
+            renderPreview();
           },
         }),
-        el("div", { class: "preview-toolbar-actions" }, [
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Move up",
-            onclick: () => {
-              if (index === 0) return;
-              const [removed] = data.words.splice(index, 1);
-              data.words.splice(index - 1, 0, removed);
-              renderPreview();
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Move down",
-            onclick: () => {
-              if (index === data.words.length - 1) return;
-              const [removed] = data.words.splice(index, 1);
-              data.words.splice(index + 1, 0, removed);
-              renderPreview();
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Remove",
-            onclick: () => {
-              data.words = data.words.filter((w) => w.id !== word.id);
-              renderPreview();
-            },
-          }),
-        ])
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move down",
+          onclick: () => {
+            if (index === data.words.length - 1) return;
+            const [removed] = data.words.splice(index, 1);
+            data.words.splice(index + 1, 0, removed);
+            renderPreview();
+          },
+        }),
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Remove",
+          onclick: () => {
+            data.words = data.words.filter((w) => w.id !== word.id);
+            renderPreview();
+          },
+        })
       );
+      chip.append(textField, controls);
+      list.append(chip);
     });
     container.append(list);
   } else {
@@ -1184,75 +1436,75 @@ function renderTimeline({ container, toolbar, data, editing }) {
       })
     );
 
-    const list = el("div", { class: "timeline" });
+    const list = el("ol", { class: "timeline timeline-editor" });
     data.events.forEach((eventItem, index) => {
-      const wrap = el("div", { class: "timeline-event" });
-      const titleId = `timeline-title-${eventItem.id}`;
-      const dateId = `timeline-date-${eventItem.id}`;
-      const descId = `timeline-desc-${eventItem.id}`;
-      wrap.append(
-        el("label", { for: titleId, text: "Title" }),
-        el("input", {
-          id: titleId,
-          type: "text",
-          value: eventItem.title,
-          oninput: (event) => {
-            eventItem.title = event.target.value;
+      const item = el("li", { class: "timeline-event", "data-event": eventItem.id });
+      const titleField = createEditable({
+        className: "timeline-title",
+        value: eventItem.title,
+        placeholder: `Event ${index + 1} title`,
+        label: `Timeline event ${index + 1} title`,
+        multiline: false,
+        onChange: (text) => {
+          eventItem.title = text;
+        },
+      });
+      const dateField = createEditable({
+        className: "timeline-date",
+        value: eventItem.date,
+        placeholder: "Date or year",
+        label: `Timeline event ${index + 1} date`,
+        multiline: false,
+        onChange: (text) => {
+          eventItem.date = text;
+        },
+      });
+      const descField = createEditable({
+        className: "timeline-text",
+        value: eventItem.description,
+        placeholder: "Describe this milestone",
+        label: `Timeline event ${index + 1} description`,
+        multiline: true,
+        onChange: (text) => {
+          eventItem.description = text;
+        },
+      });
+      const controls = el("div", { class: "item-controls" });
+      controls.append(
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move up",
+          onclick: () => {
+            if (index === 0) return;
+            const [removed] = data.events.splice(index, 1);
+            data.events.splice(index - 1, 0, removed);
+            renderPreview();
           },
         }),
-        el("label", { for: dateId, text: "Date or year" }),
-        el("input", {
-          id: dateId,
-          type: "text",
-          value: eventItem.date,
-          oninput: (event) => {
-            eventItem.date = event.target.value;
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Move down",
+          onclick: () => {
+            if (index === data.events.length - 1) return;
+            const [removed] = data.events.splice(index, 1);
+            data.events.splice(index + 1, 0, removed);
+            renderPreview();
           },
         }),
-        el("label", { for: descId, text: "Description" }),
-        el("textarea", {
-          id: descId,
-          rows: 3,
-          value: eventItem.description,
-          oninput: (event) => {
-            eventItem.description = event.target.value;
+        el("button", {
+          type: "button",
+          class: "secondary",
+          text: "Remove",
+          onclick: () => {
+            data.events = data.events.filter((evt) => evt.id !== eventItem.id);
+            renderPreview();
           },
-        }),
-        el("div", { class: "preview-toolbar-actions" }, [
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Move up",
-            onclick: () => {
-              if (index === 0) return;
-              const [removed] = data.events.splice(index, 1);
-              data.events.splice(index - 1, 0, removed);
-              renderPreview();
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Move down",
-            onclick: () => {
-              if (index === data.events.length - 1) return;
-              const [removed] = data.events.splice(index, 1);
-              data.events.splice(index + 1, 0, removed);
-              renderPreview();
-            },
-          }),
-          el("button", {
-            type: "button",
-            class: "secondary",
-            text: "Remove",
-            onclick: () => {
-              data.events = data.events.filter((evt) => evt.id !== eventItem.id);
-              renderPreview();
-            },
-          }),
-        ])
+        })
       );
-      list.append(wrap);
+      item.append(titleField, dateField, descField, controls);
+      list.append(item);
     });
     container.append(list);
   } else {
