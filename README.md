@@ -1,33 +1,39 @@
-# Canvas Designer
+# Canvas Interactive Builder
 
-Canvas Designer is a lightweight, browser-based builder for creating interactive elements that can be pasted straight into a Canvas LMS page. The tool currently supports two activity types:
+Canvas Interactive Builder is a lightweight web application for authoring interactive learning elements inspired by H5P. Educators can create activities and embed them inside Canvas LMS pages using an automatically generated iframe snippet.
 
-- **Flip cards** – great for quick knowledge checks or revealing layered information.
-- **Image hotspots** – upload any hosted image, drop clickable markers, and describe each point.
+## Features
 
-Every configuration change instantly refreshes the on-page preview and regenerates a ready-to-use embed snippet. Designs are saved to the browser's local storage so you can return later without losing your work.
+- **Activity templates** for flipcards, accordions, drag & drop, hotspots, image sorting, word sorting, and timelines.
+- **Inline editing** directly inside the preview canvas with accessible form controls.
+- **Firebase-backed saving** so activities can be stored, revisited, and shared by ID.
+- **Embed dialog** that produces a ready-to-use iframe code snippet for Canvas LMS.
+- **Responsive layout** with guidance for inclusive, accessible content design.
 
 ## Getting started
 
-1. Open `index.html` in your preferred browser (double-click it or serve the folder via any static web server).
-2. Pick an interactive type from the Builder panel.
-3. Customize the settings. Hotspots can be added by clicking on the preview image or by using the **Add hotspot manually** button.
-4. Click **Save design** at any time to persist the setup in your browser.
-5. Copy the generated embed code and paste it into the Canvas LMS **HTML Editor**.
+1. Open `index.html` in your browser.
+2. Choose an activity type and customize content directly within the preview.
+3. Save the activity to generate a shareable code.
+4. Use the **Embed Code** button to copy the iframe HTML for Canvas LMS.
 
-> **Tip:** Use the keyboard shortcut **Ctrl/⌘+S** to quickly save your design.
+## Firebase configuration
 
-## Embed snippet notes
+The application is pre-configured to use the following Firebase project:
 
-- The embed code is completely self-contained (inline CSS + JS) and does not rely on external hosting or dependencies.
-- Each embed is namespaced with a unique ID so you can safely place multiple widgets on the same Canvas page.
-- Hotspot embeds require the image to be hosted somewhere publicly accessible (institutional CMS, Google Drive with sharing enabled, etc.).
+```
+const firebaseConfig = {
+  apiKey: "AIzaSyBLj8Ql3rEOLmIiVW6IDa8uJNGFLNbhA6U",
+  authDomain: "tdt-sandbox.firebaseapp.com",
+  projectId: "tdt-sandbox",
+  storageBucket: "tdt-sandbox.firebasestorage.app",
+  messagingSenderId: "924451875699",
+  appId: "1:924451875699:web:46464d31b27c4c62b3f306"
+};
+```
 
-## Development
+## Development notes
 
-This project is intentionally dependency-free. If you would like to extend it:
-
-1. Edit the HTML/CSS/JS files directly.
-2. Refresh the browser tab to see your changes.
-
-Feel free to adapt the builder to additional activity types or integrate it with a backend (Firebase credentials are provided in the task description) if persistent multi-user storage is required.
+- The app uses the Firebase modular SDK (v10+) via ESM imports.
+- All functionality lives in `scripts/app.js`; styles are in `styles/main.css`.
+- No build tooling is required—everything runs in the browser.
