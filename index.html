@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Canvas Designer - Interactive Embed Builder</title>
+    <title>Canvas Designer – Interactive Embed Builder</title>
     <link rel="stylesheet" href="styles/style.css" />
   </head>
   <body>
     <header class="app-header">
-      <div class="header-content">
+      <div class="header-text">
         <h1>Canvas Designer</h1>
-        <p>Create and customize interactive widgets for Canvas LMS in minutes.</p>
+        <p>Create interactive widgets you can paste directly into the Canvas LMS HTML editor.</p>
       </div>
       <div class="header-actions">
         <button id="newDesign" class="ghost">New design</button>
@@ -19,12 +19,12 @@
     </header>
 
     <main class="app-main">
-      <section class="controls">
+      <section class="panel builder" aria-label="Builder controls">
         <h2>Builder</h2>
         <div class="field">
           <label for="widgetType">Interactive type</label>
           <select id="widgetType">
-            <option value="flip-card">Flip card</option>
+            <option value="flip-card">Flip cards</option>
             <option value="hotspot">Image hotspots</option>
           </select>
         </div>
@@ -34,37 +34,36 @@
           <div class="split">
             <div class="field">
               <label for="flipCardWidth">Width (px)</label>
-              <input type="number" id="flipCardWidth" min="160" value="320" />
+              <input type="number" id="flipCardWidth" min="160" max="640" step="10" />
             </div>
             <div class="field">
               <label for="flipCardHeight">Height (px)</label>
-              <input type="number" id="flipCardHeight" min="160" value="200" />
+              <input type="number" id="flipCardHeight" min="160" max="640" step="10" />
             </div>
           </div>
           <div class="split">
             <div class="field">
               <label for="flipFrontColor">Front background</label>
-              <input type="color" id="flipFrontColor" value="#1b9aaa" />
+              <input type="color" id="flipFrontColor" />
             </div>
             <div class="field">
               <label for="flipBackColor">Back background</label>
-              <input type="color" id="flipBackColor" value="#ef767a" />
+              <input type="color" id="flipBackColor" />
             </div>
           </div>
           <div class="split">
             <div class="field">
               <label for="flipFrontTextColor">Front text color</label>
-              <input type="color" id="flipFrontTextColor" value="#ffffff" />
+              <input type="color" id="flipFrontTextColor" />
             </div>
             <div class="field">
               <label for="flipBackTextColor">Back text color</label>
-              <input type="color" id="flipBackTextColor" value="#ffffff" />
+              <input type="color" id="flipBackTextColor" />
             </div>
           </div>
+
           <div class="subheading">Cards</div>
-          <p class="hint">
-            Add up to eight cards. They will automatically arrange in rows that fit the Canvas content width.
-          </p>
+          <p class="hint">Add up to eight cards. They will arrange themselves to fit the Canvas content width.</p>
           <div id="flipCardCardsList" class="flipcard-card-list"></div>
           <button type="button" id="addFlipCard" class="ghost full-width">Add another card</button>
         </section>
@@ -78,17 +77,9 @@
           </div>
           <div class="field">
             <label for="hotspotImageUrl">Image URL</label>
-            <input
-              type="url"
-              id="hotspotImageUrl"
-              placeholder="Paste an image URL (must be publicly accessible)"
-            />
+            <input type="url" id="hotspotImageUrl" placeholder="https://example.com/image.jpg" />
             <p id="hotspotImageInfo" class="hint" aria-live="polite"></p>
           </div>
-          <p class="hint">
-            Tip: After the image loads, click anywhere on the preview to add a hotspot. Select a hotspot in the
-            preview to update its title, description, or position.
-          </p>
           <div class="field">
             <label for="hotspotTheme">Theme</label>
             <select id="hotspotTheme">
@@ -96,36 +87,35 @@
               <option value="dark">Dark</option>
             </select>
           </div>
+          <p class="hint">
+            After the image loads, click the preview to place hotspots. Select a hotspot to edit it directly next to the image.
+          </p>
           <button type="button" id="addHotspot" class="ghost full-width">Add hotspot manually</button>
-          <div class="hotspot-list" id="hotspotList"></div>
+          <div id="hotspotList" class="hotspot-list"></div>
         </section>
       </section>
 
-      <section class="preview">
+      <section class="panel preview" aria-label="Live preview">
         <div class="preview-header">
           <h2>Live preview</h2>
           <div class="preview-actions">
             <button id="refreshPreview" class="ghost">Refresh</button>
-            <button id="toggleEmbed" class="ghost" aria-controls="embedSection">Show embed code</button>
+            <button id="toggleEmbed" class="ghost" aria-controls="embedSection" aria-expanded="false">Show embed code</button>
           </div>
         </div>
         <div id="previewCanvas" class="preview-canvas">
-          <div class="placeholder">
-            Choose an interactive type and start customizing to see the preview.
-          </div>
+          <div class="placeholder">Pick an interactive type and start customizing to see the preview.</div>
         </div>
       </section>
     </main>
 
-    <section class="embed" id="embedSection" hidden>
+    <section class="panel embed" id="embedSection" hidden>
       <div class="embed-header">
         <h2>Embed code</h2>
         <button id="copyEmbed" class="ghost">Copy</button>
       </div>
       <textarea id="embedCode" readonly></textarea>
-      <p class="hint">
-        Paste this code into the Canvas LMS <strong>HTML Editor</strong> to add the widget to your page.
-      </p>
+      <p class="hint">Paste this code into the Canvas HTML editor while in HTML view.</p>
     </section>
 
     <template id="hotspotRowTemplate">
@@ -142,11 +132,11 @@
         <div class="field split">
           <div>
             <label>X (%)</label>
-            <input type="number" class="hotspot-x" min="0" max="100" />
+            <input type="number" class="hotspot-x" min="0" max="100" step="0.1" />
           </div>
           <div>
             <label>Y (%)</label>
-            <input type="number" class="hotspot-y" min="0" max="100" />
+            <input type="number" class="hotspot-y" min="0" max="100" step="0.1" />
           </div>
         </div>
         <div class="row-actions">
