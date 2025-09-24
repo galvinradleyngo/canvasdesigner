@@ -89,11 +89,13 @@ const templates = {
 
 const state = {
   id: null,
+  localId: uid(),
   title: "",
   type: "flipcards",
   instructions: "",
   data: templates.flipcards(),
   updatedAt: null,
+  previewMode: "build",
 };
 
 const elements = {
@@ -104,6 +106,7 @@ const elements = {
   previewCanvas: document.getElementById("previewCanvas"),
   previewToolbar: document.getElementById("previewToolbar"),
   previewTitle: document.getElementById("previewTitle"),
+  previewModeControls: document.getElementById("previewModeControls"),
   srStatus: document.getElementById("srStatus"),
   builderLayout: document.getElementById("builderLayout"),
   headerActions: document.getElementById("headerActions"),
@@ -117,6 +120,9 @@ const elements = {
   embedButton: document.getElementById("embedButton"),
   loadDialog: document.getElementById("loadDialog"),
   loadId: document.getElementById("loadId"),
+  savedList: document.getElementById("savedActivityList"),
+  savedPreview: document.getElementById("savedActivityPreview"),
+  savedEmpty: document.getElementById("savedEmpty"),
   embedDialog: document.getElementById("embedDialog"),
   embedCode: document.getElementById("embedCode"),
   embedDetails: document.getElementById("embedDetails"),
@@ -155,9 +161,110 @@ function showToast(message) {
   setTimeout(() => toast.remove(), 4000);
 }
 
+const storage = (() => {
+  try {
+    if (typeof window === "undefined" || !("localStorage" in window)) {
+      return null;
+    }
+    return window.localStorage;
+  } catch (error) {
+    console.warn("Local storage is unavailable.", error);
+    return null;
+  }
+})();
+
+const supportsLocalSaving = Boolean(storage);
+const STORAGE_KEY = "canvasdesigner.savedActivities";
+
+function cloneData(value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  try {
+    if (typeof structuredClone === "function") {
+      return structuredClone(value);
+    }
+  } catch (error) {
+    // Ignore structured clone errors and fall back to JSON cloning.
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    console.warn("Unable to clone data payload.", error);
+    return value;
+  }
+}
+
 function cloneTemplate(type) {
   const creator = templates[type];
   return creator ? creator() : {};
+}
+
+function getLocalActivities() {
+  if (!supportsLocalSaving) return [];
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn("Unable to read saved activities.", error);
+    return [];
+  }
+}
+
+function setLocalActivities(entries) {
+  if (!supportsLocalSaving) return;
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch (error) {
+    console.warn("Unable to persist saved activities.", error);
+  }
+}
+
+function snapshotState(overrides = {}) {
+  return {
+    localId: state.localId || uid(),
+    remoteId: state.id || null,
+    title: state.title,
+    type: state.type,
+    instructions: state.instructions,
+    data: cloneData(state.data),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function persistLocalActivity(entry) {
+  if (!supportsLocalSaving) return;
+  const snapshot = {
+    ...entry,
+    localId: entry.localId || state.localId || uid(),
+    updatedAt: entry.updatedAt || new Date().toISOString(),
+    data: cloneData(entry.data),
+  };
+  const existing = getLocalActivities();
+  const index = existing.findIndex((item) => item.localId === snapshot.localId);
+  if (index >= 0) {
+    existing[index] = { ...existing[index], ...snapshot };
+  } else {
+    existing.unshift(snapshot);
+  }
+  setLocalActivities(existing.slice(0, 25));
+  renderSavedActivityList();
+}
+
+function removeLocalActivity(localId) {
+  if (!supportsLocalSaving) return;
+  const remaining = getLocalActivities().filter((entry) => entry.localId !== localId);
+  setLocalActivities(remaining);
+  renderSavedActivityList();
+  clearSavedActivityPreview();
+}
+
+function findLocalByRemoteId(remoteId) {
+  if (!remoteId) return null;
+  return getLocalActivities().find((entry) => entry.remoteId === remoteId) || null;
 }
 
 function resetState(type = state.type) {
@@ -166,10 +273,10 @@ function resetState(type = state.type) {
   state.type = type;
   state.data = cloneTemplate(type);
   state.id = null;
+  state.localId = uid();
   state.updatedAt = null;
-  if (elements.embedButton) {
-    elements.embedButton.disabled = true;
-  }
+  state.previewMode = "build";
+  syncEmbedButton();
   syncFormFromState();
   renderPreview();
   announce("Started a new activity.");
@@ -189,6 +296,7 @@ elements.type.addEventListener("change", (event) => {
   const newType = event.target.value;
   state.type = newType;
   state.data = cloneTemplate(newType);
+  state.previewMode = "build";
   renderPreview();
   announce(`Switched to ${event.target.selectedOptions[0].textContent} activity.`);
 });
@@ -203,6 +311,20 @@ function syncFormFromState() {
   if (elements.type.value !== state.type) {
     elements.type.value = state.type;
   }
+}
+
+function applyActivitySnapshot(snapshot) {
+  state.localId = snapshot.localId || state.localId || uid();
+  state.id = snapshot.remoteId || null;
+  state.title = snapshot.title || "";
+  state.type = snapshot.type || "flipcards";
+  state.instructions = snapshot.instructions || "";
+  state.data = snapshot.data ? cloneData(snapshot.data) : cloneTemplate(state.type);
+  state.updatedAt = snapshot.updatedAt || null;
+  state.previewMode = "build";
+  syncFormFromState();
+  renderPreview();
+  syncEmbedButton();
 }
 
 function el(tag, options = {}, children = []) {
@@ -239,24 +361,84 @@ function el(tag, options = {}, children = []) {
 function renderPreview() {
   elements.instructionsPreview.textContent = state.instructions;
   if (elements.previewTitle) {
-    elements.previewTitle.textContent = `Preview · ${typeLabels[state.type] || "Activity"}`;
+    const label = typeLabels[state.type] || "Activity";
+    const prefix = state.previewMode === "preview" ? "Preview" : "Build";
+    elements.previewTitle.textContent = `${prefix} · ${label}`;
   }
+  renderPreviewModeControls();
   elements.previewToolbar.innerHTML = "";
   elements.previewCanvas.innerHTML = "";
 
+  const stage = el("div", {
+    class: "preview-stage",
+    "data-mode": state.previewMode,
+  });
+  elements.previewCanvas.append(stage);
+
   const renderer = activityRenderers[state.type];
   if (!renderer) {
-    elements.previewCanvas.append(
-      el("div", { class: "empty-state", text: "This activity type is not available." })
-    );
+    stage.append(el("div", { class: "empty-state", text: "This activity type is not available." }));
     return;
   }
+  const editing = state.previewMode === "build";
+  const renderData = editing ? state.data : cloneData(state.data);
+  const toolbarTarget = editing ? elements.previewToolbar : toolbarStub();
+  if (!editing) {
+    stage.setAttribute("role", "group");
+    stage.setAttribute("aria-label", `${typeLabels[state.type] || "Activity"} preview`);
+  }
   renderer({
-    container: elements.previewCanvas,
-    toolbar: elements.previewToolbar,
-    data: state.data,
-    editing: true,
+    container: stage,
+    toolbar: toolbarTarget,
+    data: renderData,
+    editing,
   });
+}
+
+function renderPreviewModeControls() {
+  if (!elements.previewModeControls) return;
+  elements.previewModeControls.innerHTML = "";
+  const buildActive = state.previewMode === "build";
+  const previewActive = state.previewMode === "preview";
+  elements.previewModeControls.append(
+    el(
+      "button",
+      {
+        type: "button",
+        class: `secondary${buildActive ? " active" : ""}`,
+        "aria-pressed": String(buildActive),
+        onclick: () => setPreviewMode("build"),
+      },
+      "Build"
+    ),
+    el(
+      "button",
+      {
+        type: "button",
+        class: `secondary${previewActive ? " active" : ""}`,
+        "aria-pressed": String(previewActive),
+        onclick: () => setPreviewMode("preview"),
+      },
+      "Preview"
+    )
+  );
+}
+
+function setPreviewMode(mode) {
+  if (state.previewMode === mode) return;
+  state.previewMode = mode;
+  renderPreview();
+  if (mode === "preview") {
+    announce("Preview mode enabled.");
+  } else {
+    announce("Returned to builder mode.");
+  }
+}
+
+function syncEmbedButton() {
+  if (elements.embedButton) {
+    elements.embedButton.disabled = !state.id;
+  }
 }
 
 const activityRenderers = {
@@ -278,6 +460,116 @@ const typeLabels = {
   wordSort: "Word Sorting",
   timeline: "Timeline",
 };
+
+function formatTimestamp(isoString) {
+  if (!isoString) return "";
+  try {
+    return new Date(isoString).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch (error) {
+    return isoString;
+  }
+}
+
+function renderSavedActivityList() {
+  if (!elements.savedList || !elements.savedEmpty) return;
+  if (!supportsLocalSaving) {
+    elements.savedList.innerHTML = "";
+    elements.savedList.hidden = true;
+    elements.savedEmpty.hidden = false;
+    elements.savedEmpty.textContent = "Saving to this device isn't supported in this browser.";
+    if (elements.savedPreview) {
+      clearSavedActivityPreview();
+    }
+    return;
+  }
+  const entries = getLocalActivities().sort(
+    (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+  );
+  elements.savedList.innerHTML = "";
+  if (!entries.length) {
+    elements.savedList.hidden = true;
+    elements.savedEmpty.hidden = false;
+    elements.savedEmpty.textContent = "Activities that you save will appear here.";
+    if (elements.savedPreview) {
+      clearSavedActivityPreview();
+    }
+    return;
+  }
+  elements.savedEmpty.hidden = true;
+  elements.savedList.hidden = false;
+  entries.forEach((entry) => {
+    const item = el("li", { class: "saved-activity-item", "data-local-id": entry.localId });
+    const button = el("button", {
+      type: "button",
+      class: "saved-activity-button",
+      "data-load": entry.localId,
+    });
+    button.append(
+      el("span", {
+        class: "saved-activity-title",
+        text: entry.title || "Untitled activity",
+      }),
+      el("span", {
+        class: "saved-activity-meta",
+        text: `${typeLabels[entry.type] || "Activity"} · ${formatTimestamp(entry.updatedAt)}`,
+      })
+    );
+    if (!entry.remoteId) {
+      button.append(el("span", { class: "saved-activity-badge", text: "Local draft" }));
+    }
+    const removeButton = el("button", {
+      type: "button",
+      class: "saved-activity-delete",
+      "data-delete": entry.localId,
+      "aria-label": `Remove ${entry.title || "activity"} from saved list`,
+      text: "Remove",
+    });
+    item.append(button, removeButton);
+    elements.savedList.append(item);
+  });
+}
+
+function showSavedActivityPreview(localId) {
+  if (!elements.savedPreview || !supportsLocalSaving) return;
+  const entry = getLocalActivities().find((item) => item.localId === localId);
+  if (!entry) {
+    clearSavedActivityPreview();
+    return;
+  }
+  elements.savedPreview.innerHTML = "";
+  elements.savedPreview.classList.add("active");
+  elements.savedPreview.append(
+    el("h4", { text: entry.title || "Untitled activity" }),
+    el("p", {
+      class: "helper-text",
+      text: `${typeLabels[entry.type] || "Activity"} · Updated ${formatTimestamp(entry.updatedAt)}`,
+    }),
+    entry.instructions
+      ? el("p", { text: entry.instructions })
+      : el("p", { class: "helper-text", text: "No instructions added yet." })
+  );
+}
+
+function clearSavedActivityPreview() {
+  if (!elements.savedPreview) return;
+  elements.savedPreview.innerHTML = "";
+  elements.savedPreview.classList.remove("active");
+}
+
+function loadLocalActivity(localId) {
+  if (!supportsLocalSaving) return;
+  const entry = getLocalActivities().find((item) => item.localId === localId);
+  if (!entry) {
+    showToast("We couldn't find that saved activity anymore.");
+    return;
+  }
+  applyActivitySnapshot(entry);
+  showToast("Loaded from this device.");
+  announce(`Loaded ${entry.title || "saved activity"} from this device.`);
+}
 
 function toolbarStub() {
   return {
@@ -1343,6 +1635,7 @@ async function saveActivity() {
     state.id = docId;
   }
   state.updatedAt = new Date().toISOString();
+  syncEmbedButton();
   showToast("Activity saved.");
   announce("Activity saved.");
   return docId;
@@ -1355,17 +1648,21 @@ async function loadActivityById(id) {
     throw new Error("Activity not found");
   }
   const data = snapshot.data();
-  state.id = id;
-  state.title = data.title || "";
-  state.type = data.type || "flipcards";
-  state.instructions = data.instructions || "";
-  state.data = data.data || cloneTemplate(state.type);
-  state.updatedAt = data.updatedAt?.toDate?.()?.toISOString?.() || null;
-  syncFormFromState();
-  renderPreview();
-  if (elements.embedButton) {
-    elements.embedButton.disabled = false;
-  }
+  const savedEntry = findLocalByRemoteId(id);
+  const payload = {
+    localId: savedEntry?.localId || id || state.localId || uid(),
+    remoteId: id,
+    title: data.title || "",
+    type: data.type || "flipcards",
+    instructions: data.instructions || "",
+    data: data.data || cloneTemplate(data.type || "flipcards"),
+    updatedAt:
+      data.updatedAt?.toDate?.()?.toISOString?.() ||
+      savedEntry?.updatedAt ||
+      new Date().toISOString(),
+  };
+  applyActivitySnapshot(payload);
+  persistLocalActivity(payload);
   showToast("Activity loaded.");
   announce(`Loaded activity ${id}.`);
 }
@@ -1374,11 +1671,20 @@ async function handleSave() {
   try {
     elements.saveButton.disabled = true;
     const id = await saveActivity();
-    elements.embedButton.disabled = false;
+    persistLocalActivity(snapshotState({ remoteId: id }));
+    syncEmbedButton();
     showToast(`Share this activity with code: ${id}`);
   } catch (error) {
     console.error(error);
-    showToast("Unable to save right now. Please try again.");
+    const snapshot = snapshotState({ remoteId: state.id || null });
+    persistLocalActivity(snapshot);
+    if (state.id) {
+      showToast("Saved changes on this device. We'll sync when you're back online.");
+      announce("Changes saved locally.");
+    } else {
+      showToast("Saved on this device. Try again when you're online to share it.");
+      announce("Activity saved locally on this device.");
+    }
   } finally {
     elements.saveButton.disabled = false;
   }
@@ -1389,14 +1695,22 @@ function handleNew() {
 }
 
 function handleLoad() {
+  if (!elements.loadDialog) return;
   elements.loadId.value = "";
+  renderSavedActivityList();
+  clearSavedActivityPreview();
   elements.loadDialog.showModal();
 }
 
 elements.loadDialog.addEventListener("close", () => {
+  clearSavedActivityPreview();
+  const id = elements.loadId.value.trim();
+  const shouldLoadByCode = elements.loadDialog.returnValue === "confirm" && id;
+  elements.loadId.value = "";
   if (elements.loadDialog.returnValue === "confirm") {
-    const id = elements.loadId.value.trim();
-    if (!id) return;
+    if (!shouldLoadByCode) {
+      return;
+    }
     loadActivityById(id).catch((error) => {
       console.error(error);
       showToast("Unable to locate that activity code.");
@@ -1430,6 +1744,43 @@ elements.copyEmbed.addEventListener("click", async () => {
 elements.embedDialog.addEventListener("close", () => {
   elements.embedCode.value = "";
 });
+
+if (elements.savedList) {
+  elements.savedList.addEventListener("click", (event) => {
+    if (!supportsLocalSaving) {
+      showToast("Local saving isn't available in this browser.");
+      return;
+    }
+    const deleteButton = event.target.closest("button[data-delete]");
+    if (deleteButton) {
+      const localId = deleteButton.getAttribute("data-delete");
+      removeLocalActivity(localId);
+      showToast("Removed from saved activities.");
+      announce("Removed saved activity.");
+      event.preventDefault();
+      return;
+    }
+    const loadButton = event.target.closest("button[data-load]");
+    if (loadButton) {
+      const localId = loadButton.getAttribute("data-load");
+      loadLocalActivity(localId);
+      if (elements.loadDialog?.open) {
+        elements.loadDialog.close();
+      }
+    }
+  });
+  const handleHighlight = (event) => {
+    if (!supportsLocalSaving) return;
+    const item = event.target.closest("[data-local-id]");
+    if (!item) return;
+    showSavedActivityPreview(item.getAttribute("data-local-id"));
+  };
+  elements.savedList.addEventListener("focusin", handleHighlight);
+  elements.savedList.addEventListener("mouseover", handleHighlight);
+  elements.savedList.addEventListener("mouseleave", () => {
+    clearSavedActivityPreview();
+  });
+}
 
 elements.saveButton.addEventListener("click", handleSave);
 
@@ -1510,6 +1861,7 @@ if (isEmbedMode) {
 } else {
   syncFormFromState();
   renderPreview();
+  renderSavedActivityList();
   if (initialId) {
     loadActivityById(initialId).catch((error) => {
       console.error(error);
