@@ -12,9 +12,11 @@ Canvas Interactive Builder is a lightweight web application for authoring intera
 
 ## Authoring experience
 
-- Click directly on flipcards, accordion panels, timeline entries, and sorting chips to edit their text inline.
-- Use the on-card action buttons to reorder or remove items without leaving the preview canvas.
-- For drag & drop activities, assign correct matches from the inline chip controls and watch the drop zone summaries update instantly.
+The builder keeps authors inside the live preview so they can see exactly what learners will experience:
+
+- Click flipcards, accordion panels, timeline entries, and sorting chips to edit text inline.
+- Use on-card actions to reorder or remove items without leaving the preview canvas.
+- Configure drag & drop matches from inline chip controls and watch drop zone summaries update instantly.
 - Add hotspots by clicking the image, then edit each marker's title and description from the inline detail cards.
 
 ## Getting started
