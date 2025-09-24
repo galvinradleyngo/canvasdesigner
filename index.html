@@ -56,7 +56,15 @@
       </aside>
       <section class="preview-panel" aria-label="Interactive preview">
         <div class="preview-toolbar">
-          <h2 id="previewTitle">Preview</h2>
+          <div class="preview-toolbar-meta">
+            <h2 id="previewTitle">Preview</h2>
+            <div
+              class="preview-mode-toggle"
+              id="previewModeControls"
+              role="group"
+              aria-label="Preview mode"
+            ></div>
+          </div>
           <div class="preview-toolbar-actions" id="previewToolbar"></div>
         </div>
         <div id="instructionsPreview" class="instructions-preview" role="status"></div>
@@ -75,9 +83,18 @@
     <dialog id="loadDialog" aria-labelledby="loadDialogTitle">
       <form method="dialog" class="dialog-content">
         <h2 id="loadDialogTitle">Load saved activity</h2>
-        <p>Enter the activity code shared with you to continue editing.</p>
+        <p>Pick a saved interactive from this device or paste a share code.</p>
+        <section class="saved-activities" aria-labelledby="savedListHeading">
+          <div class="saved-activities-header">
+            <h3 id="savedListHeading">Saved on this device</h3>
+            <p id="savedEmpty" class="helper-text">Activities that you save will appear here.</p>
+          </div>
+          <ul id="savedActivityList" class="saved-activity-list"></ul>
+          <div id="savedActivityPreview" class="saved-activity-preview" aria-live="polite"></div>
+        </section>
+        <div class="divider" role="separator" aria-hidden="true"></div>
         <label for="loadId">Activity code</label>
-        <input id="loadId" name="loadId" type="text" required />
+        <input id="loadId" name="loadId" type="text" placeholder="Enter a share code" />
         <menu class="dialog-actions">
           <button value="cancel" type="reset">Cancel</button>
           <button value="confirm" type="submit">Load</button>
