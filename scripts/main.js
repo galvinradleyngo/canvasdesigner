@@ -32,6 +32,8 @@ let state = loadState();
 let hotspotIdCounter = state.hotspot.hotspots.reduce((max, spot) => Math.max(max, spot.id || 0), 0);
 let flipCardIdCounter = state.flipCard.cards.reduce((max, card) => Math.max(max, card.id || 0), 0);
 let editingHotspotId = null;
+let currentHotspotMap = null;
+let currentHotspotEditorPanel = null;
 
 const els = {
   widgetType: document.getElementById('widgetType'),
@@ -179,6 +181,8 @@ function resetState() {
   hotspotIdCounter = 0;
   flipCardIdCounter = state.flipCard.cards.reduce((max, card) => Math.max(max, card.id || 0), 0);
   editingHotspotId = null;
+  currentHotspotMap = null;
+  currentHotspotEditorPanel = null;
   if (els.embedSection) {
     els.embedSection.setAttribute('hidden', '');
   }
@@ -346,31 +350,42 @@ function renderHotspotList() {
     xInput.value = spot.x;
     yInput.value = spot.y;
 
+    const liveUpdateOptions = () => ({
+      refreshList: false,
+      skipPreview: Boolean(currentHotspotMap),
+      mapEl: currentHotspotMap,
+      editorPanel: currentHotspotEditorPanel
+    });
+
     titleInput.addEventListener('input', () => {
       editingHotspotId = spot.id;
-      updateHotspot(spot.id, { title: titleInput.value }, { refreshList: false });
+      updateHotspot(spot.id, { title: titleInput.value }, liveUpdateOptions());
     });
     descriptionInput.addEventListener('input', () => {
       editingHotspotId = spot.id;
-      updateHotspot(spot.id, { description: descriptionInput.value }, { refreshList: false });
+      updateHotspot(spot.id, { description: descriptionInput.value }, liveUpdateOptions());
     });
     xInput.addEventListener('input', () => {
       editingHotspotId = spot.id;
       const value = clampPercent(xInput.value);
       xInput.value = value;
-      updateHotspot(spot.id, { x: value }, { refreshList: false });
+      updateHotspot(spot.id, { x: value }, liveUpdateOptions());
     });
     yInput.addEventListener('input', () => {
       editingHotspotId = spot.id;
       const value = clampPercent(yInput.value);
       yInput.value = value;
-      updateHotspot(spot.id, { y: value }, { refreshList: false });
+      updateHotspot(spot.id, { y: value }, liveUpdateOptions());
     });
     row.addEventListener('click', (event) => {
       if (event.target.closest('input, textarea, button')) return;
       editingHotspotId = spot.id;
-      renderPreview();
-      renderHotspotList();
+      if (currentHotspotMap && currentHotspotEditorPanel) {
+        selectHotspot(spot.id, currentHotspotMap, currentHotspotEditorPanel);
+      } else {
+        renderPreview();
+        renderHotspotList();
+      }
     });
     row.querySelector('.remove-hotspot').addEventListener('click', () => removeHotspot(spot.id));
 
@@ -461,17 +476,23 @@ function clampPercent(value) {
 }
 
 function updateHotspot(id, updates, options = {}) {
-  const { skipPreview = false, mapEl = null, refreshList = true } = options;
+  const { skipPreview = false, mapEl = null, refreshList = true, editorPanel = null } = options;
   const hotspot = state.hotspot.hotspots.find((spot) => spot.id === id);
   if (!hotspot) return;
   Object.assign(hotspot, updates);
   if (refreshList) {
     renderHotspotList();
   }
-  if (skipPreview) {
+  if (skipPreview && mapEl) {
     refreshHotspotDom(mapEl, hotspot);
+    if (editorPanel) {
+      renderHotspotEditorPanel(editorPanel, state.hotspot, mapEl);
+    }
   } else {
     renderPreview();
+  }
+  if (!refreshList) {
+    updateHotspotListActiveState();
   }
   updateEmbedCode();
 }
@@ -548,6 +569,8 @@ function refreshHotspotDom(mapEl, hotspot) {
 
 function renderPreview() {
   els.previewCanvas.innerHTML = '';
+  currentHotspotMap = null;
+  currentHotspotEditorPanel = null;
 
   if (state.widgetType === 'flip-card') {
     els.previewCanvas.appendChild(createFlipCardPreview(state.flipCard));
@@ -560,7 +583,9 @@ function renderPreview() {
       return;
     }
     syncEditingHotspot();
-    const { element } = createHotspotPreview(state.hotspot);
+    const { element, mapEl, editorPanel } = createHotspotPreview(state.hotspot);
+    currentHotspotMap = mapEl;
+    currentHotspotEditorPanel = editorPanel;
     els.previewCanvas.appendChild(element);
   }
 }
