@@ -1833,14 +1833,14 @@ async function initEmbedMode() {
     elements.embedTitle.textContent = embedState.title;
     elements.embedInstructions.textContent = embedState.instructions;
     const renderer = activityRenderers[embedState.type];
-      if (renderer) {
-        renderer({
-          container: elements.embedCanvas,
-          toolbar: toolbarStub(),
-          data: embedState.data,
-          editing: false,
-        });
-      } else {
+    if (renderer) {
+      renderer({
+        container: elements.embedCanvas,
+        toolbar: toolbarStub(),
+        data: embedState.data,
+        editing: false,
+      });
+    } else {
       elements.embedCanvas.append(
         el("div", { class: "empty-state", text: "Unsupported activity type." })
       );
