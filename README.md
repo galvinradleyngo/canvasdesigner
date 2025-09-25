@@ -6,7 +6,7 @@ Canvas Designer Studio is a modern single-page web app for crafting interactive 
 
 - 🎯 **Activity builder** – Guided authoring panels for flip cards, accordions, and hotspot explorations.
 - ✨ **Live preview** – Interactions update in real time with accessible controls and animation toggles.
-- ☁️ **Cloud saving with offline fallback** – Securely store activities in Firebase with automatic local-storage fallback when the network is unavailable.
+- ☁️ **Cloud saving with offline fallback** – Securely store activities in Firebase with automatic local-storage fallback when the network is unavailable. Offline saves are queued and sync back to Firestore once a connection returns.
 - 🔗 **Canvas-ready embed code** – Generates a self-contained HTML/CSS/JS snippet suitable for Canvas LMS (or any LMS that accepts iframe/HTML embeds).
 - 🖼️ **Image hotspots** – Upload a custom image, place hotspots visually, and describe each point of interest.
 - 🌈 **Polished UI** – Responsive layout, rich styling, and subtle animations for an inspiring authoring experience.
@@ -47,7 +47,8 @@ assets/
 - Activity editors encapsulate their own input rendering logic to avoid conflicts during concurrent development.
 - Embed snippets scope their CSS and JavaScript by unique IDs so multiple embeds can coexist on the same Canvas page.
 - Firebase Cloud Firestore powers persistence. The bundled configuration connects to the provided sandbox project, automatically
-  falling back to local storage when the network is unavailable.
+  falling back to local storage when the network is unavailable. When the app switches persistence modes it dispatches a
+  `storage-mode-changed` event so the UI can surface status messaging and any custom integrations can react.
 
 ## Browser support
 
