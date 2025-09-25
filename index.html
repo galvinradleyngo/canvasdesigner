@@ -2,125 +2,123 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Canvas Interactive Builder</title>
-    <link rel="stylesheet" href="styles/main.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas Designer Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles/main.css" />
   </head>
   <body>
-    <header class="app-header">
-      <div class="brand">
-        <span aria-hidden="true">🎨</span>
-        <div>
-          <h1>Canvas Interactive Builder</h1>
-          <p>Create and share interactive learning elements for Canvas LMS.</p>
+    <div class="floating-gradient" aria-hidden="true"></div>
+    <div id="app" class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <span class="logo">Canvas Designer Studio</span>
+          <p class="tagline">Create, save, and share engaging Canvas learning activities.</p>
         </div>
-      </div>
-      <div class="header-actions" id="headerActions">
-        <button class="secondary" id="loadButton" type="button">Load Activity</button>
-        <button class="secondary" id="newButton" type="button">New Activity</button>
-        <button class="primary" id="saveButton" type="button">Save Activity</button>
-        <button class="secondary" id="embedButton" type="button">Embed Code</button>
-      </div>
-    </header>
-
-    <main class="app-layout" id="builderLayout" aria-live="polite">
-      <aside class="control-panel" aria-label="Activity settings">
-        <section class="panel-section">
-          <label for="activityTitle">Activity title</label>
-          <input id="activityTitle" name="activityTitle" type="text" placeholder="e.g. Photosynthesis hotspots" />
-        </section>
-        <section class="panel-section">
-          <label for="activityType">Activity type</label>
-          <select id="activityType" name="activityType">
-            <option value="flipcards">Flipcards</option>
-            <option value="accordion">Accordion</option>
-            <option value="dragdrop">Drag &amp; Drop</option>
-            <option value="hotspots">Hotspots</option>
-            <option value="imageSort">Image Sorting</option>
-            <option value="wordSort">Word Sorting</option>
-            <option value="timeline">Timeline</option>
-          </select>
-        </section>
-        <section class="panel-section">
-          <label for="instructions">Instructions</label>
-          <textarea id="instructions" name="instructions" rows="4" placeholder="Provide learners with clear instructions"></textarea>
-        </section>
-        <section class="panel-section" id="assistiveTips">
-          <h2>Accessibility tips</h2>
-          <ul>
-            <li>Use concise, descriptive titles.</li>
-            <li>Provide clear alt text for images.</li>
-            <li>Keep keyboard navigation in mind when designing activities.</li>
-          </ul>
-        </section>
-      </aside>
-      <section class="preview-panel" aria-label="Interactive preview">
-        <div class="preview-toolbar">
-          <div class="preview-toolbar-meta">
-            <h2 id="previewTitle">Preview</h2>
-            <div
-              class="preview-mode-toggle"
-              id="previewModeControls"
-              role="group"
-              aria-label="Preview mode"
-            ></div>
-          </div>
-          <div class="preview-toolbar-actions" id="previewToolbar"></div>
+        <div class="header-actions">
+          <button id="newProjectBtn" class="ghost-button" type="button">New activity</button>
+          <button id="showEmbedBtn" class="primary-button" type="button">Embed code</button>
         </div>
-        <div id="instructionsPreview" class="instructions-preview" role="status"></div>
-        <div id="previewCanvas" class="preview-canvas"></div>
-      </section>
-    </main>
-
-    <section id="embedLayout" hidden>
-      <div class="embed-wrapper">
-        <h2 id="embedActivityTitle"></h2>
-        <p id="embedInstructions" class="embed-instructions"></p>
-        <div id="embedCanvas" class="preview-canvas"></div>
-      </div>
-    </section>
-
-    <dialog id="loadDialog" aria-labelledby="loadDialogTitle">
-      <form method="dialog" class="dialog-content">
-        <h2 id="loadDialogTitle">Load saved activity</h2>
-        <p>Pick a saved interactive from this device or paste a share code.</p>
-        <section class="saved-activities" aria-labelledby="savedListHeading">
-          <div class="saved-activities-header">
-            <h3 id="savedListHeading">Saved on this device</h3>
-            <p id="savedEmpty" class="helper-text">Activities that you save will appear here.</p>
+      </header>
+      <div id="statusToast" class="status-toast" role="status" aria-live="polite"></div>
+      <main class="app-main">
+        <aside class="control-panel" aria-label="Activity configuration">
+          <section class="panel-block">
+            <h2 class="panel-title">Choose an activity</h2>
+            <div class="activity-selector" role="tablist">
+              <button class="activity-tab" data-activity="flipCards" role="tab">Flip cards</button>
+              <button class="activity-tab" data-activity="accordions" role="tab">Accordions</button>
+              <button class="activity-tab" data-activity="hotspots" role="tab">Hotspots</button>
+            </div>
+          </section>
+          <section class="panel-block">
+            <h2 class="panel-title">General settings</h2>
+            <label class="field">
+              <span class="field-label">Activity title</span>
+              <input id="titleInput" class="text-input" type="text" placeholder="e.g. Intro to Plate Tectonics" />
+            </label>
+            <label class="field">
+              <span class="field-label">Short description (optional)</span>
+              <textarea id="descriptionInput" rows="2" placeholder="Summarize the learner task or goal"></textarea>
+            </label>
+            <div class="field field--inline">
+              <label for="savedProjects" class="field-label">Saved activities</label>
+              <div class="field-inline-group">
+                <select id="savedProjects" class="select-input" aria-label="Saved activities"></select>
+                <button id="loadProjectBtn" class="ghost-button" type="button">Load</button>
+                <button id="deleteProjectBtn" class="ghost-button danger" type="button">Delete</button>
+              </div>
+            </div>
+            <div class="panel-actions">
+              <button id="saveProjectBtn" class="primary-button" type="button">Save activity</button>
+            </div>
+          </section>
+          <section id="editorPanel" class="panel-block">
+            <div class="panel-header">
+              <h2 class="panel-title">Content builder</h2>
+              <div class="panel-buttons">
+                <button id="loadTemplateBtn" class="ghost-button" type="button">Reset template</button>
+                <button id="loadExampleBtn" class="ghost-button" type="button">Load example</button>
+              </div>
+            </div>
+            <div id="editorContent" class="editor-content" aria-live="polite"></div>
+          </section>
+          <section class="panel-block">
+            <h2 class="panel-title">Embed code for Canvas</h2>
+            <p class="hint">Canvas supports the <code>&lt;iframe&gt;</code> element. Use the code below or click "Embed code" to open a larger view.</p>
+            <textarea id="embedSnippet" class="code-preview" rows="7" readonly></textarea>
+            <div class="panel-actions">
+              <button id="copyEmbedInlineBtn" class="ghost-button" type="button">Copy</button>
+            </div>
+          </section>
+        </aside>
+        <section class="preview-panel">
+          <div class="preview-header">
+            <div>
+              <h2 class="panel-title">Live preview</h2>
+              <p class="hint">Changes update in real time. Try interactions just like your learners will.</p>
+            </div>
+            <div class="preview-tools">
+              <label class="toggle">
+                <input id="animationToggle" type="checkbox" checked />
+                <span>Play animations</span>
+              </label>
+            </div>
           </div>
-          <ul id="savedActivityList" class="saved-activity-list"></ul>
-          <div id="savedActivityPreview" class="saved-activity-preview" aria-live="polite"></div>
+          <div id="previewArea" class="preview-area">
+            <div class="empty-state">
+              <p>Select an activity and start adding content to see the magic ✨</p>
+            </div>
+          </div>
         </section>
-        <div class="divider" role="separator" aria-hidden="true"></div>
-        <label for="loadId">Activity code</label>
-        <input id="loadId" name="loadId" type="text" placeholder="Enter a share code" />
-        <menu class="dialog-actions">
-          <button value="cancel" type="reset">Cancel</button>
-          <button value="confirm" type="submit">Load</button>
-        </menu>
+      </main>
+    </div>
+
+    <dialog id="embedDialog">
+      <form method="dialog" class="dialog-card">
+        <header class="dialog-header">
+          <h2>Canvas embed code</h2>
+          <p class="hint">Copy and paste this HTML into the Canvas LMS rich content editor using the HTML view.</p>
+        </header>
+        <textarea id="embedOutput" class="dialog-code" rows="16" readonly></textarea>
+        <footer class="dialog-actions">
+          <button class="ghost-button" value="cancel" type="submit">Close</button>
+          <button id="dialogCopyBtn" class="primary-button" type="button">Copy code</button>
+        </footer>
       </form>
     </dialog>
 
-    <dialog id="embedDialog" aria-labelledby="embedDialogTitle">
-      <form method="dialog" class="dialog-content">
-        <h2 id="embedDialogTitle">Embed on Canvas</h2>
-        <p>Your learners can access this activity using the embed code below.</p>
-        <textarea id="embedCode" readonly rows="5"></textarea>
-        <div class="dialog-footnote" id="embedDetails"></div>
-        <menu class="dialog-actions">
-          <button value="cancel" type="reset">Close</button>
-          <button id="copyEmbed" type="button">Copy code</button>
-        </menu>
-      </form>
-    </dialog>
-
-    <template id="toastTemplate">
-      <div class="toast" role="status"></div>
+    <template id="hotspot-marker-template">
+      <div class="hotspot-marker" role="button" tabindex="0">
+        <span></span>
+      </div>
     </template>
 
-    <div class="sr-only" id="srStatus" role="status" aria-live="polite"></div>
-
-    <script type="module" src="scripts/app.js"></script>
+    <script type="module" src="assets/js/app.js"></script>
   </body>
 </html>
