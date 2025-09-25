@@ -122,7 +122,7 @@ const rebuildEditor = () => {
   });
 };
 
-const refreshSavedProjects = async () => {
+const refreshSavedProjects = async ({ selectedId } = {}) => {
   elements.savedProjects.innerHTML = '';
   const loadingOption = document.createElement('option');
   loadingOption.textContent = 'Loading saved activities…';
@@ -143,6 +143,7 @@ const refreshSavedProjects = async () => {
       option.disabled = true;
       option.selected = true;
       elements.savedProjects.append(option);
+      setProjectControlsDisabled(true);
       return [];
     }
 
@@ -155,7 +156,10 @@ const refreshSavedProjects = async () => {
     });
 
     const hasMatch = state.id && projects.some((project) => project.id === state.id);
-    if (hasMatch) {
+    const hasSelectedId = selectedId && projects.some((project) => project.id === selectedId);
+    if (hasSelectedId) {
+      elements.savedProjects.value = selectedId;
+    } else if (hasMatch) {
       elements.savedProjects.value = state.id;
     } else {
       elements.savedProjects.selectedIndex = 0;
@@ -173,6 +177,7 @@ const refreshSavedProjects = async () => {
     option.selected = true;
     elements.savedProjects.append(option);
     showStatus('Could not load saved activities. Check your connection and try again.', 'warning');
+    setProjectControlsDisabled(true);
     return null;
   }
 };
@@ -236,10 +241,7 @@ const handleSaveProject = async () => {
     });
     state.id = saved.id;
     showStatus('Activity saved');
-    const projects = await refreshSavedProjects();
-    if (projects && projects.some((project) => project.id === saved.id)) {
-      elements.savedProjects.value = saved.id;
-    }
+    await refreshSavedProjects({ selectedId: saved.id });
   } catch (error) {
     console.error('Failed to save activity', error);
     showStatus('Could not save activity. Please try again.', 'warning');
@@ -268,10 +270,7 @@ const handleLoadProject = async () => {
       elements.titleInput.value = state.title;
       elements.descriptionInput.value = state.description;
       await refreshAll({ refreshProjects: false });
-      const projects = await refreshSavedProjects();
-      if (projects && projects.some((item) => item.id === project.id)) {
-        elements.savedProjects.value = project.id;
-      }
+      await refreshSavedProjects({ selectedId: project.id });
       showStatus('Activity loaded');
     });
   } catch (error) {
