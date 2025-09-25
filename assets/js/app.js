@@ -1,6 +1,12 @@
 import { activities, defaultActivityId } from './activities/index.js';
 import { clone, formatDate, uid } from './utils.js';
-import { listProjects, saveProject, deleteProject, getProject } from './storage.js';
+import {
+  listProjects,
+  saveProject,
+  deleteProject,
+  getProject,
+  getPersistenceMode
+} from './storage.js';
 import { generateEmbed } from './embed.js';
 
 const state = {
@@ -382,9 +388,23 @@ const init = async () => {
   updateActivityTabs();
   elements.titleInput.value = state.title;
   elements.descriptionInput.value = state.description;
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage-mode-changed', (event) => {
+      const mode = event.detail?.mode;
+      if (mode === 'local') {
+        showStatus('Offline mode: saving to this browser until the network returns.', 'warning');
+      } else if (mode === 'cloud') {
+        showStatus('Cloud saving restored. Activities will sync to Firebase.', 'info');
+      }
+    });
+  }
   await refreshAll();
+  if (getPersistenceMode() === 'local') {
+    showStatus('Offline mode: saving to this browser until the network returns.', 'warning');
+  } else {
+    showStatus('Ready to create!');
+  }
   bindEvents();
-  showStatus('Ready to create!');
 };
 
 init().catch((error) => {
