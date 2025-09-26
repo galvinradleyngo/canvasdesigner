@@ -26,12 +26,11 @@ const elements = {
   savedProjects: document.getElementById('savedProjects'),
   copyEmbedInlineBtn: document.getElementById('copyEmbedInlineBtn'),
   showEmbedBtn: document.getElementById('showEmbedBtn'),
+  hideEmbedBtn: document.getElementById('hideEmbedBtn'),
   embedSnippet: document.getElementById('embedSnippet'),
-  embedDialog: document.getElementById('embedDialog'),
-  embedOutput: document.getElementById('embedOutput'),
-  dialogCopyBtn: document.getElementById('dialogCopyBtn'),
-  animationToggle: document.getElementById('animationToggle'),
-  statusToast: document.getElementById('statusToast')
+  embedPanel: document.getElementById('embedPanel'),
+  statusToast: document.getElementById('statusToast'),
+  animationToggle: document.getElementById('animationToggle')
 };
 
 const getActiveActivity = () => {
@@ -73,19 +72,23 @@ const refreshEmbed = () => {
       description: state.description,
       data: state.data
     });
-    elements.embedSnippet.value = embed;
-    elements.embedOutput.value = embed;
+    if (elements.embedSnippet) {
+      elements.embedSnippet.value = embed;
+    }
   } catch (error) {
     console.error(error);
-    elements.embedSnippet.value = 'Unable to generate embed code. Check your content.';
+    if (elements.embedSnippet) {
+      elements.embedSnippet.value = 'Unable to generate embed code. Check your content.';
+    }
   }
 };
 
 const refreshPreview = () => {
   const activity = getActiveActivity();
   if (!activity) return;
+  const shouldPlayAnimations = elements.animationToggle ? elements.animationToggle.checked : true;
   activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: elements.animationToggle ? elements.animationToggle.checked : false
+
   });
 };
 
@@ -218,7 +221,19 @@ const handleSaveProject = async () => {
     showStatus('Activity saved');
   } catch (error) {
     console.error('Unable to save activity', error);
-    showStatus('Unable to save this activity right now.', 'warning');
+    let message = 'Unable to save this activity right now.';
+    if (error) {
+      if (error.code === 'permission-denied') {
+        message = 'Update your Firestore rules or enable anonymous auth to save activities.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        message = 'Enable anonymous auth in Firebase to save your activities.';
+      } else if (typeof error.message === 'string') {
+        if (error.message.indexOf('Enable anonymous authentication') !== -1) {
+          message = 'Enable anonymous auth in Firebase or adjust Firestore rules to allow saving.';
+        }
+      }
+    }
+    showStatus(message, 'warning');
   } finally {
     elements.saveProjectBtn.disabled = false;
   }
@@ -306,6 +321,63 @@ const copyToClipboard = async (value) => {
   }
 };
 
+const setEmbedPanelOpen = (open) => {
+  if (!elements.embedPanel) {
+    return;
+  }
+
+  const nextState = open ? 'true' : 'false';
+  elements.embedPanel.dataset.open = nextState;
+  elements.embedPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+  if (elements.showEmbedBtn) {
+    elements.showEmbedBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  if (elements.embedSnippet) {
+    elements.embedSnippet.tabIndex = open ? 0 : -1;
+  }
+
+  if (
+    !open &&
+    elements.embedSnippet &&
+    document.activeElement === elements.embedSnippet &&
+    elements.showEmbedBtn
+  ) {
+    elements.showEmbedBtn.focus();
+  }
+
+  if (open) {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        if (elements.embedPanel && typeof elements.embedPanel.scrollIntoView === 'function') {
+          elements.embedPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+
+    if (elements.embedSnippet) {
+      setTimeout(() => {
+        if (elements.embedSnippet) {
+          try {
+            elements.embedSnippet.focus();
+          } catch (error) {
+            console.warn('Unable to focus embed textarea', error);
+          }
+        }
+      }, 220);
+    }
+  }
+};
+
+const toggleEmbedPanel = () => {
+  if (!elements.embedPanel) {
+    return;
+  }
+  const isOpen = elements.embedPanel.dataset.open === 'true';
+  setEmbedPanelOpen(!isOpen);
+};
+
 const bindEvents = () => {
   elements.tabs.forEach((tab) => {
     tab.addEventListener('click', async () => {
@@ -334,7 +406,6 @@ const bindEvents = () => {
     refreshEmbed();
   });
 
-  elements.animationToggle.addEventListener('change', refreshPreview);
   elements.loadTemplateBtn.addEventListener('click', loadTemplate);
   elements.loadExampleBtn.addEventListener('click', loadExample);
   elements.saveProjectBtn.addEventListener('click', () => {
@@ -359,21 +430,27 @@ const bindEvents = () => {
   });
 
   elements.copyEmbedInlineBtn.addEventListener('click', () => {
+    if (!elements.embedSnippet) {
+      return;
+    }
     copyToClipboard(elements.embedSnippet.value);
   });
 
-  elements.showEmbedBtn.addEventListener('click', () => {
-    elements.embedOutput.value = elements.embedSnippet.value;
-    elements.embedDialog.showModal();
-  });
+  if (elements.showEmbedBtn) {
+    elements.showEmbedBtn.addEventListener('click', toggleEmbedPanel);
+  }
 
-  elements.dialogCopyBtn.addEventListener('click', () => {
-    copyToClipboard(elements.embedOutput.value);
-  });
+  if (elements.hideEmbedBtn) {
+    elements.hideEmbedBtn.addEventListener('click', () => {
+      setEmbedPanelOpen(false);
+    });
+  }
 
-  elements.embedDialog.addEventListener('close', () => {
-    elements.embedOutput.value = elements.embedSnippet.value;
-  });
+  if (elements.animationToggle) {
+    elements.animationToggle.addEventListener('change', () => {
+      refreshPreview();
+    });
+  }
 };
 
 const init = async () => {
@@ -381,6 +458,7 @@ const init = async () => {
   elements.titleInput.value = state.title;
   elements.descriptionInput.value = state.description;
   bindEvents();
+  setEmbedPanelOpen(false);
   await refreshSavedProjects();
   showStatus('Ready to create!');
 };

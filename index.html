@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Canvas Designer Studio</title>
+    <title>Interactive Activity Designer 2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,12 +17,20 @@
     <div id="app" class="app-shell">
       <header class="app-header">
         <div class="brand">
-          <span class="logo">Canvas Designer Studio</span>
+          <span class="logo">Interactive Activity Designer 2</span>
           <p class="tagline">Create, save, and share engaging Canvas learning activities.</p>
         </div>
         <div class="header-actions">
           <button id="newProjectBtn" class="ghost-button" type="button">New activity</button>
-          <button id="showEmbedBtn" class="primary-button" type="button">Embed code</button>
+          <button
+            id="showEmbedBtn"
+            class="primary-button"
+            type="button"
+            aria-controls="embedPanel"
+            aria-expanded="false"
+          >
+            Embed code
+          </button>
         </div>
       </header>
       <div id="statusToast" class="status-toast" role="status" aria-live="polite"></div>
@@ -68,9 +76,19 @@
             </div>
             <div id="editorContent" class="editor-content" aria-live="polite"></div>
           </section>
-          <section class="panel-block">
-            <h2 class="panel-title">Embed code for Canvas</h2>
-            <p class="hint">Canvas supports the <code>&lt;iframe&gt;</code> element. Use the code below or click "Embed code" to open a larger view.</p>
+          <section
+            id="embedPanel"
+            class="panel-block embed-panel"
+            data-open="false"
+            aria-hidden="true"
+          >
+            <div class="embed-panel-header">
+              <div>
+                <h2 class="panel-title">Embed code for Canvas</h2>
+                <p class="hint">Copy this HTML into Canvas using the rich content editor's HTML mode.</p>
+              </div>
+              <button id="hideEmbedBtn" class="ghost-button" type="button" aria-label="Hide embed code">Hide</button>
+            </div>
             <textarea id="embedSnippet" class="code-preview" rows="7" readonly></textarea>
             <div class="panel-actions">
               <button id="copyEmbedInlineBtn" class="ghost-button" type="button">Copy</button>
@@ -83,12 +101,7 @@
               <h2 class="panel-title">Live preview</h2>
               <p class="hint">Changes update in real time. Try interactions just like your learners will.</p>
             </div>
-            <div class="preview-tools">
-              <label class="toggle">
-                <input id="animationToggle" type="checkbox" checked />
-                <span>Play animations</span>
-              </label>
-            </div>
+            <div class="preview-tools"></div>
           </div>
           <div id="previewArea" class="preview-area">
             <div class="empty-state">
@@ -98,20 +111,6 @@
         </section>
       </main>
     </div>
-
-    <dialog id="embedDialog">
-      <form method="dialog" class="dialog-card">
-        <header class="dialog-header">
-          <h2>Canvas embed code</h2>
-          <p class="hint">Copy and paste this HTML into the Canvas LMS rich content editor using the HTML view.</p>
-        </header>
-        <textarea id="embedOutput" class="dialog-code" rows="16" readonly></textarea>
-        <footer class="dialog-actions">
-          <button class="ghost-button" value="cancel" type="submit">Close</button>
-          <button id="dialogCopyBtn" class="primary-button" type="button">Copy code</button>
-        </footer>
-      </form>
-    </dialog>
 
     <template id="hotspot-marker-template">
       <div class="hotspot-marker" role="button" tabindex="0">

@@ -7,7 +7,7 @@ import {
   setDoc
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { clone, coalesce } from './utils.js';
-import { getFirestoreDb } from './firebaseClient.js';
+import { getFirestoreDb, ensureAuth } from './firebaseClient.js';
 
 const COLLECTION_NAME = 'canvasDesignerActivities';
 
@@ -26,6 +26,7 @@ const mapSnapshotToProject = (snapshot) => {
 };
 
 export const listProjects = async () => {
+  await ensureAuth();
   const db = getFirestoreDb();
   const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
   const projects = querySnapshot.docs
@@ -41,6 +42,7 @@ export const listProjects = async () => {
 };
 
 export const saveProject = async (project) => {
+  await ensureAuth();
   const db = getFirestoreDb();
   const value = clone(project);
   const updatedAt = new Date().toISOString();
@@ -62,12 +64,14 @@ export const saveProject = async (project) => {
 };
 
 export const deleteProject = async (projectId) => {
+  await ensureAuth();
   const db = getFirestoreDb();
   const collectionRef = collection(db, COLLECTION_NAME);
   await deleteDoc(doc(collectionRef, projectId));
 };
 
 export const getProject = async (projectId) => {
+  await ensureAuth();
   const db = getFirestoreDb();
   const collectionRef = collection(db, COLLECTION_NAME);
   const snapshot = await getDoc(doc(collectionRef, projectId));
