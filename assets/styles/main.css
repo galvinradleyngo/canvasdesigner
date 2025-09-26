@@ -404,6 +404,10 @@ textarea:focus {
   opacity: 0.85;
 }
 
+.card-color-field.card-color-field--locked {
+  opacity: 0.6;
+}
+
 .card-face-header {
   display: flex;
   align-items: center;
