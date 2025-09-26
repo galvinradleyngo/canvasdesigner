@@ -1,5 +1,253 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
+const normalizeAuthoringData = (data = {}) => {
+  const prompt = typeof data.prompt === 'string' ? data.prompt.trim() : '';
+  const instructions = typeof data.instructions === 'string' ? data.instructions.trim() : '';
+
+  const seenBucketIds = new Set();
+  const buckets = Array.isArray(data.buckets)
+    ? data.buckets.reduce((acc, bucket) => {
+        const id = typeof bucket.id === 'string' ? bucket.id.trim() : '';
+        if (!id || seenBucketIds.has(id)) {
+          return acc;
+        }
+        seenBucketIds.add(id);
+        acc.push({
+          id,
+          title: typeof bucket.title === 'string' ? bucket.title.trim() : '',
+          description: typeof bucket.description === 'string' ? bucket.description.trim() : ''
+        });
+        return acc;
+      }, [])
+    : [];
+
+  const validBucketIds = new Set(buckets.map((bucket) => bucket.id));
+
+  const seenItemIds = new Set();
+  const items = Array.isArray(data.items)
+    ? data.items.reduce((acc, item) => {
+        const id = typeof item.id === 'string' ? item.id.trim() : '';
+        if (!id || seenItemIds.has(id)) {
+          return acc;
+        }
+        seenItemIds.add(id);
+        const text = typeof item.text === 'string' ? item.text.trim() : '';
+        const rawBucketId = typeof item.correctBucketId === 'string' ? item.correctBucketId.trim() : '';
+        const correctBucketId = validBucketIds.has(rawBucketId) ? rawBucketId : '';
+        acc.push({
+          id,
+          text,
+          correctBucketId
+        });
+        return acc;
+      }, [])
+    : [];
+
+  return {
+    prompt,
+    instructions,
+    buckets,
+    items,
+    hasBuckets: buckets.length > 0,
+    hasItems: items.length > 0
+  };
+};
+
+const createEmptyPlaceholder = (message, { className = '' } = {}) => {
+  const classes = ['cd-dragdrop-empty-state'];
+  if (className) {
+    classes.push(className);
+  }
+  const html = `
+    <div class="${classes.join(' ')}">
+      <div class="cd-dragdrop-empty-icon" aria-hidden="true">🧩</div>
+      <p class="cd-dragdrop-empty-text">${escapeHtml(message)}</p>
+    </div>
+  `.trim();
+
+  return {
+    toHTML: () => html,
+    toElement: () => {
+      const template = document.createElement('template');
+      template.innerHTML = html;
+      return template.content.firstElementChild;
+    }
+  };
+};
+
+const buildEmbedStyles = (containerId) => `
+      #${containerId} .cd-dragdrop {
+        display: grid;
+        gap: 1rem;
+        background: rgba(15, 23, 42, 0.02);
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+      #${containerId} .cd-dragdrop-prompt {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      #${containerId} .cd-dragdrop-instructions {
+        margin: 0;
+        color: rgba(15, 23, 42, 0.7);
+      }
+      #${containerId} .cd-dragdrop-board {
+        display: grid;
+        gap: 1rem;
+      }
+      @media (min-width: 720px) {
+        #${containerId} .cd-dragdrop-board {
+          grid-template-columns: minmax(0, 220px) 1fr;
+        }
+      }
+      #${containerId} .cd-dragdrop-pool,
+      #${containerId} .cd-dragdrop-zone {
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+      }
+      #${containerId} .cd-dragdrop-subtitle {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: rgba(15, 23, 42, 0.75);
+      }
+      #${containerId} .cd-dragdrop-zone-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      #${containerId} .cd-dragdrop-zone-description {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+        color: rgba(15, 23, 42, 0.65);
+      }
+      #${containerId} .cd-dragdrop-zone-body {
+        min-height: 120px;
+        display: grid;
+        gap: 0.6rem;
+        align-content: flex-start;
+        background: rgba(99, 102, 241, 0.05);
+        border-radius: 12px;
+        padding: 0.75rem;
+        border: 1px dashed rgba(99, 102, 241, 0.3);
+        transition: border 160ms ease, background 160ms ease;
+      }
+      #${containerId} .cd-dragdrop-zone-body.is-over {
+        border-color: rgba(79, 70, 229, 0.8);
+        background: rgba(79, 70, 229, 0.08);
+      }
+      #${containerId} .cd-dragdrop-item {
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(79, 70, 229, 0.12);
+        border: 1px solid rgba(79, 70, 229, 0.28);
+        font-weight: 500;
+        cursor: grab;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+      #${containerId} .cd-dragdrop-item.is-dragging {
+        opacity: 0.75;
+        transform: scale(1.02);
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+      }
+      #${containerId} .cd-dragdrop-item.is-correct {
+        border-color: rgba(34, 197, 94, 0.6);
+        background: rgba(34, 197, 94, 0.12);
+      }
+      #${containerId} .cd-dragdrop-item.is-incorrect {
+        border-color: rgba(239, 68, 68, 0.6);
+        background: rgba(239, 68, 68, 0.12);
+      }
+      #${containerId} .cd-dragdrop-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      #${containerId} .cd-dragdrop-actions button {
+        border-radius: 999px;
+        border: none;
+        padding: 0.55rem 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 160ms ease, transform 120ms ease;
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='check'] {
+        background: rgba(79, 70, 229, 1);
+        color: white;
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='check']:hover {
+        background: rgba(67, 56, 202, 1);
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='reset'] {
+        background: rgba(15, 23, 42, 0.08);
+        color: rgba(15, 23, 42, 0.85);
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='reset']:hover {
+        background: rgba(15, 23, 42, 0.12);
+      }
+      #${containerId} .cd-dragdrop-feedback {
+        margin: 0;
+        font-weight: 500;
+        color: rgba(15, 23, 42, 0.75);
+      }
+      #${containerId} .cd-dragdrop-empty {
+        display: grid;
+        gap: 1rem;
+        justify-items: center;
+        text-align: center;
+        padding: 2rem 1.5rem;
+        background: rgba(15, 23, 42, 0.02);
+        border: 1px dashed rgba(15, 23, 42, 0.18);
+        border-radius: 16px;
+      }
+      #${containerId} .cd-dragdrop-empty-state {
+        display: grid;
+        gap: 0.5rem;
+        justify-items: center;
+      }
+      #${containerId} .cd-dragdrop-empty-icon {
+        font-size: 2rem;
+      }
+      #${containerId} .cd-dragdrop-empty-text {
+        margin: 0;
+        color: rgba(15, 23, 42, 0.7);
+        font-weight: 500;
+      }
+  `;
+
+export const EMPTY_PREVIEW_TEMPLATE = (
+  message = 'Add drop zones and cards to preview this drag & drop activity.'
+) => {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'cd-dragdrop cd-dragdrop-empty';
+  wrapper.append(createEmptyPlaceholder(message, { className: 'cd-dragdrop-empty-preview' }).toElement());
+  return wrapper;
+};
+
+export const EMPTY_EMBED_TEMPLATE = (
+  containerId,
+  message = 'Add drop zones and cards to this drag & drop activity.'
+) => {
+  const placeholder = createEmptyPlaceholder(message);
+  return {
+    html: `
+      <div class="cd-dragdrop cd-dragdrop-empty" data-widget="dragdrop">
+        ${placeholder.toHTML()}
+      </div>
+    `,
+    css: buildEmbedStyles(containerId),
+    js: ''
+  };
+};
+
 const createTemplateBuckets = () => {
   const bucketA = uid('bucket');
   const bucketB = uid('bucket');
@@ -327,10 +575,16 @@ const buildEditor = (container, data, onUpdate) => {
 const renderPreview = (container, data) => {
   container.innerHTML = '';
 
-  const buckets = Array.isArray(data.buckets) && data.buckets.length ? data.buckets : template().buckets;
-  const items = Array.isArray(data.items) ? data.items : [];
-  const prompt = data.prompt?.trim() || '';
-  const instructions = data.instructions?.trim() || '';
+  const normalized = normalizeAuthoringData(data);
+  if (!normalized.hasBuckets || !normalized.hasItems) {
+    const message = !normalized.hasBuckets
+      ? 'Add drop zones to preview this drag & drop activity.'
+      : 'Add cards to preview this drag & drop activity.';
+    container.append(EMPTY_PREVIEW_TEMPLATE(message));
+    return;
+  }
+
+  const { buckets, items, prompt, instructions } = normalized;
 
   const wrapper = document.createElement('div');
   wrapper.className = 'cd-dragdrop';
@@ -405,7 +659,7 @@ const renderPreview = (container, data) => {
     header.className = 'cd-dragdrop-zone-header';
     const title = document.createElement('h4');
     title.className = 'cd-dragdrop-zone-title';
-    title.textContent = bucket.title?.trim() || 'Drop zone';
+    title.textContent = bucket.title || 'Drop zone';
     header.append(title);
 
     if (bucket.description) {
@@ -484,7 +738,7 @@ const renderPreview = (container, data) => {
     card.className = 'cd-dragdrop-item';
     card.draggable = true;
     card.dataset.itemId = item.id;
-    card.textContent = item.text?.trim() || 'Card';
+    card.textContent = item.text || 'Card';
     card.addEventListener('dragstart', (event) => {
       event.dataTransfer.setData('text/plain', item.id);
       requestAnimationFrame(() => card.classList.add('is-dragging'));
@@ -510,10 +764,15 @@ const renderPreview = (container, data) => {
 };
 
 const embedTemplate = (data, containerId) => {
-  const buckets = Array.isArray(data.buckets) && data.buckets.length ? data.buckets : template().buckets;
-  const items = Array.isArray(data.items) ? data.items : [];
-  const prompt = data.prompt?.trim() || '';
-  const instructions = data.instructions?.trim() || '';
+  const normalized = normalizeAuthoringData(data);
+  if (!normalized.hasBuckets || !normalized.hasItems) {
+    const message = !normalized.hasBuckets
+      ? 'Add drop zones to this drag & drop activity.'
+      : 'Add cards to this drag & drop activity.';
+    return EMPTY_EMBED_TEMPLATE(containerId, message);
+  }
+
+  const { buckets, items, prompt, instructions } = normalized;
 
   const cardsHtml = items
     .map(
@@ -564,130 +823,7 @@ const embedTemplate = (data, containerId) => {
         <p class="cd-dragdrop-feedback" data-feedback hidden></p>
       </div>
     `,
-    css: `
-      #${containerId} .cd-dragdrop {
-        display: grid;
-        gap: 1rem;
-        background: rgba(15, 23, 42, 0.02);
-        padding: 1.25rem;
-        border-radius: 16px;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-      }
-      #${containerId} .cd-dragdrop-prompt {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-      }
-      #${containerId} .cd-dragdrop-instructions {
-        margin: 0;
-        color: rgba(15, 23, 42, 0.7);
-      }
-      #${containerId} .cd-dragdrop-board {
-        display: grid;
-        gap: 1rem;
-      }
-      @media (min-width: 720px) {
-        #${containerId} .cd-dragdrop-board {
-          grid-template-columns: minmax(0, 220px) 1fr;
-        }
-      }
-      #${containerId} .cd-dragdrop-pool,
-      #${containerId} .cd-dragdrop-zone {
-        background: rgba(255, 255, 255, 0.92);
-        border-radius: 14px;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        padding: 1rem;
-      }
-      #${containerId} .cd-dragdrop-subtitle {
-        margin: 0;
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: rgba(15, 23, 42, 0.75);
-      }
-      #${containerId} .cd-dragdrop-zone-title {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 600;
-      }
-      #${containerId} .cd-dragdrop-zone-description {
-        margin: 0.25rem 0 0;
-        font-size: 0.9rem;
-        color: rgba(15, 23, 42, 0.65);
-      }
-      #${containerId} .cd-dragdrop-zone-body {
-        min-height: 120px;
-        display: grid;
-        gap: 0.6rem;
-        align-content: flex-start;
-        background: rgba(99, 102, 241, 0.05);
-        border-radius: 12px;
-        padding: 0.75rem;
-        border: 1px dashed rgba(99, 102, 241, 0.3);
-        transition: border 160ms ease, background 160ms ease;
-      }
-      #${containerId} .cd-dragdrop-zone-body.is-over {
-        border-color: rgba(79, 70, 229, 0.8);
-        background: rgba(79, 70, 229, 0.08);
-      }
-      #${containerId} .cd-dragdrop-item {
-        padding: 0.6rem 0.75rem;
-        border-radius: 10px;
-        background: rgba(79, 70, 229, 0.12);
-        border: 1px solid rgba(79, 70, 229, 0.28);
-        font-weight: 500;
-        cursor: grab;
-        transition: transform 120ms ease, box-shadow 120ms ease;
-      }
-      #${containerId} .cd-dragdrop-item.is-dragging {
-        opacity: 0.75;
-        transform: scale(1.02);
-        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
-      }
-      #${containerId} .cd-dragdrop-item.is-correct {
-        border-color: rgba(34, 197, 94, 0.6);
-        background: rgba(34, 197, 94, 0.12);
-      }
-      #${containerId} .cd-dragdrop-item.is-incorrect {
-        border-color: rgba(239, 68, 68, 0.6);
-        background: rgba(239, 68, 68, 0.12);
-      }
-      #${containerId} .cd-dragdrop-actions {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-      }
-      #${containerId} .cd-dragdrop-actions button {
-        border-radius: 999px;
-        border: none;
-        padding: 0.55rem 1.25rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 160ms ease, transform 120ms ease;
-      }
-      #${containerId} .cd-dragdrop-actions button[data-action='check'] {
-        background: rgba(79, 70, 229, 1);
-        color: white;
-      }
-      #${containerId} .cd-dragdrop-actions button[data-action='check']:hover {
-        background: rgba(67, 56, 202, 1);
-      }
-      #${containerId} .cd-dragdrop-actions button[data-action='reset'] {
-        background: rgba(15, 23, 42, 0.08);
-        color: rgba(15, 23, 42, 0.85);
-      }
-      #${containerId} .cd-dragdrop-actions button[data-action='reset']:hover {
-        background: rgba(15, 23, 42, 0.12);
-      }
-      #${containerId} .cd-dragdrop-feedback {
-        margin: 0;
-        font-weight: 500;
-        color: rgba(15, 23, 42, 0.75);
-      }
-    `,
+    css: buildEmbedStyles(containerId),
     js: `
       (function(){
         const root = document.getElementById('${containerId}');
