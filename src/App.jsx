@@ -64,6 +64,17 @@ function ClipboardCheck(props) {
   );
 }
 
+function ChevronDown(props) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" {...props}>
+      <path
+        fill="currentColor"
+        d="M5.47 8.47a.75.75 0 0 1 1.06 0L12 13.94l5.47-5.47a.75.75 0 1 1 1.06 1.06l-6 6a.75.75 0 0 1-1.06 0l-6-6a.75.75 0 0 1 0-1.06Z"
+      />
+    </svg>
+  );
+}
+
 const initialTeam = [
   { id: "u1", name: "Alex Rivera" },
   { id: "u2", name: "Jamie Chen" },
@@ -113,9 +124,9 @@ const initialTasks = [
 ];
 
 export default function App() {
+  const checklistPanelId = "team-checklist-panel";
   const [tasks, setTasks] = useState(initialTasks);
   const [tasksCollapsed, setTasksCollapsed] = useState(false);
-  const [view, setView] = useState("list");
   const [listPriority, setListPriority] = useState(null);
   const [taskSortMode, setTaskSortMode] = useState("dueDate");
   const tasksSectionRef = useRef(null);
@@ -154,6 +165,10 @@ export default function App() {
     }
   }, [tasksCollapsed]);
 
+  const toggleTasksCollapsed = useCallback(() => {
+    setTasksCollapsed((previous) => !previous);
+  }, []);
+
   const handleUpdateTask = useCallback((id, patch) => {
     setTasks((prev) =>
       prev.map((task) => (task.id === id ? { ...task, ...patch, updatedAt: new Date().toISOString() } : task)),
@@ -186,7 +201,6 @@ export default function App() {
           }
           onClick={() => {
             setTasksCollapsed(false);
-            setView("list");
             setListPriority("inprogress");
             setTaskSortMode("status");
             scrollToSection(tasksSectionRef);
@@ -205,7 +219,6 @@ export default function App() {
           }
           onClick={() => {
             setTasksCollapsed(false);
-            setView("list");
             setListPriority("todo");
             setTaskSortMode("status");
             scrollToSection(tasksSectionRef);
@@ -224,7 +237,6 @@ export default function App() {
           }
           onClick={() => {
             setTasksCollapsed(false);
-            setView("list");
             setListPriority("overdue");
             setTaskSortMode("status");
             scrollToSection(tasksSectionRef);
@@ -254,19 +266,34 @@ export default function App() {
             >
               Group by status
             </button>
+            <button
+              type="button"
+              aria-expanded={!tasksCollapsed}
+              aria-controls={checklistPanelId}
+              className="ml-2 inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600 transition hover:bg-slate-200"
+              onClick={(event) => {
+                event.stopPropagation();
+                toggleTasksCollapsed();
+              }}
+            >
+              <ChevronDown className={`transition-transform ${tasksCollapsed ? "-rotate-90" : "rotate-0"}`} />
+              {tasksCollapsed ? "Expand" : "Collapse"}
+            </button>
           </div>
         </div>
-        {!tasksCollapsed && (
-          <TaskChecklist
-            tasks={tasks}
-            team={initialTeam}
-            milestones={initialMilestones}
-            onUpdate={handleUpdateTask}
-            onEdit={handleEditTask}
-            statusPriority={listPriority}
-            sortMode={taskSortMode}
-          />
-        )}
+        <div id={checklistPanelId} hidden={tasksCollapsed}>
+          {!tasksCollapsed && (
+            <TaskChecklist
+              tasks={tasks}
+              team={initialTeam}
+              milestones={initialMilestones}
+              onUpdate={handleUpdateTask}
+              onEdit={handleEditTask}
+              statusPriority={listPriority}
+              sortMode={taskSortMode}
+            />
+          )}
+        </div>
       </section>
     </div>
   );

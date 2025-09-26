@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useCompletionConfetti } from "../hooks/use-completion-confetti.js";
 
 const STATUS_LABELS = {
@@ -21,44 +21,59 @@ const DEFAULT_STATUS_BADGE = "bg-slate-100/80 text-slate-600 border-white/60";
 const STATUS_SORT_ORDER = ["inprogress", "blocked", "todo", "skip"];
 
 export default function TaskChecklist({
-  tasks,
-  team,
-  milestones,
-  onUpdate,
-  onEdit,
+  tasks = [],
+  team = [],
+  milestones = [],
+  onUpdate = () => {},
+  onEdit = () => {},
   statusPriority = null,
   sortMode = "dueDate",
 }) {
+  const taskList = Array.isArray(tasks) ? tasks : [];
+  const teamList = Array.isArray(team) ? team : [];
+  const milestoneList = Array.isArray(milestones) ? milestones : [];
+  const handleUpdate = typeof onUpdate === "function" ? onUpdate : () => {};
+  const handleEdit = typeof onEdit === "function" ? onEdit : () => {};
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayKey = today.toDateString();
+  const todayMidnight = today.getTime();
   const { fireOnDone } = useCompletionConfetti();
 
-  const isTaskOverdue = (task) => {
-    if (!task.dueDate) return false;
-    const due = new Date(task.dueDate);
-    due.setHours(0, 0, 0, 0);
-    return due < today;
-  };
+  const isTaskOverdue = useCallback(
+    (task) => {
+      if (!task?.dueDate) return false;
+      const due = new Date(task.dueDate);
+      due.setHours(0, 0, 0, 0);
+      return due.getTime() < todayMidnight;
+    },
+    [todayMidnight],
+  );
 
-  const isPriorityTask = (task) => {
-    if (!statusPriority) return false;
-    if (statusPriority === "overdue") {
-      return isTaskOverdue(task);
-    }
-    return task.status === statusPriority;
-  };
+  const isPriorityTask = useCallback(
+    (task) => {
+      if (!statusPriority) return false;
+      if (statusPriority === "overdue") {
+        return isTaskOverdue(task);
+      }
+      return task.status === statusPriority;
+    },
+    [statusPriority, isTaskOverdue],
+  );
 
-  const sortTasks = (items) =>
-    [...items].sort((a, b) => {
-      const pa = isPriorityTask(a) ? 0 : 1;
-      const pb = isPriorityTask(b) ? 0 : 1;
-      if (pa !== pb) return pa - pb;
-      const da = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
-      const db = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
-      if (da !== db) return da - db;
-      return (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" });
-    });
+  const sortTasks = useCallback(
+    (items) =>
+      [...items].sort((a, b) => {
+        const pa = isPriorityTask(a) ? 0 : 1;
+        const pb = isPriorityTask(b) ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        const da = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
+        const db = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
+        if (da !== db) return da - db;
+        return (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" });
+      }),
+    [isPriorityTask],
+  );
 
   const formatDate = (value) =>
     new Date(value).toLocaleDateString(undefined, {
@@ -70,7 +85,7 @@ export default function TaskChecklist({
   const { activeGroups, doneTasks } = useMemo(() => {
     const upcoming = [];
     const completed = [];
-    for (const task of tasks) {
+    for (const task of taskList) {
       if (task.status === "done") {
         completed.push(task);
       } else {
@@ -166,7 +181,7 @@ export default function TaskChecklist({
     });
 
     return { activeGroups: groups, doneTasks };
-  }, [tasks, statusPriority, sortMode, todayKey]);
+  }, [taskList, sortMode, sortTasks, isTaskOverdue, isPriorityTask, statusPriority]);
 
   return (
     <div className="space-y-6">
@@ -177,8 +192,8 @@ export default function TaskChecklist({
               <div className="text-sm font-semibold text-slate-700/90">{heading}</div>
               <ul className="space-y-2">
                 {items.map((t) => {
-                  const milestone = milestones.find((m) => m.id === t.milestoneId);
-                  const assignee = team.find((m) => m.id === t.assigneeId);
+                  const milestone = milestoneList.find((m) => m.id === t.milestoneId);
+                  const assignee = teamList.find((m) => m.id === t.assigneeId);
                   const dueDate = t.dueDate ? new Date(t.dueDate) : null;
                   const dueKey = dueDate ? dueDate.toDateString() : "";
                   const isOverdue = !!dueDate && dueDate < today;
@@ -220,12 +235,12 @@ export default function TaskChecklist({
                           onChange={(e) => {
                             const nextStatus = e.target.checked ? "done" : "todo";
                             fireOnDone(t.status, nextStatus);
-                            onUpdate(t.id, { status: nextStatus });
+                            handleUpdate(t.id, { status: nextStatus });
                           }}
                         />
                         <button
                           type="button"
-                          onClick={() => onEdit(t.id)}
+                          onClick={() => handleEdit(t.id)}
                           className="flex-1 min-w-0 text-left focus:outline-none"
                           title={`${t.title || "Untitled task"}${
                             milestone ? ` – ${milestone.title}` : " – Unassigned"
@@ -265,8 +280,8 @@ export default function TaskChecklist({
           <div className="text-sm font-semibold text-slate-600 mb-2">Completed Tasks</div>
           <ul className="space-y-2">
             {doneTasks.map((t) => {
-              const milestone = milestones.find((m) => m.id === t.milestoneId);
-              const assignee = team.find((m) => m.id === t.assigneeId);
+              const milestone = milestoneList.find((m) => m.id === t.milestoneId);
+              const assignee = teamList.find((m) => m.id === t.assigneeId);
               return (
                 <li key={t.id}>
                   <div className="flex items-center gap-3 rounded-3xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-emerald-700 shadow-[0_18px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur">
@@ -278,12 +293,12 @@ export default function TaskChecklist({
                       onChange={(e) => {
                         const nextStatus = e.target.checked ? "done" : "todo";
                         fireOnDone(t.status, nextStatus);
-                        onUpdate(t.id, { status: nextStatus });
+                        handleUpdate(t.id, { status: nextStatus });
                       }}
                     />
                     <button
                       type="button"
-                      onClick={() => onEdit(t.id)}
+                      onClick={() => handleEdit(t.id)}
                       className="flex-1 min-w-0 text-left focus:outline-none"
                       title={`${t.title || "Untitled task"}${
                         milestone ? ` – ${milestone.title}` : " – Unassigned"
