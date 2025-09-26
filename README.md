@@ -7,7 +7,7 @@ Canvas Designer Studio is a modern single-page web app for crafting interactive 
 - 🎯 **Activity builder** – Guided authoring panels for flip cards, drag & drop matchers, and hotspot explorations.
 - ✨ **Live preview** – Interactions update in real time with accessible controls and animation toggles.
 - ☁️ **Cloud saving** – Store and retrieve activities securely in Firebase so they follow you across devices.
-- 🔗 **Canvas-ready embed code** – Generates a self-contained HTML/CSS/JS snippet suitable for Canvas LMS (or any LMS that accepts iframe/HTML embeds).
+- 🔗 **Canvas-ready embed code** – Generates an iframe snippet that loads a hosted viewer suitable for Canvas LMS (or any LMS that accepts iframe embeds).
 - 🖼️ **Image hotspots** – Upload a custom image, place hotspots visually, and describe each point of interest.
 - 🌈 **Polished UI** – Responsive layout, rich styling, and subtle animations for an inspiring authoring experience.
 
@@ -19,7 +19,7 @@ Canvas Designer Studio is a modern single-page web app for crafting interactive 
 4. Preview the interaction on the right. Use the toggle to pause or resume entrance animations.
 5. Copy the generated embed snippet from the **Embed code** section or open the dialog for a full-screen view. Paste the snippet into the Canvas LMS HTML editor.
 
-> **Tip:** Canvas strips external scripts in the rich content editor. The generated embed code is completely self-contained, so it will keep working when pasted into Canvas pages, assignments, or modules.
+> **Tip:** Canvas strips external scripts in the rich content editor. The generated snippet now uses an iframe that points to the GitHub Pages viewer, so it keeps working even after Canvas sanitizes the HTML.
 
 ## Project structure
 
@@ -31,6 +31,7 @@ assets/
   js/
     app.js            # Application bootstrap and state management
     embed.js          # Canvas embed code generator
+    embedViewer.js    # Lightweight runtime for the hosted viewer
     storage.js        # Firebase persistence helpers
     utils.js          # Shared helpers
     activities/
@@ -38,13 +39,16 @@ assets/
       flipCards.js    # Flip card editor + renderer
       dragDrop.js     # Drag & drop editor + renderer
       hotspots.js     # Hotspot editor + renderer
+docs/
+  embed.html          # Read-only viewer published to GitHub Pages
 ```
 
 ## Development notes
 
 - The app uses vanilla JavaScript modules (`type="module"`) so it can run from the filesystem without a build step.
 - Activity editors encapsulate their own input rendering logic to avoid conflicts during concurrent development.
-- Embed snippets scope their CSS and JavaScript by unique IDs so multiple embeds can coexist on the same Canvas page.
+- Embed snippets now render via a sandboxed iframe hitting `https://galvinradleyngo.github.io/canvasdesigner/embed.html`, keeping Canvas-compatible markup while isolating scripts and styles.
+- The hosted viewer validates the payload version, activity type, and text fields before rendering to guard against tampered URLs.
 
 ## Browser support
 
