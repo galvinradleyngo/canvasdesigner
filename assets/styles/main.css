@@ -265,10 +265,10 @@ textarea:focus {
   font-size: 0.95rem;
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition);
-  border: none;
 }
 
 .primary-button {
+  border: none;
   background: linear-gradient(135deg, var(--accent), #8b5cf6);
   color: white;
   box-shadow: 0 18px 30px rgba(99, 102, 241, 0.28);
