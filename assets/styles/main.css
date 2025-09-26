@@ -400,6 +400,11 @@ textarea:focus {
   gap: 14px;
 }
 
+/* Keep the lock indicator visible while soft-disabling the controls */
+.card-face-controls--locked {
+  opacity: 0.85;
+}
+
 .card-color-field.card-color-field--locked {
   opacity: 0.6;
 }
