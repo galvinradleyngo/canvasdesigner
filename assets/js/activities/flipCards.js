@@ -1,27 +1,53 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
+const createSampleCards = () => [
+  {
+    id: uid('card'),
+    front: 'Photosynthesis',
+    back: 'Plants convert sunlight, water, and CO₂ into glucose and oxygen.'
+  },
+  {
+    id: uid('card'),
+    front: 'Chlorophyll',
+    back: 'The green pigment that captures light energy for photosynthesis.'
+  },
+  {
+    id: uid('card'),
+    front: 'Light-dependent reactions',
+    back: 'Use sunlight to split water molecules and produce ATP and NADPH.'
+  },
+  {
+    id: uid('card'),
+    front: 'Calvin cycle',
+    back: 'Uses ATP and NADPH to fix carbon dioxide into sugars.'
+  }
+];
+
 const template = () => ({
-  cards: [
-    { id: uid('card'), front: 'Front', back: 'Back' }
-  ]
+  cards: createSampleCards()
 });
 
 const example = () => ({
   cards: [
     {
       id: uid('card'),
-      front: 'What is photosynthesis?',
-      back: 'A process used by plants to convert light energy into chemical energy.'
+      front: 'Photosynthesis overview',
+      back: 'Plants turn light, water, and CO₂ into glucose (food) and oxygen.'
     },
     {
       id: uid('card'),
-      front: 'Where does it occur?',
-      back: 'In the chloroplasts of plant cells.'
+      front: 'Where it happens',
+      back: 'Inside chloroplasts — mostly in the leaves of green plants.'
     },
     {
       id: uid('card'),
-      front: 'Key ingredients',
-      back: 'Carbon dioxide, water, and sunlight.'
+      front: 'Stage 1: Light reactions',
+      back: 'Chlorophyll captures sunlight to make energy carriers (ATP & NADPH).'
+    },
+    {
+      id: uid('card'),
+      front: 'Stage 2: Calvin cycle',
+      back: 'The plant uses ATP & NADPH to build sugars from carbon dioxide.'
     }
   ]
 });

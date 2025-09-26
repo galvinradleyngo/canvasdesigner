@@ -1,31 +1,42 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
+const createSampleHotspots = () => [
+  {
+    id: uid('hotspot'),
+    title: 'North America',
+    description: 'Home to diverse climates and ecosystems from the Arctic to the tropics.',
+    x: 25,
+    y: 35
+  },
+  {
+    id: uid('hotspot'),
+    title: 'Africa',
+    description: 'Known for the Sahara Desert and lush rainforests near the equator.',
+    x: 55,
+    y: 58
+  },
+  {
+    id: uid('hotspot'),
+    title: 'Australia',
+    description: 'An island continent featuring the Outback and the Great Barrier Reef.',
+    x: 78,
+    y: 75
+  }
+];
+
+const createSampleImage = () => ({
+  src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAHgCAYAAAB+7H0bAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAL+wAAC/sB4X8xJQAAABl0RVh0U29mdHdhcmUAZ2lmLm5ldCAyLjAuMTGsK74ZAAAI/klEQVR4nO3dQQ2DMBQEQfT+/2lHgx6UTKwxLBzME4f6HaW9rCaDz8ffP5/9wTzHAtBAAAAAAAAAPCVWdP2/Wv697P38eHL78v8zl+d/l+f37+ncF5rzuZ8l9PHGhYhfvbsRHxaYV+88VEcWmFevPFZHFpiXrxw3HNH2c9Z6/OZ8l1PGtjxh2l+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bq8cv1+8Zz32j9O7P5nvM5X5/k+f37et7Xv78bfv+7j4h4tg0AAAAAAACAj40hA1Czbt0AAAAAAADgB+wBlcW3ya2F9DsAAAAASUVORK5CYII=',
+  alt: 'World map with highlighted continents'
+});
+
 const template = () => ({
-  image: null,
-  hotspots: []
+  image: createSampleImage(),
+  hotspots: createSampleHotspots()
 });
 
 const example = () => ({
-  image: {
-    src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAHgCAYAAAB+7H0bAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAL+wAAC/sB4X8xJQAAABl0RVh0U29mdHdhcmUAZ2lmLm5ldCAyLjAuMTGsK74ZAAAI/klEQVR4nO3dQQ2DMBQEQfT+/2lHgx6UTKwxLBzME4f6HaW9rCaDz8ffP5/9wTzHAtBAAAAAAAAAPCVWdP2/Wv697P38eHL78v8zl+d/l+f37+ncF5rzuZ8l9PHGhYhfvbsRHxaYV+88VEcWmFevPFZHFpiXrxw3HNH2c9Z6/OZ8l1PGtjxh2l+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bo8Ydhflujxh2F+W6PGHYX5bq8cv1+8Zz32j9O7P5nvM5X5/k+f37et7Xv78bfv+7j4h4tg0AAAAAAACAj40hA1Czbt0AAAAAAADgB+wBlcW3ya2F9DsAAAAASUVORK5CYII=',
-    alt: 'World map with highlighted continents'
-  },
-  hotspots: [
-    {
-      id: uid('hotspot'),
-      title: 'North America',
-      description: 'Home to diverse climates and ecosystems from the Arctic to the tropics.',
-      x: 25,
-      y: 35
-    },
-    {
-      id: uid('hotspot'),
-      title: 'Africa',
-      description: 'Known for the Sahara Desert and lush rainforests near the equator.',
-      x: 55,
-      y: 58
-    }
-  ]
+  image: createSampleImage(),
+  hotspots: createSampleHotspots()
 });
 
 const buildEditor = (container, data, onUpdate) => {
