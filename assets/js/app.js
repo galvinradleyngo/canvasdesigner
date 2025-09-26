@@ -121,6 +121,7 @@ const updateActivityTabs = () => {
 const refreshEmbed = () => {
   try {
     const embed = generateEmbed({
+      id: state.id,
       type: state.type,
       title: state.title,
       description: state.description,
