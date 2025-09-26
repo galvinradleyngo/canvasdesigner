@@ -11,6 +11,13 @@ const state = {
   data: clone(activities[defaultActivityId].template())
 };
 
+const PREVIEW_ERROR_TEMPLATE = `
+  <div class="preview-placeholder" role="status" aria-live="polite">
+    <strong>Preview unavailable</strong>
+    <span>Something went wrong while rendering this activity. Check your content and try again.</span>
+  </div>
+`;
+
 const elements = {
   tabs: Array.from(document.querySelectorAll('.activity-tab')),
   titleInput: document.getElementById('titleInput'),
@@ -88,14 +95,7 @@ const refreshPreview = () => {
     });
   } catch (error) {
     console.error('Unable to render preview', error);
-    if (previewHost) {
-      previewHost.innerHTML = `
-        <div class="preview-placeholder" role="status" aria-live="polite">
-          <strong>Preview unavailable</strong>
-          <span>Something went wrong while rendering this activity. Check your content and try again.</span>
-        </div>
-      `;
-    }
+    previewHost.innerHTML = PREVIEW_ERROR_TEMPLATE;
   }
 };
 

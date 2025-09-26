@@ -324,24 +324,49 @@ const buildEditor = (container, data, onUpdate) => {
   rerender();
 };
 
+const EMPTY_PREVIEW_TEMPLATE = `
+  <div class="preview-placeholder" role="status" aria-live="polite">
+    <strong>Configure drop zones and cards</strong>
+    <span>Add at least one drop zone and draggable card to generate a preview.</span>
+  </div>
+`;
+
+const normalizePreviewData = (rawData = {}) => {
+  const fallback = template();
+  const fallbackBuckets = clone(fallback.buckets);
+  const rawBuckets = Array.isArray(rawData.buckets)
+    ? rawData.buckets.filter((bucket) => bucket && bucket.id)
+    : [];
+  const buckets = rawBuckets.length > 0 ? rawBuckets : fallbackBuckets;
+
+  const bucketIds = new Set(buckets.map((bucket) => bucket.id));
+  const items = Array.isArray(rawData.items)
+    ? rawData.items
+        .filter((item) => item && item.id)
+        .map((item) => ({
+          ...item,
+          correctBucketId: bucketIds.has(item.correctBucketId) ? item.correctBucketId : null
+        }))
+    : [];
+
+  return {
+    hasBuckets: rawBuckets.length > 0,
+    hasItems: items.length > 0,
+    buckets,
+    items,
+    prompt: rawData.prompt?.trim() || '',
+    instructions: rawData.instructions?.trim() || ''
+  };
+};
+
 const renderPreview = (container, data) => {
+  if (!container) return;
   container.innerHTML = '';
 
-  const fallback = template();
-  const hasBuckets = Array.isArray(data.buckets) && data.buckets.length > 0;
-  const buckets = hasBuckets ? data.buckets : fallback.buckets;
-  const items = Array.isArray(data.items) ? data.items : [];
-  const hasItems = items.length > 0;
-  const prompt = data.prompt?.trim() || '';
-  const instructions = data.instructions?.trim() || '';
+  const { hasBuckets, hasItems, buckets, items, prompt, instructions } = normalizePreviewData(data);
 
   if (!hasBuckets || !hasItems) {
-    container.innerHTML = `
-      <div class="preview-placeholder" role="status" aria-live="polite">
-        <strong>Configure drop zones and cards</strong>
-        <span>Add at least one drop zone and draggable card to generate a preview.</span>
-      </div>
-    `;
+    container.innerHTML = EMPTY_PREVIEW_TEMPLATE;
     return;
   }
 
