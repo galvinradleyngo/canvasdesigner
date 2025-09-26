@@ -327,7 +327,7 @@ const buildEditor = (container, data, onUpdate) => {
 const renderPreview = (container, data) => {
   container.innerHTML = '';
 
-  const hasBuckets = Array.isArray(data.buckets) && data.buckets.length;
+  const hasBuckets = Array.isArray(data.buckets) && data.buckets.length > 0;
   const buckets = hasBuckets ? data.buckets : template().buckets;
   const items = Array.isArray(data.items) ? data.items : [];
   const prompt = data.prompt?.trim() || '';
@@ -335,7 +335,7 @@ const renderPreview = (container, data) => {
 
   if (!hasBuckets || !items.length) {
     container.innerHTML = `
-      <div class="preview-placeholder">
+      <div class="preview-placeholder" role="status" aria-live="polite">
         <strong>Configure drop zones and cards</strong>
         <span>Add at least one drop zone and draggable card to generate a preview.</span>
       </div>
