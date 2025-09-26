@@ -6,7 +6,7 @@ import {
   getDocs,
   setDoc
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { clone } from './utils.js';
+import { clone, coalesce } from './utils.js';
 import { getFirestoreDb } from './firebaseClient.js';
 
 const COLLECTION_NAME = 'canvasDesignerActivities';
@@ -17,11 +17,11 @@ const mapSnapshotToProject = (snapshot) => {
   if (!data) return null;
   return {
     id: snapshot.id,
-    title: data.title ?? '',
-    description: data.description ?? '',
-    type: data.type ?? '',
-    data: data.data ?? {},
-    updatedAt: data.updatedAt ?? null
+    title: coalesce(data.title, ''),
+    description: coalesce(data.description, ''),
+    type: coalesce(data.type, ''),
+    data: coalesce(data.data, {}),
+    updatedAt: coalesce(data.updatedAt, null)
   };
 };
 
@@ -49,10 +49,10 @@ export const saveProject = async (project) => {
   value.id = documentId;
   const docRef = doc(collectionRef, documentId);
   const payload = {
-    title: value.title ?? '',
-    description: value.description ?? '',
-    type: value.type ?? '',
-    data: value.data ?? {},
+    title: coalesce(value.title, ''),
+    description: coalesce(value.description, ''),
+    type: coalesce(value.type, ''),
+    data: coalesce(value.data, {}),
     updatedAt
   };
 
@@ -75,5 +75,5 @@ export const getProject = async (projectId) => {
     return null;
   }
   const project = mapSnapshotToProject(snapshot);
-  return project ? { ...project, data: project.data ?? {} } : null;
+  return project ? { ...project, data: coalesce(project.data, {}) } : null;
 };

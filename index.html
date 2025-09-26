@@ -22,7 +22,15 @@
         </div>
         <div class="header-actions">
           <button id="newProjectBtn" class="ghost-button" type="button">New activity</button>
-          <button id="showEmbedBtn" class="primary-button" type="button">Embed code</button>
+          <button
+            id="showEmbedBtn"
+            class="primary-button"
+            type="button"
+            aria-controls="embedPanel"
+            aria-expanded="false"
+          >
+            Embed code
+          </button>
         </div>
       </header>
       <div id="statusToast" class="status-toast" role="status" aria-live="polite"></div>
@@ -68,9 +76,19 @@
             </div>
             <div id="editorContent" class="editor-content" aria-live="polite"></div>
           </section>
-          <section class="panel-block">
-            <h2 class="panel-title">Embed code for Canvas</h2>
-            <p class="hint">Canvas supports the <code>&lt;iframe&gt;</code> element. Use the code below or click "Embed code" to open a larger view.</p>
+          <section
+            id="embedPanel"
+            class="panel-block embed-panel"
+            data-open="false"
+            aria-hidden="true"
+          >
+            <div class="embed-panel-header">
+              <div>
+                <h2 class="panel-title">Embed code for Canvas</h2>
+                <p class="hint">Copy this HTML into Canvas using the rich content editor's HTML mode.</p>
+              </div>
+              <button id="hideEmbedBtn" class="ghost-button" type="button" aria-label="Hide embed code">Hide</button>
+            </div>
             <textarea id="embedSnippet" class="code-preview" rows="7" readonly></textarea>
             <div class="panel-actions">
               <button id="copyEmbedInlineBtn" class="ghost-button" type="button">Copy</button>
@@ -98,20 +116,6 @@
         </section>
       </main>
     </div>
-
-    <dialog id="embedDialog">
-      <form method="dialog" class="dialog-card">
-        <header class="dialog-header">
-          <h2>Canvas embed code</h2>
-          <p class="hint">Copy and paste this HTML into the Canvas LMS rich content editor using the HTML view.</p>
-        </header>
-        <textarea id="embedOutput" class="dialog-code" rows="16" readonly></textarea>
-        <footer class="dialog-actions">
-          <button class="ghost-button" value="cancel" type="submit">Close</button>
-          <button id="dialogCopyBtn" class="primary-button" type="button">Copy code</button>
-        </footer>
-      </form>
-    </dialog>
 
     <template id="hotspot-marker-template">
       <div class="hotspot-marker" role="button" tabindex="0">

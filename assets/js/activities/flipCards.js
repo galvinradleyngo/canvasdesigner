@@ -152,11 +152,25 @@ const renderPreview = (container, data, { playAnimations }) => {
   const grid = document.createElement('div');
   grid.className = 'flipcard-grid';
 
-  data.cards.forEach((card) => {
+  data.cards.forEach((card, index) => {
     const cardWrapper = document.createElement('div');
     cardWrapper.className = 'flipcard';
+    cardWrapper.style.setProperty('--card-index', String(index));
+    if (playAnimations) {
+      cardWrapper.style.removeProperty('animation');
+      cardWrapper.style.removeProperty('opacity');
+      cardWrapper.style.removeProperty('transform');
+    } else {
+      cardWrapper.style.animation = 'none';
+      cardWrapper.style.opacity = '1';
+      cardWrapper.style.transform = 'translateY(0) scale(1)';
+    }
     const inner = document.createElement('div');
-    inner.className = `flipcard-inner ${playAnimations ? 'animate' : ''}`.trim();
+    inner.className = 'flipcard-inner';
+
+    if (playAnimations) {
+      inner.classList.add('animate');
+    }
 
     const front = document.createElement('div');
     front.className = 'flipcard-face flipcard-front';
@@ -173,20 +187,36 @@ const renderPreview = (container, data, { playAnimations }) => {
     inner.append(front, back);
     cardWrapper.append(inner);
 
-    cardWrapper.addEventListener('click', () => {
-      const flipped = cardWrapper.classList.toggle('flipped');
-      cardWrapper.setAttribute('aria-pressed', String(flipped));
-    });
+    const setFlipState = (flipped) => {
+      if (flipped) {
+        cardWrapper.classList.add('flipped');
+        if (playAnimations) {
+          inner.classList.remove('animate');
+        }
+      } else {
+        cardWrapper.classList.remove('flipped');
+        if (playAnimations) {
+          inner.classList.add('animate');
+        }
+      }
+      cardWrapper.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+    };
+
+    const toggleFlip = () => {
+      const nextState = !cardWrapper.classList.contains('flipped');
+      setFlipState(nextState);
+    };
+
+    cardWrapper.addEventListener('click', toggleFlip);
     cardWrapper.addEventListener('keypress', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        const flipped = cardWrapper.classList.toggle('flipped');
-        cardWrapper.setAttribute('aria-pressed', String(flipped));
+        toggleFlip();
       }
     });
     cardWrapper.setAttribute('tabindex', '0');
     cardWrapper.setAttribute('role', 'button');
-    cardWrapper.setAttribute('aria-pressed', 'false');
+    setFlipState(false);
 
     grid.append(cardWrapper);
   });
@@ -199,8 +229,8 @@ const embedTemplate = (data, containerId) => ({
     <div class="cd-flipcard-grid">
       ${data.cards
         .map(
-          (card) => `
-          <div class="cd-flipcard" tabindex="0" role="button" aria-pressed="false">
+          (card, index) => `
+          <div class="cd-flipcard" tabindex="0" role="button" aria-pressed="false" style="--card-index: ${index};">
             <div class="cd-flipcard-inner">
               <div class="cd-flipcard-face cd-flipcard-front">
                 <p>${escapeHtml(card.front || '')}</p>
@@ -223,6 +253,11 @@ const embedTemplate = (data, containerId) => ({
     #${containerId} .cd-flipcard {
       perspective: 1000px;
       cursor: pointer;
+      position: relative;
+      opacity: 0;
+      transform: translateY(18px) scale(0.98);
+      animation: cd-flipcard-reveal 420ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      animation-delay: calc(var(--card-index, 0) * 120ms);
     }
     #${containerId} .cd-flipcard-inner {
       position: relative;
@@ -251,6 +286,21 @@ const embedTemplate = (data, containerId) => ({
       font-family: 'Inter', system-ui, sans-serif;
       font-size: 1rem;
       box-shadow: 0 14px 24px rgba(15, 23, 42, 0.16);
+      overflow: hidden;
+    }
+    #${containerId} .cd-flipcard-face::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), transparent 55%);
+      opacity: 0;
+      transform: translateY(12%);
+      transition: opacity 200ms ease, transform 260ms ease;
+    }
+    #${containerId} .cd-flipcard:hover .cd-flipcard-face::after,
+    #${containerId} .cd-flipcard:focus-visible .cd-flipcard-face::after {
+      opacity: 1;
+      transform: translateY(0);
     }
     #${containerId} .cd-flipcard-front {
       background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(236, 233, 254, 0.75));
@@ -262,6 +312,16 @@ const embedTemplate = (data, containerId) => ({
     #${containerId} .cd-flipcard p {
       margin: 0;
       line-height: 1.4;
+    }
+    @keyframes cd-flipcard-reveal {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
   `,
   js: `

@@ -26,10 +26,9 @@ const elements = {
   savedProjects: document.getElementById('savedProjects'),
   copyEmbedInlineBtn: document.getElementById('copyEmbedInlineBtn'),
   showEmbedBtn: document.getElementById('showEmbedBtn'),
+  hideEmbedBtn: document.getElementById('hideEmbedBtn'),
   embedSnippet: document.getElementById('embedSnippet'),
-  embedDialog: document.getElementById('embedDialog'),
-  embedOutput: document.getElementById('embedOutput'),
-  dialogCopyBtn: document.getElementById('dialogCopyBtn'),
+  embedPanel: document.getElementById('embedPanel'),
   animationToggle: document.getElementById('animationToggle'),
   statusToast: document.getElementById('statusToast')
 };
@@ -49,7 +48,10 @@ const showStatus = (message, tone = 'info') => {
   elements.statusToast.dataset.tone = tone;
   elements.statusToast.classList.add('visible');
   setTimeout(() => {
-    elements.statusToast?.classList.remove('visible');
+    const toast = elements.statusToast;
+    if (toast) {
+      toast.classList.remove('visible');
+    }
   }, 2600);
 };
 
@@ -70,11 +72,14 @@ const refreshEmbed = () => {
       description: state.description,
       data: state.data
     });
-    elements.embedSnippet.value = embed;
-    elements.embedOutput.value = embed;
+    if (elements.embedSnippet) {
+      elements.embedSnippet.value = embed;
+    }
   } catch (error) {
     console.error(error);
-    elements.embedSnippet.value = 'Unable to generate embed code. Check your content.';
+    if (elements.embedSnippet) {
+      elements.embedSnippet.value = 'Unable to generate embed code. Check your content.';
+    }
   }
 };
 
@@ -82,7 +87,7 @@ const refreshPreview = () => {
   const activity = getActiveActivity();
   if (!activity) return;
   activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: elements.animationToggle?.checked
+    playAnimations: elements.animationToggle ? elements.animationToggle.checked : false
   });
 };
 
@@ -199,7 +204,7 @@ const handleSaveProject = async () => {
   }
 
   const project = {
-    id: state.id ?? uid('project'),
+    id: state.id === null || state.id === undefined ? uid('project') : state.id,
     title: state.title.trim(),
     description: state.description.trim(),
     type: state.type,
@@ -303,6 +308,63 @@ const copyToClipboard = async (value) => {
   }
 };
 
+const setEmbedPanelOpen = (open) => {
+  if (!elements.embedPanel) {
+    return;
+  }
+
+  const nextState = open ? 'true' : 'false';
+  elements.embedPanel.dataset.open = nextState;
+  elements.embedPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+  if (elements.showEmbedBtn) {
+    elements.showEmbedBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  if (elements.embedSnippet) {
+    elements.embedSnippet.tabIndex = open ? 0 : -1;
+  }
+
+  if (
+    !open &&
+    elements.embedSnippet &&
+    document.activeElement === elements.embedSnippet &&
+    elements.showEmbedBtn
+  ) {
+    elements.showEmbedBtn.focus();
+  }
+
+  if (open) {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        if (elements.embedPanel && typeof elements.embedPanel.scrollIntoView === 'function') {
+          elements.embedPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+
+    if (elements.embedSnippet) {
+      setTimeout(() => {
+        if (elements.embedSnippet) {
+          try {
+            elements.embedSnippet.focus();
+          } catch (error) {
+            console.warn('Unable to focus embed textarea', error);
+          }
+        }
+      }, 220);
+    }
+  }
+};
+
+const toggleEmbedPanel = () => {
+  if (!elements.embedPanel) {
+    return;
+  }
+  const isOpen = elements.embedPanel.dataset.open === 'true';
+  setEmbedPanelOpen(!isOpen);
+};
+
 const bindEvents = () => {
   elements.tabs.forEach((tab) => {
     tab.addEventListener('click', async () => {
@@ -331,7 +393,9 @@ const bindEvents = () => {
     refreshEmbed();
   });
 
-  elements.animationToggle.addEventListener('change', refreshPreview);
+  if (elements.animationToggle) {
+    elements.animationToggle.addEventListener('change', refreshPreview);
+  }
   elements.loadTemplateBtn.addEventListener('click', loadTemplate);
   elements.loadExampleBtn.addEventListener('click', loadExample);
   elements.saveProjectBtn.addEventListener('click', () => {
@@ -356,21 +420,21 @@ const bindEvents = () => {
   });
 
   elements.copyEmbedInlineBtn.addEventListener('click', () => {
+    if (!elements.embedSnippet) {
+      return;
+    }
     copyToClipboard(elements.embedSnippet.value);
   });
 
-  elements.showEmbedBtn.addEventListener('click', () => {
-    elements.embedOutput.value = elements.embedSnippet.value;
-    elements.embedDialog.showModal();
-  });
+  if (elements.showEmbedBtn) {
+    elements.showEmbedBtn.addEventListener('click', toggleEmbedPanel);
+  }
 
-  elements.dialogCopyBtn.addEventListener('click', () => {
-    copyToClipboard(elements.embedOutput.value);
-  });
-
-  elements.embedDialog.addEventListener('close', () => {
-    elements.embedOutput.value = elements.embedSnippet.value;
-  });
+  if (elements.hideEmbedBtn) {
+    elements.hideEmbedBtn.addEventListener('click', () => {
+      setEmbedPanelOpen(false);
+    });
+  }
 };
 
 const init = async () => {
@@ -378,6 +442,7 @@ const init = async () => {
   elements.titleInput.value = state.title;
   elements.descriptionInput.value = state.description;
   bindEvents();
+  setEmbedPanelOpen(false);
   await refreshSavedProjects();
   showStatus('Ready to create!');
 };

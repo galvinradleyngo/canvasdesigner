@@ -3,8 +3,10 @@ export const clone = (value) => JSON.parse(JSON.stringify(value));
 let uidCounter = 0;
 export const uid = (prefix = 'item') => `${prefix}-${Date.now().toString(36)}-${uidCounter++}`;
 
+export const coalesce = (value, fallback) => (value === null || value === undefined ? fallback : value);
+
 export const escapeHtml = (value) =>
-  String(value ?? '')
+  String(coalesce(value, ''))
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
