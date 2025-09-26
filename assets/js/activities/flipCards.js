@@ -496,8 +496,12 @@ const renderPreview = (container, data, options = {}) => {
     };
 
     const toggleFlip = () => {
-      hasInteracted = true;
       const nextState = !cardWrapper.classList.contains('flipped');
+      if (playAnimations && inner.classList.contains('animate')) {
+        inner.classList.remove('animate');
+        void inner.offsetWidth;
+      }
+      hasInteracted = true;
       setFlipState(nextState);
     };
 
@@ -693,8 +697,12 @@ const embedTemplate = (data, containerId) => {
         };
         setState(false);
         const toggle = () => {
-          hasInteracted = true;
           const nextState = !card.classList.contains('flipped');
+          if (inner && inner.classList.contains('animate')) {
+            inner.classList.remove('animate');
+            void inner.offsetWidth;
+          }
+          hasInteracted = true;
           setState(nextState);
         };
         card.addEventListener('click', toggle);
