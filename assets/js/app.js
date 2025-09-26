@@ -31,7 +31,9 @@ const elements = {
   embedModal: document.getElementById('embedModal'),
   embedModalDialog: document.getElementById('embedModalDialog'),
   statusToast: document.getElementById('statusToast'),
-  animationToggle: document.getElementById('animationToggle')
+  animationToggle: document.getElementById('animationToggle'),
+  appMain: document.querySelector('.app-main'),
+  previewToggleButtons: Array.from(document.querySelectorAll('[data-preview-toggle]'))
 };
 
 const focusableModalSelector = [
@@ -46,6 +48,8 @@ const focusableModalSelector = [
 const modalState = {
   lastFocusedElement: null
 };
+
+let previewHidden = false;
 
 const isElementVisible = (element) => {
   if (!element) return false;
@@ -138,9 +142,36 @@ const refreshPreview = () => {
   if (!activity) return;
   const shouldPlayAnimations = elements.animationToggle ? elements.animationToggle.checked : true;
   activity.renderPreview(elements.previewArea, state.data, {
-
+    playAnimations: shouldPlayAnimations
   });
 };
+
+const updatePreviewToggleButtons = () => {
+  if (!Array.isArray(elements.previewToggleButtons)) {
+    return;
+  }
+  const label = previewHidden ? 'Show preview' : 'Hide preview';
+  const ariaLabel = previewHidden ? 'Show live preview panel' : 'Hide live preview panel';
+  elements.previewToggleButtons.forEach((button) => {
+    if (!button) return;
+    button.textContent = label;
+    button.setAttribute('aria-pressed', previewHidden ? 'true' : 'false');
+    button.setAttribute('aria-label', ariaLabel);
+  });
+};
+
+const setPreviewHidden = (hidden) => {
+  previewHidden = hidden;
+  if (elements.appMain) {
+    elements.appMain.classList.toggle('preview-hidden', previewHidden);
+  }
+  updatePreviewToggleButtons();
+  if (!previewHidden) {
+    refreshPreview();
+  }
+};
+
+updatePreviewToggleButtons();
 
 const rebuildEditor = () => {
   const activity = getActiveActivity();
@@ -568,6 +599,15 @@ const bindEvents = () => {
   if (elements.animationToggle) {
     elements.animationToggle.addEventListener('change', () => {
       refreshPreview();
+    });
+  }
+
+  if (Array.isArray(elements.previewToggleButtons)) {
+    elements.previewToggleButtons.forEach((button) => {
+      if (!button) return;
+      button.addEventListener('click', () => {
+        setPreviewHidden(!previewHidden);
+      });
     });
   }
 };
