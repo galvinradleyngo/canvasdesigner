@@ -1,7 +1,70 @@
 import { activities } from './activities/index.js';
 import { escapeHtml } from './utils.js';
 
-const VIEWER_URL = 'https://galvinradleyngo.github.io/canvasdesigner/embed.html';
+const ensureTrailingSlash = (value) => (value.endsWith('/') ? value : `${value}/`);
+
+const getConfiguredViewerBase = () => {
+  if (typeof process !== 'undefined' && process.env) {
+    const envOverride = process.env.CANVASDESIGNER_VIEWER_BASE_URL;
+    if (typeof envOverride === 'string' && envOverride.trim()) {
+      try {
+        const url = new URL(envOverride.trim());
+        return ensureTrailingSlash(url.toString());
+      } catch (error) {
+        console.warn('Invalid CANVASDESIGNER_VIEWER_BASE_URL environment value', error);
+      }
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const override = window.CANVASDESIGNER_VIEWER_BASE_URL;
+    if (typeof override === 'string' && override.trim()) {
+      try {
+        const url = new URL(override.trim(), window.location?.href || undefined);
+        return ensureTrailingSlash(url.toString());
+      } catch (error) {
+        console.warn('Invalid CANVASDESIGNER_VIEWER_BASE_URL override', error);
+      }
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    const meta = document.querySelector('meta[name="canvasdesigner:viewer-base"]');
+    const content = meta?.getAttribute('content');
+    if (typeof content === 'string' && content.trim()) {
+      try {
+        const url = new URL(content.trim(), document.baseURI);
+        return ensureTrailingSlash(url.toString());
+      } catch (error) {
+        console.warn('Invalid canvasdesigner:viewer-base meta tag', error);
+      }
+    }
+  }
+
+  try {
+    const moduleUrl = new URL(import.meta.url);
+    const base = new URL('../../', moduleUrl);
+    if (base.protocol === 'http:' || base.protocol === 'https:') {
+      return ensureTrailingSlash(base.toString());
+    }
+  } catch (error) {
+    console.warn('Unable to derive viewer base from module URL', error);
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    const { protocol, origin, pathname } = window.location;
+    if (protocol === 'http:' || protocol === 'https:') {
+      const basePath = pathname.endsWith('/') ? pathname : pathname.replace(/[^/]*$/, '');
+      return ensureTrailingSlash(`${origin}${basePath}`);
+    }
+  }
+
+  throw new Error(
+    'Canvas Designer viewer base URL could not be determined. Set window.CANVASDESIGNER_VIEWER_BASE_URL before loading the app.'
+  );
+};
+
+const VIEWER_URL = new URL('docs/embed.html', getConfiguredViewerBase()).toString();
 
 const sanitizeText = (value, { maxLength = 500 } = {}) => {
   if (typeof value !== 'string') {

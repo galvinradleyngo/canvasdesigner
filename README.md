@@ -50,6 +50,22 @@ docs/
 - Embed snippets now render via a sandboxed iframe hitting `https://galvinradleyngo.github.io/canvasdesigner/embed.html`, keeping Canvas-compatible markup while isolating scripts and styles.
 - The hosted viewer validates the payload version, activity type, and text fields before rendering to guard against tampered URLs.
 
+### Viewer base URL configuration
+
+- The embed generator now derives the viewer URL from the page's origin or an explicit override.
+- If you host the authoring app from a different domain (for example while testing locally from `file://` URLs), define `window.CANVASDESIGNER_VIEWER_BASE_URL` before loading `assets/js/app.js`.
+- For scripted builds, you can also export `CANVASDESIGNER_VIEWER_BASE_URL` in the environment so the generator works when the modules are imported outside the browser.
+- The value should be the absolute base of your deployment and must include a trailing slash. Example:
+
+  ```html
+  <script>
+    window.CANVASDESIGNER_VIEWER_BASE_URL = 'https://your-org.github.io/canvasdesigner/';
+  </script>
+  <script type="module" src="assets/js/app.js"></script>
+  ```
+
+This keeps the generated iframe pointed at the live `docs/embed.html` viewer so LMS embeds continue to work after deployment.
+
 ## Browser support
 
 The app targets evergreen desktop browsers (Chrome, Edge, Firefox, Safari). Clipboard features gracefully fall back to legacy selection when the asynchronous Clipboard API is unavailable.
