@@ -93,6 +93,16 @@ const serializeForScript = (value) => {
 
 const EMBED_REGISTRY_KEY = '__CANVAS_DESIGNER_EMBEDS__';
 
+const createViewerUrlWithEmbedId = () => {
+  const url = new URL(VIEWER_URL);
+  // The embedId query parameter is how the viewer pairs postMessage payload
+  // requests with the matching iframe instance, so it must remain in the URL
+  // even though the activity data now travels in the hash segment.
+  const embedId = uid('cd-embed');
+  url.searchParams.set('embedId', embedId);
+  return { url, embedId };
+};
+
 export const generateEmbed = ({ id, type, title, description, data }) => {
   const activity = activities[type];
   if (!activity) {
@@ -111,12 +121,7 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   };
 
   const encoded = encodePayload(payload);
-  const viewerUrl = new URL(VIEWER_URL);
-  // The embedId query parameter is how the viewer pairs postMessage payload
-  // requests with the matching iframe instance, so it must remain in the URL
-  // even though the activity data now travels in the hash segment.
-  const embedId = uid('cd-embed');
-  viewerUrl.searchParams.set('embedId', embedId);
+  const { url: viewerUrl, embedId } = createViewerUrlWithEmbedId();
   viewerUrl.hash = encoded;
 
   const iframeTitle = escapeHtml(safeTitle || activity.label);
