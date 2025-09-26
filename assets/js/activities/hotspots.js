@@ -41,7 +41,11 @@ const example = () => ({
 
 const buildEditor = (container, data, onUpdate) => {
   const working = clone(data);
-  let activeId = working.hotspots[0]?.id ?? null;
+  if (!Array.isArray(working.hotspots)) {
+    working.hotspots = [];
+  }
+  const firstHotspot = working.hotspots.length > 0 ? working.hotspots[0] : null;
+  let activeId = firstHotspot ? firstHotspot.id : null;
 
   const emit = (refresh = true) => {
     onUpdate(clone(working));
@@ -52,9 +56,13 @@ const buildEditor = (container, data, onUpdate) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      const existingAlt = working.image && typeof working.image.alt === 'string' ? working.image.alt : '';
+      const defaultAlt = file
+        ? file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+        : '';
       working.image = {
         src: reader.result,
-        alt: working.image?.alt || file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+        alt: existingAlt || defaultAlt
       };
       emit();
     };
@@ -202,7 +210,10 @@ const buildEditor = (container, data, onUpdate) => {
       deleteBtn.addEventListener('click', () => {
         const idx = working.hotspots.findIndex((s) => s.id === spot.id);
         if (idx >= 0) working.hotspots.splice(idx, 1);
-        if (activeId === spot.id) activeId = working.hotspots[0]?.id ?? null;
+        if (activeId === spot.id) {
+          const nextHotspot = working.hotspots.length > 0 ? working.hotspots[0] : null;
+          activeId = nextHotspot ? nextHotspot.id : null;
+        }
         emit();
       });
 

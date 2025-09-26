@@ -49,7 +49,10 @@ const showStatus = (message, tone = 'info') => {
   elements.statusToast.dataset.tone = tone;
   elements.statusToast.classList.add('visible');
   setTimeout(() => {
-    elements.statusToast?.classList.remove('visible');
+    const toast = elements.statusToast;
+    if (toast) {
+      toast.classList.remove('visible');
+    }
   }, 2600);
 };
 
@@ -82,7 +85,7 @@ const refreshPreview = () => {
   const activity = getActiveActivity();
   if (!activity) return;
   activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: elements.animationToggle?.checked
+    playAnimations: elements.animationToggle ? elements.animationToggle.checked : false
   });
 };
 
@@ -199,7 +202,7 @@ const handleSaveProject = async () => {
   }
 
   const project = {
-    id: state.id ?? uid('project'),
+    id: state.id === null || state.id === undefined ? uid('project') : state.id,
     title: state.title.trim(),
     description: state.description.trim(),
     type: state.type,

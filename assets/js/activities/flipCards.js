@@ -156,7 +156,11 @@ const renderPreview = (container, data, { playAnimations }) => {
     const cardWrapper = document.createElement('div');
     cardWrapper.className = 'flipcard';
     const inner = document.createElement('div');
-    inner.className = `flipcard-inner ${playAnimations ? 'animate' : ''}`.trim();
+    inner.className = 'flipcard-inner';
+
+    if (playAnimations) {
+      inner.classList.add('animate');
+    }
 
     const front = document.createElement('div');
     front.className = 'flipcard-face flipcard-front';
@@ -173,20 +177,36 @@ const renderPreview = (container, data, { playAnimations }) => {
     inner.append(front, back);
     cardWrapper.append(inner);
 
-    cardWrapper.addEventListener('click', () => {
-      const flipped = cardWrapper.classList.toggle('flipped');
-      cardWrapper.setAttribute('aria-pressed', String(flipped));
-    });
+    const setFlipState = (flipped) => {
+      if (flipped) {
+        cardWrapper.classList.add('flipped');
+        if (playAnimations) {
+          inner.classList.remove('animate');
+        }
+      } else {
+        cardWrapper.classList.remove('flipped');
+        if (playAnimations) {
+          inner.classList.add('animate');
+        }
+      }
+      cardWrapper.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+    };
+
+    const toggleFlip = () => {
+      const nextState = !cardWrapper.classList.contains('flipped');
+      setFlipState(nextState);
+    };
+
+    cardWrapper.addEventListener('click', toggleFlip);
     cardWrapper.addEventListener('keypress', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        const flipped = cardWrapper.classList.toggle('flipped');
-        cardWrapper.setAttribute('aria-pressed', String(flipped));
+        toggleFlip();
       }
     });
     cardWrapper.setAttribute('tabindex', '0');
     cardWrapper.setAttribute('role', 'button');
-    cardWrapper.setAttribute('aria-pressed', 'false');
+    setFlipState(false);
 
     grid.append(cardWrapper);
   });
