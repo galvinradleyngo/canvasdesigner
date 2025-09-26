@@ -79,6 +79,7 @@ const ensureItems = (working) => {
   if (!Array.isArray(working.items)) {
     working.items = [];
   }
+  ensureBuckets(working);
   if (working.items.length === 0) {
     working.items.push({
       id: uid('item'),

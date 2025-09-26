@@ -6,8 +6,8 @@ import { dragDrop } from './dragDrop.js';
 export const activities = {
   [flipCards.id]: flipCards,
   [accordions.id]: accordions,
-  [hotspots.id]: hotspots,
-  [dragDrop.id]: dragDrop
+  [dragDrop.id]: dragDrop,
+  [hotspots.id]: hotspots
 };
 
 export const defaultActivityId = flipCards.id;
