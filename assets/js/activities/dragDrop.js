@@ -338,7 +338,12 @@ const normalizePreviewData = (rawData = {}) => {
   const rawBuckets = Array.isArray(rawData.buckets)
     ? rawData.buckets.filter((bucket) => bucket && bucket.id)
     : [];
-  const buckets = rawBuckets.length > 0 ? rawBuckets : fallbackBuckets;
+  const bucketsSource = rawBuckets.length > 0 ? rawBuckets : fallbackBuckets;
+  const buckets = bucketsSource.map((bucket, index) => ({
+    ...bucket,
+    title: sanitizeText(bucket.title) || `Drop zone ${index + 1}`,
+    description: sanitizeText(bucket.description)
+  }));
 
   const bucketIds = new Set(buckets.map((bucket) => bucket.id));
   const items = Array.isArray(rawData.items)
@@ -357,8 +362,8 @@ const normalizePreviewData = (rawData = {}) => {
     hasItems: items.length > 0,
     buckets,
     items,
-    prompt: rawData.prompt?.trim() || '',
-    instructions: rawData.instructions?.trim() || ''
+    prompt: sanitizeText(rawData.prompt),
+    instructions: sanitizeText(rawData.instructions)
   };
 };
 
