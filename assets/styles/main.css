@@ -401,10 +401,12 @@ textarea:focus {
 }
 
 .card-face-controls--locked {
+  /* Slightly dim the entire face controls while still allowing inner elements to remain legible */
   opacity: 0.85;
 }
 
 .card-color-field.card-color-field--locked {
+  /* Additional dimming for individual color pickers when Card 1 color sync is active */
   opacity: 0.6;
 }
 
