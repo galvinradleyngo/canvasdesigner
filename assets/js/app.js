@@ -30,7 +30,6 @@ const elements = {
   embedDialog: document.getElementById('embedDialog'),
   embedOutput: document.getElementById('embedOutput'),
   dialogCopyBtn: document.getElementById('dialogCopyBtn'),
-  loadProjectSelect: document.getElementById('savedProjects'),
   animationToggle: document.getElementById('animationToggle'),
   statusToast: document.getElementById('statusToast')
 };
