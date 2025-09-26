@@ -481,22 +481,22 @@ const renderPreview = (container, data, options = {}) => {
     inner.append(front, back);
     cardWrapper.append(inner);
 
+    let hasInteracted = false;
+
     const setFlipState = (flipped) => {
-      if (flipped) {
-        cardWrapper.classList.add('flipped');
-        if (playAnimations) {
-          inner.classList.remove('animate');
-        }
-      } else {
-        cardWrapper.classList.remove('flipped');
-        if (playAnimations) {
+      cardWrapper.classList.toggle('flipped', flipped);
+      if (playAnimations) {
+        if (!flipped && !hasInteracted) {
           inner.classList.add('animate');
+        } else {
+          inner.classList.remove('animate');
         }
       }
       cardWrapper.setAttribute('aria-pressed', flipped ? 'true' : 'false');
     };
 
     const toggleFlip = () => {
+      hasInteracted = true;
       const nextState = !cardWrapper.classList.contains('flipped');
       setFlipState(nextState);
     };
@@ -679,19 +679,21 @@ const embedTemplate = (data, containerId) => {
       if (!root) return;
       root.querySelectorAll('.cd-flipcard').forEach((card) => {
         const inner = card.querySelector('.cd-flipcard-inner');
+        let hasInteracted = false;
         const setState = (flipped) => {
           card.classList.toggle('flipped', flipped);
           if (inner) {
-            if (flipped) {
-              inner.classList.remove('animate');
-            } else {
+            if (!flipped && !hasInteracted) {
               inner.classList.add('animate');
+            } else {
+              inner.classList.remove('animate');
             }
           }
           card.setAttribute('aria-pressed', String(flipped));
         };
         setState(false);
         const toggle = () => {
+          hasInteracted = true;
           const nextState = !card.classList.contains('flipped');
           setState(nextState);
         };
