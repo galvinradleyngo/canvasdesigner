@@ -50,6 +50,60 @@
     <main class="cd-embed-viewer-shell">
       <div id="cd-embed-viewer-root" aria-live="polite"></div>
     </main>
-    <script type="module" src="../assets/js/embedViewer.js"></script>
+    <script type="module">
+      const VIEW_ROOT_ID = 'cd-embed-viewer-root';
+      const CANONICAL_BASE = 'https://galvinradleyngo.github.io/canvasdesigner';
+
+      const dedupe = (values) => {
+        const seen = new Set();
+        return values.filter((value) => {
+          if (seen.has(value)) {
+            return false;
+          }
+          seen.add(value);
+          return true;
+        });
+      };
+
+      const showLoaderError = () => {
+        const root = document.getElementById(VIEW_ROOT_ID);
+        if (!root) {
+          return;
+        }
+
+        root.innerHTML = '';
+        const message = document.createElement('div');
+        message.className = 'cd-viewer-message';
+        message.setAttribute('role', 'alert');
+        message.textContent = 'We were unable to load the Canvas Designer viewer bundle.';
+        root.append(message);
+      };
+
+      const resolveSources = () => {
+        try {
+          const localUrl = new URL('./assets/js/embedViewer.js', window.location.href).href;
+          return dedupe([localUrl, `${CANONICAL_BASE}/assets/js/embedViewer.js`]);
+        } catch (error) {
+          console.warn('Unable to resolve local viewer bundle URL', error);
+          return [`${CANONICAL_BASE}/assets/js/embedViewer.js`];
+        }
+      };
+
+      const bootstrap = async () => {
+        const sources = resolveSources();
+        for (const url of sources) {
+          try {
+            await import(url);
+            return;
+          } catch (error) {
+            console.warn(`Unable to load viewer bundle from ${url}`, error);
+          }
+        }
+
+        showLoaderError();
+      };
+
+      bootstrap();
+    </script>
   </body>
 </html>

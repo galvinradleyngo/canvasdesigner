@@ -19,7 +19,7 @@ Canvas Designer Studio is a modern single-page web app for crafting interactive 
 4. Preview the interaction on the right. Use the toggle to pause or resume entrance animations.
 5. Copy the generated embed snippet from the **Embed code** section or open the dialog for a full-screen view. Paste the snippet into the Canvas LMS HTML editor.
 
-> **Tip:** Canvas strips external scripts in the rich content editor. The generated snippet now uses an iframe that points to the GitHub Pages viewer, so it keeps working even after Canvas sanitizes the HTML.
+> **Tip:** Canvas strips external scripts in the rich content editor. The generated snippet now uses an iframe that points to the GitHub Pages viewer, so it keeps working even after Canvas sanitizes the HTML. The viewer page now falls back to the canonical GitHub Pages bundle if the relative path 404s (for example, when the snippet is rendered from within Canvas).
 
 ## Project structure
 
