@@ -88,7 +88,7 @@ const refreshPreview = () => {
   if (!activity) return;
   const shouldPlayAnimations = elements.animationToggle ? elements.animationToggle.checked : true;
   activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: shouldPlayAnimations
+
   });
 };
 

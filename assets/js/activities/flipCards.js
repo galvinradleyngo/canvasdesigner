@@ -367,7 +367,7 @@ const renderPreview = (container, data, options = {}) => {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.innerHTML = '<p>Add cards to see a live preview.</p>';
-    container.append(empty);
+    container.append(empty);https://github.com/galvinradleyngo/canvasdesigner/pull/19/conflict?name=assets%252Fjs%252Factivities%252FflipCards.js&ancestor_oid=ffc6d3109be2aa873f3e15d84f88273f7022824f&base_oid=94743a8a927078736600e5f57b55d523b6f40c13&head_oid=394b7a520d6cffa994f5ba87105526248d823524
     return;
   }
   const grid = document.createElement('div');
