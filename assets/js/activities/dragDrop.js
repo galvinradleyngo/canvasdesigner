@@ -334,6 +334,7 @@ const EMPTY_PREVIEW_TEMPLATE = `
 const normalizePreviewData = (rawData = {}) => {
   const fallback = template();
   const fallbackBuckets = clone(fallback.buckets);
+  const sanitizeText = (value) => (typeof value === 'string' ? value.trim() : '');
   const rawBuckets = Array.isArray(rawData.buckets)
     ? rawData.buckets.filter((bucket) => bucket && bucket.id)
     : [];
@@ -345,8 +346,10 @@ const normalizePreviewData = (rawData = {}) => {
         .filter((item) => item && item.id)
         .map((item) => ({
           ...item,
+          text: sanitizeText(item.text),
           correctBucketId: bucketIds.has(item.correctBucketId) ? item.correctBucketId : null
         }))
+        .filter((item) => item.text.length > 0)
     : [];
 
   return {
