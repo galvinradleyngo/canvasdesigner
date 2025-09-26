@@ -80,15 +80,16 @@ const refreshEmbed = () => {
 
 const refreshPreview = () => {
   const activity = getActiveActivity();
-  if (!activity) return;
+  const previewHost = elements.previewArea;
+  if (!activity || !previewHost) return;
   try {
-    activity.renderPreview(elements.previewArea, state.data, {
+    activity.renderPreview(previewHost, state.data, {
       playAnimations: elements.animationToggle?.checked
     });
   } catch (error) {
     console.error('Unable to render preview', error);
-    if (elements.previewArea) {
-      elements.previewArea.innerHTML = `
+    if (previewHost) {
+      previewHost.innerHTML = `
         <div class="preview-placeholder" role="status" aria-live="polite">
           <strong>Preview unavailable</strong>
           <span>Something went wrong while rendering this activity. Check your content and try again.</span>

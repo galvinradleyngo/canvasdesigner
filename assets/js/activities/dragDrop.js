@@ -327,13 +327,15 @@ const buildEditor = (container, data, onUpdate) => {
 const renderPreview = (container, data) => {
   container.innerHTML = '';
 
+  const fallback = template();
   const hasBuckets = Array.isArray(data.buckets) && data.buckets.length > 0;
-  const buckets = hasBuckets ? data.buckets : template().buckets;
+  const buckets = hasBuckets ? data.buckets : fallback.buckets;
   const items = Array.isArray(data.items) ? data.items : [];
+  const hasItems = items.length > 0;
   const prompt = data.prompt?.trim() || '';
   const instructions = data.instructions?.trim() || '';
 
-  if (!hasBuckets || !items.length) {
+  if (!hasBuckets || !hasItems) {
     container.innerHTML = `
       <div class="preview-placeholder" role="status" aria-live="polite">
         <strong>Configure drop zones and cards</strong>
