@@ -16,7 +16,9 @@ const lazyActivityLoaders = {
   dragDrop: async () => (await import('./activities/dragDrop.js')).dragDrop,
   hotspots: async () => (await import('./activities/hotspots.js')).hotspots,
   accordion: async () => (await import('./activities/accordion.js')).accordion,
-  timeline: async () => (await import('./activities/timeline.js')).timeline
+  timeline: async () => (await import('./activities/timeline.js')).timeline,
+  branchingScenarios: async () => (await import('./activities/branchingScenarios.js')).branchingScenarios,
+  imageCarousel: async () => (await import('./activities/imageCarousel.js')).imageCarousel
 };
 
 const pendingActivityLoads = new Map();
