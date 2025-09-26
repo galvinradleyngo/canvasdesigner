@@ -415,7 +415,7 @@ const buildEditor = (container, data, onUpdate) => {
 const renderPreview = (container, data, options = {}) => {
   container.innerHTML = '';
   const working = ensureWorkingState(data);
-  const playAnimations = Boolean(options && options.playAnimations);
+  const playAnimations = options.playAnimations !== false;
   if (!working.cards.length) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
