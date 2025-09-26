@@ -46,6 +46,51 @@ const buildEditor = (container, data, onUpdate) => {
   }
   const firstHotspot = working.hotspots.length > 0 ? working.hotspots[0] : null;
   let activeId = firstHotspot ? firstHotspot.id : null;
+  let draggingId = null;
+  let overlayEl = null;
+  let hotspotListEl = null;
+  let previewEl = null;
+
+  const clampPercent = (value) => {
+    const number = Number(value);
+    if (Number.isNaN(number)) return 0;
+    return Math.min(100, Math.max(0, Math.round(number * 10) / 10));
+  };
+
+  const syncMarkers = () => {
+    if (!overlayEl) return;
+    overlayEl.querySelectorAll('.hotspot-marker').forEach((marker) => {
+      const { id } = marker.dataset;
+      const spot = working.hotspots.find((s) => s.id === id);
+      if (!spot) return;
+      marker.style.left = `${spot.x}%`;
+      marker.style.top = `${spot.y}%`;
+      marker.classList.toggle('active', spot.id === activeId);
+      marker.classList.toggle('dragging', spot.id === draggingId);
+    });
+  };
+
+  const syncListSelection = () => {
+    if (!hotspotListEl) return;
+    hotspotListEl.querySelectorAll('.editor-item').forEach((item) => {
+      const { id } = item.dataset;
+      const isActive = id === activeId;
+      item.classList.toggle('active', isActive);
+      const selectButton = item.querySelector('[data-role="select-hotspot"]');
+      if (selectButton) {
+        selectButton.textContent = isActive ? 'Selected' : 'Select';
+        selectButton.disabled = isActive;
+      }
+    });
+  };
+
+  const syncPositionInputs = (spot) => {
+    if (!hotspotListEl || !spot) return;
+    const xField = hotspotListEl.querySelector(`[data-role="hotspot-x"][data-id="${spot.id}"]`);
+    const yField = hotspotListEl.querySelector(`[data-role="hotspot-y"][data-id="${spot.id}"]`);
+    if (xField) xField.value = spot.x;
+    if (yField) yField.value = spot.y;
+  };
 
   const emit = (refresh = true) => {
     onUpdate(clone(working));
@@ -88,6 +133,9 @@ const buildEditor = (container, data, onUpdate) => {
     uploadLabel.append(fileInput);
     imageSection.append(uploadLabel);
 
+    let overlay = null;
+    let preview = null;
+
     if (working.image) {
       const altLabel = document.createElement('label');
       altLabel.className = 'field';
@@ -102,29 +150,25 @@ const buildEditor = (container, data, onUpdate) => {
       });
       altLabel.append(altInput);
 
-      const preview = document.createElement('div');
+      preview = document.createElement('div');
       preview.className = 'hotspot-image-preview';
       const img = document.createElement('img');
       img.src = working.image.src;
       img.alt = working.image.alt || '';
       preview.append(img);
 
-      const overlay = document.createElement('div');
+      overlay = document.createElement('div');
       overlay.className = 'hotspot-overlay';
       overlay.setAttribute('role', 'presentation');
 
-      overlay.addEventListener('click', (event) => {
-        if (!activeId) return;
+      const getPointerPosition = (clientX, clientY) => {
+        if (!preview) return null;
         const rect = preview.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / rect.width) * 100;
-        const y = ((event.clientY - rect.top) / rect.height) * 100;
-        const hotspot = working.hotspots.find((spot) => spot.id === activeId);
-        if (hotspot) {
-          hotspot.x = Math.round(x * 10) / 10;
-          hotspot.y = Math.round(y * 10) / 10;
-          emit();
-        }
-      });
+        if (!rect.width || !rect.height) return null;
+        const x = clampPercent(((clientX - rect.left) / rect.width) * 100);
+        const y = clampPercent(((clientY - rect.top) / rect.height) * 100);
+        return { x, y };
+      };
 
       working.hotspots.forEach((spot, index) => {
         const marker = document.createElement('div');
@@ -134,19 +178,79 @@ const buildEditor = (container, data, onUpdate) => {
         marker.textContent = index + 1;
         marker.dataset.id = spot.id;
         if (spot.id === activeId) marker.classList.add('active');
-        marker.addEventListener('click', (event) => {
-          event.stopPropagation();
-          activeId = spot.id;
-          emit();
-        });
         overlay.append(marker);
       });
+
+      const handlePointerDown = (event) => {
+        const markerEl = event.target.closest('.hotspot-marker');
+        if (markerEl) {
+          event.stopPropagation();
+          event.preventDefault();
+          const { id } = markerEl.dataset;
+          const hotspot = working.hotspots.find((spot) => spot.id === id);
+          if (!hotspot) return;
+          activeId = id;
+          draggingId = id;
+          syncMarkers();
+          syncListSelection();
+          const initialPosition = getPointerPosition(event.clientX, event.clientY);
+          if (initialPosition) {
+            hotspot.x = initialPosition.x;
+            hotspot.y = initialPosition.y;
+            syncPositionInputs(hotspot);
+            emit(false);
+            syncMarkers();
+          }
+
+          const handlePointerMove = (moveEvent) => {
+            if (draggingId !== id) return;
+            moveEvent.preventDefault();
+            const coords = getPointerPosition(moveEvent.clientX, moveEvent.clientY);
+            if (!coords) return;
+            hotspot.x = coords.x;
+            hotspot.y = coords.y;
+            syncPositionInputs(hotspot);
+            emit(false);
+            syncMarkers();
+          };
+
+          const stopDragging = () => {
+            if (draggingId !== id) return;
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', stopDragging);
+            window.removeEventListener('pointercancel', stopDragging);
+            draggingId = null;
+            syncMarkers();
+            syncListSelection();
+            emit();
+          };
+
+          window.addEventListener('pointermove', handlePointerMove);
+          window.addEventListener('pointerup', stopDragging);
+          window.addEventListener('pointercancel', stopDragging);
+          return;
+        }
+
+        if (!activeId) return;
+        const hotspot = working.hotspots.find((spot) => spot.id === activeId);
+        if (!hotspot) return;
+        const coords = getPointerPosition(event.clientX, event.clientY);
+        if (!coords) return;
+        hotspot.x = coords.x;
+        hotspot.y = coords.y;
+        syncPositionInputs(hotspot);
+        syncMarkers();
+        syncListSelection();
+        emit();
+      };
+
+      overlay.addEventListener('pointerdown', handlePointerDown);
 
       preview.append(overlay);
 
       const helper = document.createElement('p');
       helper.className = 'hint';
-      helper.textContent = 'Select a hotspot below, then click on the image to place it.';
+      helper.textContent = 'Select a hotspot below, then drag its marker or tap to place it.';
 
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
@@ -197,10 +301,17 @@ const buildEditor = (container, data, onUpdate) => {
       const selectBtn = document.createElement('button');
       selectBtn.type = 'button';
       selectBtn.className = 'muted-button';
+      selectBtn.dataset.role = 'select-hotspot';
+      selectBtn.dataset.id = spot.id;
       selectBtn.textContent = spot.id === activeId ? 'Selected' : 'Select';
+      if (spot.id === activeId) {
+        selectBtn.disabled = true;
+      }
       selectBtn.addEventListener('click', () => {
         activeId = spot.id;
-        emit();
+        syncListSelection();
+        syncMarkers();
+        emit(false);
       });
 
       const deleteBtn = document.createElement('button');
@@ -258,10 +369,14 @@ const buildEditor = (container, data, onUpdate) => {
       xInput.max = 100;
       xInput.step = 0.1;
       xInput.value = spot.x;
+      xInput.dataset.role = 'hotspot-x';
+      xInput.dataset.id = spot.id;
       xInput.addEventListener('input', () => {
-        spot.x = Number(xInput.value);
+        const nextValue = clampPercent(xInput.value);
+        spot.x = nextValue;
+        xInput.value = nextValue;
+        syncMarkers();
         emit(false);
-        rerender();
       });
       xLabel.append(xInput);
 
@@ -275,21 +390,42 @@ const buildEditor = (container, data, onUpdate) => {
       yInput.max = 100;
       yInput.step = 0.1;
       yInput.value = spot.y;
+      yInput.dataset.role = 'hotspot-y';
+      yInput.dataset.id = spot.id;
       yInput.addEventListener('input', () => {
-        spot.y = Number(yInput.value);
+        const nextValue = clampPercent(yInput.value);
+        spot.y = nextValue;
+        yInput.value = nextValue;
+        syncMarkers();
         emit(false);
-        rerender();
       });
       yLabel.append(yInput);
 
       posRow.append(xLabel, yLabel);
 
       item.append(header, titleLabel, descLabel, posRow);
+      item.dataset.id = spot.id;
+
+      const updateSelectionState = () => {
+        const isActive = spot.id === activeId;
+        item.classList.toggle('active', isActive);
+        selectBtn.textContent = isActive ? 'Selected' : 'Select';
+        selectBtn.disabled = isActive;
+      };
+
+      updateSelectionState();
+
       hotspotSection.append(item);
     });
 
     hotspotSection.append(addHotspotButton);
     container.append(hotspotSection);
+
+    overlayEl = overlay;
+    hotspotListEl = hotspotSection;
+    previewEl = preview;
+    syncMarkers();
+    syncListSelection();
   };
 
   rerender();
@@ -324,6 +460,35 @@ const renderPreview = (container, data) => {
     openSpotId = null;
   };
 
+  const positionPopover = (popoverEl, spot) => {
+    if (!popoverEl) return;
+    const overlayRect = overlay.getBoundingClientRect();
+    if (!overlayRect.width || !overlayRect.height) {
+      return;
+    }
+    const margin = 12;
+    const markerX = (spot.x / 100) * overlayRect.width;
+    const markerY = (spot.y / 100) * overlayRect.height;
+    let left = markerX - popoverEl.offsetWidth / 2;
+    let top = markerY - popoverEl.offsetHeight - 16;
+
+    if (top < margin) {
+      top = markerY + 16;
+    }
+    if (top + popoverEl.offsetHeight > overlayRect.height - margin) {
+      top = Math.max(margin, overlayRect.height - popoverEl.offsetHeight - margin);
+    }
+    if (left < margin) {
+      left = margin;
+    }
+    if (left + popoverEl.offsetWidth > overlayRect.width - margin) {
+      left = Math.max(margin, overlayRect.width - popoverEl.offsetWidth - margin);
+    }
+
+    popoverEl.style.left = `${left}px`;
+    popoverEl.style.top = `${top}px`;
+  };
+
   data.hotspots.forEach((spot, index) => {
     const marker = document.createElement('div');
     marker.className = 'hotspot-marker';
@@ -343,11 +508,13 @@ const renderPreview = (container, data) => {
       const description = document.createElement('p');
       description.textContent = spot.description || '';
       popover.append(heading, description);
-      popover.style.left = `${spot.x}%`;
-      popover.style.top = `${spot.y}%`;
       overlay.append(popover);
       openPopover = popover;
       openSpotId = spot.id;
+      requestAnimationFrame(() => {
+        if (openPopover !== popover) return;
+        positionPopover(popover, spot);
+      });
     };
 
     marker.addEventListener('click', (event) => {

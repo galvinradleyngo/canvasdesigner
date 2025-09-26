@@ -131,6 +131,7 @@ body::before {
   grid-template-columns: minmax(320px, var(--panel-width)) 1fr;
   gap: 0;
   min-height: 620px;
+  align-items: flex-start;
 }
 
 .control-panel {
@@ -396,7 +397,95 @@ textarea:focus {
 .card-face-controls {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+}
+
+.card-face-controls--locked {
+  opacity: 0.85;
+}
+
+.card-face-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.card-face-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.card-face-color {
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid rgba(15, 23, 42, 0.08);
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+  transition: transform var(--transition), box-shadow var(--transition);
+  flex-shrink: 0;
+}
+
+.card-face-color:hover,
+.card-face-color:focus-visible {
+  transform: scale(1.05);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.22);
+  outline: none;
+}
+
+.card-face-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.card-face-color::-webkit-color-swatch {
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+}
+
+.card-face-color::-moz-color-swatch {
+  border-radius: 50%;
+  border: none;
+}
+
+.card-face-controls--locked .card-face-color {
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.card-sync-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.card-sync-toggle input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.card-sync-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-sync-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
 }
 
 .card-image-field {
@@ -416,62 +505,26 @@ textarea:focus {
   font-size: 0.85rem;
 }
 
-.color-input {
-  width: 100%;
-  height: 44px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-  padding: 0;
-}
-
-.color-input::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-.color-input::-webkit-color-swatch {
-  border: none;
-  border-radius: var(--radius-xs);
-}
-
-.color-input::-moz-color-swatch {
-  border: none;
-  border-radius: var(--radius-xs);
-}
-
 .image-preview {
-  border: 1px dashed rgba(15, 23, 42, 0.18);
   border-radius: var(--radius-xs);
-  min-height: 110px;
-  display: grid;
-  place-items: center;
-  padding: 12px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  background: rgba(15, 23, 42, 0.04);
-  transition: border var(--transition), background var(--transition);
+  overflow: hidden;
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+  max-height: 180px;
 }
 
-.image-preview[data-empty='false'] {
-  border-style: solid;
-  background: rgba(15, 23, 42, 0.06);
-  color: transparent;
+.card-image-field .image-preview {
+  margin-top: 8px;
 }
 
-.image-preview[data-empty='false'] span {
+.image-preview[hidden] {
   display: none;
-}
-
-.image-preview span {
-  text-align: center;
 }
 
 .image-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: inherit;
+  display: block;
 }
 
 .code-preview {
@@ -489,12 +542,24 @@ textarea:focus {
 }
 
 .preview-panel {
-  position: relative;
+  position: sticky;
+  top: 24px;
+  align-self: flex-start;
   padding: 28px 32px 36px;
   background: rgba(255, 255, 255, 0.85);
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: calc(100vh - 56px);
+  max-height: calc(100vh - 56px);
+}
+
+.app-main.preview-hidden {
+  grid-template-columns: minmax(320px, 1fr);
+}
+
+.app-main.preview-hidden .preview-panel {
+  display: none;
 }
 
 .preview-header {
@@ -513,6 +578,7 @@ textarea:focus {
   padding: 32px;
   overflow: auto;
   box-shadow: inset 0 6px 20px rgba(15, 23, 42, 0.04);
+  min-height: 0;
 }
 
 .empty-state {
@@ -880,7 +946,8 @@ textarea:focus {
 .hotspot-overlay {
   position: absolute;
   inset: 0;
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 .hotspot-marker {
@@ -894,7 +961,7 @@ textarea:focus {
   color: white;
   font-weight: 600;
   box-shadow: 0 12px 18px rgba(99, 102, 241, 0.35);
-  cursor: pointer;
+  cursor: grab;
   pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
   transition: transform 160ms ease, box-shadow 160ms ease;
@@ -904,6 +971,15 @@ textarea:focus {
 .hotspot-marker:focus-visible {
   transform: translate(-50%, -50%) scale(1.08);
   box-shadow: 0 14px 22px rgba(99, 102, 241, 0.45);
+}
+
+.hotspot-marker.active {
+  box-shadow: 0 16px 26px rgba(99, 102, 241, 0.5);
+}
+
+.hotspot-marker.dragging {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
 .hotspot-popover {
@@ -955,6 +1031,16 @@ textarea:focus {
   .control-panel {
     border-right: none;
     border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .preview-panel {
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+
+  .app-main.preview-hidden {
+    grid-template-columns: 1fr;
   }
 }
 

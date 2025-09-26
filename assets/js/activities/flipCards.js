@@ -84,7 +84,8 @@ const createSampleCards = () =>
 
 const template = () => ({
   columns: 3,
-  cards: createSampleCards()
+  cards: createSampleCards(),
+  matchFirstColor: false
 });
 
 const example = () => ({
@@ -106,14 +107,16 @@ const example = () => ({
       front: 'Stage 2: Calvin cycle',
       back: 'The plant uses ATP & NADPH to build sugars from carbon dioxide.'
     }
-  ])
+  ]),
+  matchFirstColor: false
 });
 
 const ensureWorkingState = (data) => {
   const safeData = data ? clone(data) : {};
   return {
     columns: clampColumns(safeData.columns),
-    cards: normaliseCards(safeData.cards)
+    cards: normaliseCards(safeData.cards),
+    matchFirstColor: Boolean(safeData.matchFirstColor)
   };
 };
 
@@ -132,7 +135,19 @@ const readFileAsDataUrl = (file) =>
 const buildEditor = (container, data, onUpdate) => {
   const working = ensureWorkingState(data);
 
+  const applySyncedColors = () => {
+    if (!working.matchFirstColor || working.cards.length <= 1) {
+      return;
+    }
+    const source = working.cards[0];
+    for (let i = 1; i < working.cards.length; i += 1) {
+      working.cards[i].frontColor = source.frontColor;
+      working.cards[i].backColor = source.backColor;
+    }
+  };
+
   const emit = (refresh = true) => {
+    applySyncedColors();
     onUpdate(clone(working));
     if (refresh) {
       rerender();
@@ -140,6 +155,7 @@ const buildEditor = (container, data, onUpdate) => {
   };
 
   const rerender = () => {
+    applySyncedColors();
     container.innerHTML = '';
 
     const layoutItem = document.createElement('div');
@@ -256,19 +272,44 @@ const buildEditor = (container, data, onUpdate) => {
         const faceContainer = document.createElement('div');
         faceContainer.className = 'card-face-controls';
 
-        const colorField = document.createElement('label');
-        colorField.className = 'field card-color-field';
-        colorField.innerHTML = `<span class="field-label">${labelText} color</span>`;
+        const faceHeader = document.createElement('div');
+        faceHeader.className = 'card-face-header';
+
+        const faceTitle = document.createElement('h4');
+        faceTitle.className = 'card-face-title';
+        faceTitle.textContent = labelText;
+
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
-        colorInput.className = 'color-input';
+        colorInput.className = 'card-face-color';
+        colorInput.setAttribute('aria-label', `${labelText} color`);
+        colorInput.setAttribute('title', `${labelText} color`);
         const colorValue = card[`${faceKey}Color`];
-        colorInput.value = typeof colorValue === 'string' && colorValue.trim() !== '' ? colorValue : faceKey === 'front' ? DEFAULT_FRONT_COLORS[index % DEFAULT_FRONT_COLORS.length] : DEFAULT_BACK_COLOR;
+        colorInput.value =
+          typeof colorValue === 'string' && colorValue.trim() !== ''
+            ? colorValue
+            : faceKey === 'front'
+            ? DEFAULT_FRONT_COLORS[index % DEFAULT_FRONT_COLORS.length]
+            : DEFAULT_BACK_COLOR;
         colorInput.addEventListener('input', () => {
           working.cards[index][`${faceKey}Color`] = colorInput.value;
           emit(false);
         });
-        colorField.append(colorInput);
+
+        const locked = working.matchFirstColor && index !== 0;
+        if (locked) {
+          colorInput.disabled = true;
+          faceContainer.classList.add('card-face-controls--locked');
+        }
+
+        faceHeader.append(faceTitle, colorInput);
+
+        if (locked) {
+          const lockHint = document.createElement('span');
+          lockHint.className = 'hint';
+          lockHint.textContent = 'Colors follow Card 1 while sync is on.';
+          faceContainer.append(lockHint);
+        }
 
         const imageField = document.createElement('div');
         imageField.className = 'field card-image-field';
@@ -290,23 +331,23 @@ const buildEditor = (container, data, onUpdate) => {
 
         const preview = document.createElement('div');
         preview.className = 'image-preview';
+        preview.hidden = true;
 
         const updatePreview = () => {
           const currentCard = working.cards[index];
           const value = currentCard[`${faceKey}Image`];
           preview.innerHTML = '';
-          preview.dataset.empty = value ? 'false' : 'true';
           if (value) {
             const img = document.createElement('img');
             img.src = value;
             img.alt = '';
             preview.append(img);
+            preview.hidden = false;
+            removeButton.hidden = false;
           } else {
-            const placeholder = document.createElement('span');
-            placeholder.textContent = 'No image';
-            preview.append(placeholder);
+            preview.hidden = true;
+            removeButton.hidden = true;
           }
-          removeButton.disabled = !value;
         };
 
         removeButton.addEventListener('click', () => {
@@ -338,9 +379,10 @@ const buildEditor = (container, data, onUpdate) => {
         updatePreview();
 
         imageControls.append(imageInput, removeButton);
-        imageField.append(imageLabel, imageControls, preview);
+        imageField.append(imageLabel, imageControls);
+        imageField.append(preview);
 
-        faceContainer.append(colorField, imageField);
+        faceContainer.append(faceHeader, imageField);
         return faceContainer;
       };
 
@@ -350,6 +392,33 @@ const buildEditor = (container, data, onUpdate) => {
       );
 
       item.append(header, frontLabel, backLabel, appearanceRow);
+
+      if (index === 0) {
+        const syncToggle = document.createElement('label');
+        syncToggle.className = 'card-sync-toggle';
+        const syncCheckbox = document.createElement('input');
+        syncCheckbox.type = 'checkbox';
+        syncCheckbox.checked = Boolean(working.matchFirstColor);
+        const syncText = document.createElement('div');
+        syncText.className = 'card-sync-text';
+        const syncTitle = document.createElement('span');
+        syncTitle.className = 'card-sync-title';
+        syncTitle.textContent = 'Use this color for all cards';
+        const syncHint = document.createElement('span');
+        syncHint.className = 'hint';
+        syncHint.textContent = 'Other cards inherit front and back colors from Card 1.';
+        syncText.append(syncTitle, syncHint);
+        syncToggle.append(syncCheckbox, syncText);
+        syncCheckbox.addEventListener('change', () => {
+          working.matchFirstColor = syncCheckbox.checked;
+          if (syncCheckbox.checked) {
+            applySyncedColors();
+          }
+          emit();
+        });
+        item.append(syncToggle);
+      }
+
       container.append(item);
     });
 
@@ -367,14 +436,22 @@ const renderPreview = (container, data, options = {}) => {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.innerHTML = '<p>Add cards to see a live preview.</p>';
-    container.append(empty);https://github.com/galvinradleyngo/canvasdesigner/pull/19/conflict?name=assets%252Fjs%252Factivities%252FflipCards.js&ancestor_oid=ffc6d3109be2aa873f3e15d84f88273f7022824f&base_oid=94743a8a927078736600e5f57b55d523b6f40c13&head_oid=394b7a520d6cffa994f5ba87105526248d823524
+    container.append(empty);
     return;
   }
+  const useSyncedColors = working.matchFirstColor && working.cards.length > 0;
+  const cardsForPreview = useSyncedColors
+    ? working.cards.map((card, index) =>
+        index === 0
+          ? card
+          : { ...card, frontColor: working.cards[0].frontColor, backColor: working.cards[0].backColor }
+      )
+    : working.cards;
   const grid = document.createElement('div');
   grid.className = 'flipcard-grid';
   grid.style.gridTemplateColumns = `repeat(${working.columns}, minmax(0, 1fr))`;
 
-  working.cards.forEach((card, index) => {
+  cardsForPreview.forEach((card, index) => {
     const cardWrapper = document.createElement('div');
     cardWrapper.className = 'flipcard';
     cardWrapper.style.setProperty('--card-index', String(index));
@@ -388,8 +465,13 @@ const renderPreview = (container, data, options = {}) => {
     const createFace = (faceKey, fallbackText) => {
       const face = document.createElement('div');
       face.className = `flipcard-face flipcard-${faceKey}`;
-      const color = card[`${faceKey}Color`];
-      face.style.background = color || (faceKey === 'front' ? DEFAULT_FRONT_COLORS[index % DEFAULT_FRONT_COLORS.length] : DEFAULT_BACK_COLOR);
+      const fallbackIndex = useSyncedColors ? 0 : index;
+      const fallbackColor =
+        faceKey === 'front'
+          ? DEFAULT_FRONT_COLORS[fallbackIndex % DEFAULT_FRONT_COLORS.length]
+          : DEFAULT_BACK_COLOR;
+      const color = card[`${faceKey}Color`] || fallbackColor;
+      face.style.background = color;
       const imageValue = card[`${faceKey}Image`];
       if (imageValue) {
         face.classList.add('has-image');
@@ -454,16 +536,24 @@ const renderPreview = (container, data, options = {}) => {
 const embedTemplate = (data, containerId) => {
   const working = ensureWorkingState(data);
   const columns = working.columns;
+  const useSyncedColors = working.matchFirstColor && working.cards.length > 0;
+  const cardsForEmbed = useSyncedColors
+    ? working.cards.map((card, index) =>
+        index === 0
+          ? card
+          : { ...card, frontColor: working.cards[0].frontColor, backColor: working.cards[0].backColor }
+      )
+    : working.cards;
   return {
     html: `
     <div class="cd-flipcard-grid" style="grid-template-columns: repeat(${columns}, minmax(0, 1fr));">
-      ${working.cards
+      ${cardsForEmbed
         .map(
           (card, index) => `
           <div class="cd-flipcard" tabindex="0" role="button" aria-pressed="false" style="--card-index: ${index};">
             <div class="cd-flipcard-inner animate">
               <div class="cd-flipcard-face cd-flipcard-front${card.frontImage ? ' has-image' : ''}" style="background: ${escapeHtml(
-                card.frontColor || DEFAULT_FRONT_COLORS[index % DEFAULT_FRONT_COLORS.length]
+                card.frontColor || DEFAULT_FRONT_COLORS[(useSyncedColors ? 0 : index) % DEFAULT_FRONT_COLORS.length]
               )};">
                 ${card.frontImage ? `<img src="${escapeHtml(card.frontImage)}" alt="" />` : ''}
                 <div class="cd-flipcard-face-content"><p>${escapeHtml(card.front || 'Front')}</p></div>

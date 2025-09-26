@@ -22,6 +22,9 @@
         </div>
         <div class="header-actions">
           <button id="newProjectBtn" class="ghost-button" type="button">New activity</button>
+          <button class="ghost-button" type="button" data-preview-toggle="true" aria-pressed="false">
+            Hide preview
+          </button>
           <button
             id="showEmbedBtn"
             class="primary-button"
@@ -84,7 +87,11 @@
               <h2 class="panel-title">Live preview</h2>
               <p class="hint">Changes update in real time. Try interactions just like your learners will.</p>
             </div>
-            <div class="preview-tools"></div>
+            <div class="preview-tools">
+              <button class="ghost-button" type="button" data-preview-toggle="true" aria-pressed="false">
+                Hide preview
+              </button>
+            </div>
           </div>
           <div id="previewArea" class="preview-area">
             <div class="empty-state">
