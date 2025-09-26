@@ -360,6 +360,24 @@ textarea:focus {
   animation: float 6s ease-in-out infinite;
 }
 
+.preview-placeholder {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  border: 1px dashed rgba(99, 102, 241, 0.28);
+  background: rgba(99, 102, 241, 0.06);
+  font-size: 0.95rem;
+}
+
+.preview-placeholder strong {
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
 .flipcard-grid {
   display: grid;
   gap: 20px;
@@ -429,59 +447,6 @@ textarea:focus {
   margin: 0;
 }
 
-.accordion {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.accordion-item {
-  border-radius: 14px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  overflow: hidden;
-  background: rgba(248, 250, 252, 0.9);
-  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.12);
-}
-
-.accordion-item.open {
-  border-color: rgba(99, 102, 241, 0.32);
-  box-shadow: 0 24px 40px rgba(99, 102, 241, 0.2);
-}
-
-.accordion-header {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 1rem 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.accordion-icon::before {
-  content: '+';
-  font-size: 1.4rem;
-  transition: transform 160ms ease;
-}
-
-.accordion-item.open .accordion-icon::before {
-  content: '−';
-}
-
-.accordion-panel {
-  padding: 0 1.25rem 1rem;
-  color: rgba(15, 23, 42, 0.7);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.accordion-panel p {
-  margin: 0;
-}
-
 .hotspot-preview {
   position: relative;
   display: inline-block;
@@ -539,6 +504,152 @@ textarea:focus {
 .editor-item-actions {
   display: flex;
   gap: 8px;
+}
+
+.dragdrop-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dragdrop-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dragdrop-editor-item textarea {
+  resize: vertical;
+}
+
+.cd-dragdrop {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.cd-dragdrop-prompt {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.cd-dragdrop-instructions {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.cd-dragdrop-board {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .cd-dragdrop-board {
+    grid-template-columns: minmax(0, 220px) 1fr;
+  }
+}
+
+.cd-dragdrop-pool,
+.cd-dragdrop-zone {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cd-dragdrop-zones {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .cd-dragdrop-zones {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+.cd-dragdrop-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.cd-dragdrop-zone-header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cd-dragdrop-zone-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cd-dragdrop-zone-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(15, 23, 42, 0.65);
+}
+
+.cd-dragdrop-zone-body {
+  min-height: 120px;
+  display: grid;
+  gap: 0.6rem;
+  align-content: flex-start;
+  padding: 0.75rem;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 12px;
+  border: 1px dashed rgba(99, 102, 241, 0.3);
+  transition: border 160ms ease, background 160ms ease;
+}
+
+.cd-dragdrop-zone-body.is-over {
+  border-color: rgba(79, 70, 229, 0.8);
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.cd-dragdrop-item {
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(79, 70, 229, 0.12);
+  border: 1px solid rgba(79, 70, 229, 0.28);
+  font-weight: 500;
+  cursor: grab;
+  transition: transform 120ms ease, box-shadow 120ms ease, border 120ms ease;
+}
+
+.cd-dragdrop-item.is-dragging {
+  opacity: 0.75;
+  transform: scale(1.02);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+}
+
+.cd-dragdrop-item.is-correct {
+  border-color: rgba(34, 197, 94, 0.6);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.cd-dragdrop-item.is-incorrect {
+  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.cd-dragdrop-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cd-dragdrop-feedback {
+  margin: 0;
+  font-weight: 500;
+  color: rgba(15, 23, 42, 0.75);
 }
 
 .muted-button {

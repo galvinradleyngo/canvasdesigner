@@ -276,7 +276,12 @@ const buildEditor = (container, data, onUpdate) => {
 const renderPreview = (container, data) => {
   container.innerHTML = '';
   if (!data.image) {
-    container.innerHTML = '<p class="hint">Upload an image to start creating hotspots.</p>';
+    container.innerHTML = `
+      <div class="preview-placeholder">
+        <strong>Upload an image to start</strong>
+        <span>Add a background image so you can place hotspots for learners to explore.</span>
+      </div>
+    `;
     return;
   }
 
@@ -301,6 +306,17 @@ const renderPreview = (container, data) => {
     openPopover = null;
     openSpotId = null;
   };
+
+  if (!Array.isArray(data.hotspots) || !data.hotspots.length) {
+    const helper = document.createElement('div');
+    helper.className = 'preview-placeholder';
+    helper.innerHTML = '
+      <strong>Add at least one hotspot</strong>
+      <span>Hotspots appear on the image and display supporting text when clicked.</span>
+    ';
+    container.append(wrapper, helper);
+    return;
+  }
 
   data.hotspots.forEach((spot, index) => {
     const marker = document.createElement('div');

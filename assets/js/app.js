@@ -34,7 +34,14 @@ const elements = {
   statusToast: document.getElementById('statusToast')
 };
 
-const getActiveActivity = () => activities[state.type];
+const getActiveActivity = () => {
+  const activity = activities[state.type];
+  if (activity) {
+    return activity;
+  }
+  state.type = defaultActivityId;
+  return activities[state.type];
+};
 
 const showStatus = (message, tone = 'info') => {
   if (!elements.statusToast) return;
@@ -74,9 +81,21 @@ const refreshEmbed = () => {
 const refreshPreview = () => {
   const activity = getActiveActivity();
   if (!activity) return;
-  activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: elements.animationToggle.checked
-  });
+  try {
+    activity.renderPreview(elements.previewArea, state.data, {
+      playAnimations: elements.animationToggle?.checked
+    });
+  } catch (error) {
+    console.error('Unable to render preview', error);
+    if (elements.previewArea) {
+      elements.previewArea.innerHTML = `
+        <div class="preview-placeholder" role="status">
+          <strong>Preview unavailable</strong>
+          <span>Something went wrong while rendering this activity. Check your content and try again.</span>
+        </div>
+      `;
+    }
+  }
 };
 
 const rebuildEditor = () => {
@@ -90,68 +109,101 @@ const rebuildEditor = () => {
   });
 };
 
-const refreshSavedProjects = () => {
-  const projects = listProjects();
+const refreshActivityView = () => {
+  updateActivityTabs();
+  rebuildEditor();
+  refreshPreview();
+  refreshEmbed();
+};
+
+const setProjectControlsDisabled = (disabled) => {
+  elements.savedProjects.disabled = disabled;
+  elements.loadProjectBtn.disabled = disabled;
+  elements.deleteProjectBtn.disabled = disabled;
+};
+
+const refreshSavedProjects = async (selectedId = state.id) => {
+  if (!elements.savedProjects) return;
+
   elements.savedProjects.innerHTML = '';
-  if (!projects.length) {
+  const loadingOption = document.createElement('option');
+  loadingOption.textContent = 'Loading saved activities…';
+  loadingOption.value = '';
+  loadingOption.disabled = true;
+  loadingOption.selected = true;
+  elements.savedProjects.append(loadingOption);
+  setProjectControlsDisabled(true);
+
+  try {
+    const projects = await listProjects();
+    elements.savedProjects.innerHTML = '';
+
+    if (!projects.length) {
+      const option = document.createElement('option');
+      option.textContent = 'No saved activities yet';
+      option.value = '';
+      option.disabled = true;
+      option.selected = true;
+      elements.savedProjects.append(option);
+      return;
+    }
+
+    projects.forEach((project) => {
+      const option = document.createElement('option');
+      option.value = project.id;
+      const updated = project.updatedAt ? new Date(project.updatedAt) : null;
+      const timestamp = updated ? formatDate(updated) : 'Recently saved';
+      option.textContent = `${project.title || 'Untitled'} • ${timestamp}`;
+      elements.savedProjects.append(option);
+    });
+
+    if (selectedId && projects.some((project) => project.id === selectedId)) {
+      elements.savedProjects.value = selectedId;
+    } else {
+      elements.savedProjects.selectedIndex = 0;
+    }
+
+    setProjectControlsDisabled(false);
+  } catch (error) {
+    console.error('Unable to load saved activities', error);
+    elements.savedProjects.innerHTML = '';
     const option = document.createElement('option');
-    option.textContent = 'No saved activities yet';
+    option.textContent = 'Unable to load activities';
     option.value = '';
     option.disabled = true;
     option.selected = true;
     elements.savedProjects.append(option);
-    return;
-  }
-
-  projects.forEach((project) => {
-    const option = document.createElement('option');
-    option.value = project.id;
-    const updated = project.updatedAt ? new Date(project.updatedAt) : new Date();
-    option.textContent = `${project.title || 'Untitled'} • ${formatDate(updated)}`;
-    elements.savedProjects.append(option);
-  });
-
-  if (state.id) {
-    elements.savedProjects.value = state.id;
-  } else {
-    elements.savedProjects.selectedIndex = 0;
+    showStatus('Unable to load saved activities right now.', 'warning');
   }
 };
 
 const loadTemplate = () => {
   state.data = clone(getActiveActivity().template());
-  rebuildEditor();
-  refreshPreview();
-  refreshEmbed();
+  refreshActivityView();
 };
 
 const loadExample = () => {
   state.data = clone(getActiveActivity().example());
-  rebuildEditor();
-  refreshPreview();
-  refreshEmbed();
+  refreshActivityView();
 };
 
-const resetProject = () => {
+const resetProject = async ({ refreshList = false, silent = false } = {}) => {
   state.id = null;
   state.title = '';
   state.description = '';
   state.data = clone(getActiveActivity().template());
   elements.titleInput.value = '';
   elements.descriptionInput.value = '';
-  refreshAll();
-  showStatus('New activity started');
+  refreshActivityView();
+  if (refreshList) {
+    await refreshSavedProjects();
+  }
+  if (!silent) {
+    showStatus('New activity started');
+  }
 };
 
-const refreshAll = () => {
-  updateActivityTabs();
-  rebuildEditor();
-  refreshPreview();
-  refreshEmbed();
-  refreshSavedProjects();
-};
-
-const handleSaveProject = () => {
+const handleSaveProject = async () => {
   if (!state.title.trim()) {
     showStatus('Add an activity title before saving.', 'warning');
     elements.titleInput.focus();
@@ -166,47 +218,82 @@ const handleSaveProject = () => {
     data: state.data
   };
 
-  const saved = saveProject(project);
-  state.id = saved.id;
-  showStatus('Activity saved');
-  refreshSavedProjects();
-  elements.savedProjects.value = saved.id;
+  elements.saveProjectBtn.disabled = true;
+  try {
+    const saved = await saveProject(project);
+    state.id = saved.id;
+    await refreshSavedProjects(saved.id);
+    elements.savedProjects.value = saved.id;
+    showStatus('Activity saved');
+  } catch (error) {
+    console.error('Unable to save activity', error);
+    showStatus('Unable to save this activity right now.', 'warning');
+  } finally {
+    elements.saveProjectBtn.disabled = false;
+  }
 };
 
-const handleLoadProject = () => {
+const handleLoadProject = async () => {
   const projectId = elements.savedProjects.value;
   if (!projectId) {
     showStatus('Select a saved activity to load.', 'warning');
     return;
   }
-  const project = getProject(projectId);
-  if (!project) {
-    showStatus('Could not load the selected activity.', 'warning');
-    return;
+
+  elements.loadProjectBtn.disabled = true;
+  try {
+    const project = await getProject(projectId);
+    if (!project) {
+      showStatus('Could not load the selected activity.', 'warning');
+      return;
+    }
+
+    if (!activities[project.type]) {
+      showStatus('This activity type is no longer available. Loaded the default template instead.', 'warning');
+      state.type = defaultActivityId;
+      state.data = clone(getActiveActivity().template());
+    } else {
+      state.type = project.type;
+      state.data = project.data ? clone(project.data) : clone(getActiveActivity().template());
+    }
+
+    state.id = project.id;
+    state.title = project.title || '';
+    state.description = project.description || '';
+    elements.titleInput.value = state.title;
+    elements.descriptionInput.value = state.description;
+    refreshActivityView();
+    showStatus('Activity loaded');
+  } catch (error) {
+    console.error('Unable to load activity', error);
+    showStatus('Unable to load this activity right now.', 'warning');
+  } finally {
+    elements.loadProjectBtn.disabled = false;
   }
-  state.id = project.id;
-  state.type = project.type;
-  state.title = project.title || '';
-  state.description = project.description || '';
-  state.data = project.data ? clone(project.data) : clone(getActiveActivity().template());
-  elements.titleInput.value = state.title;
-  elements.descriptionInput.value = state.description;
-  refreshAll();
-  showStatus('Activity loaded');
 };
 
-const handleDeleteProject = () => {
+const handleDeleteProject = async () => {
   const projectId = elements.savedProjects.value;
   if (!projectId) {
     showStatus('Select an activity to delete.', 'warning');
     return;
   }
-  deleteProject(projectId);
-  if (state.id === projectId) {
-    resetProject();
+
+  elements.deleteProjectBtn.disabled = true;
+  try {
+    await deleteProject(projectId);
+    if (state.id === projectId) {
+      await resetProject({ refreshList: true, silent: true });
+    } else {
+      await refreshSavedProjects();
+    }
+    showStatus('Activity deleted', 'warning');
+  } catch (error) {
+    console.error('Unable to delete activity', error);
+    showStatus('Unable to delete this activity right now.', 'warning');
+  } finally {
+    elements.deleteProjectBtn.disabled = false;
   }
-  refreshSavedProjects();
-  showStatus('Activity deleted', 'warning');
 };
 
 const copyToClipboard = async (value) => {
@@ -230,13 +317,17 @@ const copyToClipboard = async (value) => {
 
 const bindEvents = () => {
   elements.tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', async () => {
       const newType = tab.dataset.activity;
-      if (state.type === newType) return;
+      if (!activities[newType] || state.type === newType) return;
       state.type = newType;
       state.id = null;
+      state.title = '';
+      state.description = '';
       state.data = clone(getActiveActivity().template());
-      refreshAll();
+      elements.titleInput.value = '';
+      elements.descriptionInput.value = '';
+      refreshActivityView();
       elements.titleInput.focus();
       showStatus(`${getActiveActivity().label} template loaded`);
     });
@@ -255,10 +346,26 @@ const bindEvents = () => {
   elements.animationToggle.addEventListener('change', refreshPreview);
   elements.loadTemplateBtn.addEventListener('click', loadTemplate);
   elements.loadExampleBtn.addEventListener('click', loadExample);
-  elements.saveProjectBtn.addEventListener('click', handleSaveProject);
-  elements.loadProjectBtn.addEventListener('click', handleLoadProject);
-  elements.deleteProjectBtn.addEventListener('click', handleDeleteProject);
-  elements.newProjectBtn.addEventListener('click', resetProject);
+  elements.saveProjectBtn.addEventListener('click', () => {
+    handleSaveProject().catch((error) => {
+      console.error(error);
+    });
+  });
+  elements.loadProjectBtn.addEventListener('click', () => {
+    handleLoadProject().catch((error) => {
+      console.error(error);
+    });
+  });
+  elements.deleteProjectBtn.addEventListener('click', () => {
+    handleDeleteProject().catch((error) => {
+      console.error(error);
+    });
+  });
+  elements.newProjectBtn.addEventListener('click', () => {
+    resetProject().catch((error) => {
+      console.error(error);
+    });
+  });
 
   elements.copyEmbedInlineBtn.addEventListener('click', () => {
     copyToClipboard(elements.embedSnippet.value);
@@ -278,13 +385,16 @@ const bindEvents = () => {
   });
 };
 
-const init = () => {
-  updateActivityTabs();
+const init = async () => {
+  refreshActivityView();
   elements.titleInput.value = state.title;
   elements.descriptionInput.value = state.description;
-  refreshAll();
   bindEvents();
+  await refreshSavedProjects();
   showStatus('Ready to create!');
 };
 
-init();
+init().catch((error) => {
+  console.error('Failed to initialise the app', error);
+  showStatus('Something went wrong while starting the app.', 'warning');
+});

@@ -123,10 +123,22 @@ const buildEditor = (container, data, onUpdate) => {
 
 const renderPreview = (container, data, { playAnimations }) => {
   container.innerHTML = '';
+  const cards = Array.isArray(data.cards) ? data.cards : [];
+
+  if (!cards.length) {
+    container.innerHTML = `
+      <div class="preview-placeholder">
+        <strong>Add a card to see the preview</strong>
+        <span>The live preview shows your flash cards as learners will experience them.</span>
+      </div>
+    `;
+    return;
+  }
+
   const grid = document.createElement('div');
   grid.className = 'flipcard-grid';
 
-  data.cards.forEach((card) => {
+  cards.forEach((card) => {
     const cardWrapper = document.createElement('div');
     cardWrapper.className = 'flipcard';
     const inner = document.createElement('div');
