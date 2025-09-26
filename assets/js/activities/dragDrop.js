@@ -324,12 +324,19 @@ const buildEditor = (container, data, onUpdate) => {
   rerender();
 };
 
-const EMPTY_PREVIEW_TEMPLATE = `
+const createEmptyPlaceholder = (message) => `
   <div class="preview-placeholder" role="status" aria-live="polite">
     <strong>Configure drop zones and cards</strong>
-    <span>Add at least one drop zone and draggable card to generate a preview.</span>
+    <span>${message}</span>
   </div>
 `;
+
+const EMPTY_PREVIEW_TEMPLATE = createEmptyPlaceholder(
+  'Add at least one drop zone and draggable card to generate a preview.'
+);
+const EMPTY_EMBED_TEMPLATE = createEmptyPlaceholder(
+  'Add at least one drop zone and draggable card to embed this activity.'
+);
 
 const sanitizeText = (value) => (typeof value === 'string' ? value.trim() : '');
 
@@ -563,10 +570,7 @@ const embedTemplate = (data, containerId) => {
     return {
       html: `
         <div class="cd-dragdrop cd-dragdrop--empty" data-widget="dragdrop">
-          <div class="preview-placeholder" role="status" aria-live="polite">
-            <strong>Configure drop zones and cards</strong>
-            <span>Add at least one drop zone and draggable card to embed this activity.</span>
-          </div>
+          ${EMPTY_EMBED_TEMPLATE}
         </div>
       `,
       css: '',
