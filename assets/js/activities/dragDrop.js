@@ -620,8 +620,8 @@ const embedTemplate = (data, containerId) => {
   return { html, css, js };
 };
 
-export const dragdrop = {
-  id: 'dragdrop',
+export const dragDrop = {
+  id: 'dragDrop',
   label: 'Drag & Drop',
   template,
   example,

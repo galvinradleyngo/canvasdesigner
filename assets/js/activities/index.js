@@ -1,13 +1,13 @@
 import { flipCards } from './flipCards.js';
 import { accordions } from './accordions.js';
 import { hotspots } from './hotspots.js';
-import { dragdrop } from './dragdrop.js';
+import { dragDrop } from './dragDrop.js';
 
 export const activities = {
   [flipCards.id]: flipCards,
   [accordions.id]: accordions,
   [hotspots.id]: hotspots,
-  [dragdrop.id]: dragdrop
+  [dragDrop.id]: dragDrop
 };
 
 export const defaultActivityId = flipCards.id;

@@ -1,6 +1,6 @@
 # Canvas Designer Studio
 
-Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for three activity types: flip cards, accordions, and hotspots.
+Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for four activity types: flip cards, accordions, hotspots, and drag & drop categorization.
 
 ## Features
 
@@ -38,7 +38,7 @@ assets/
       flipCards.js    # Flip card editor + renderer
       accordions.js   # Accordion editor + renderer
       hotspots.js     # Hotspot editor + renderer
-      dragdrop.js     # Drag & drop categorization editor + renderer
+      dragDrop.js     # Drag & drop categorization editor + renderer
 ```
 
 ## Development notes
