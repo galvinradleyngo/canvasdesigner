@@ -29,7 +29,6 @@ const elements = {
   hideEmbedBtn: document.getElementById('hideEmbedBtn'),
   embedSnippet: document.getElementById('embedSnippet'),
   embedPanel: document.getElementById('embedPanel'),
-  animationToggle: document.getElementById('animationToggle'),
   statusToast: document.getElementById('statusToast')
 };
 
@@ -86,9 +85,7 @@ const refreshEmbed = () => {
 const refreshPreview = () => {
   const activity = getActiveActivity();
   if (!activity) return;
-  activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: elements.animationToggle ? elements.animationToggle.checked : false
-  });
+  activity.renderPreview(elements.previewArea, state.data);
 };
 
 const rebuildEditor = () => {
@@ -220,7 +217,19 @@ const handleSaveProject = async () => {
     showStatus('Activity saved');
   } catch (error) {
     console.error('Unable to save activity', error);
-    showStatus('Unable to save this activity right now.', 'warning');
+    let message = 'Unable to save this activity right now.';
+    if (error) {
+      if (error.code === 'permission-denied') {
+        message = 'Update your Firestore rules or enable anonymous auth to save activities.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        message = 'Enable anonymous auth in Firebase to save your activities.';
+      } else if (typeof error.message === 'string') {
+        if (error.message.indexOf('Enable anonymous authentication') !== -1) {
+          message = 'Enable anonymous auth in Firebase or adjust Firestore rules to allow saving.';
+        }
+      }
+    }
+    showStatus(message, 'warning');
   } finally {
     elements.saveProjectBtn.disabled = false;
   }
@@ -393,9 +402,6 @@ const bindEvents = () => {
     refreshEmbed();
   });
 
-  if (elements.animationToggle) {
-    elements.animationToggle.addEventListener('change', refreshPreview);
-  }
   elements.loadTemplateBtn.addEventListener('click', loadTemplate);
   elements.loadExampleBtn.addEventListener('click', loadExample);
   elements.saveProjectBtn.addEventListener('click', () => {
