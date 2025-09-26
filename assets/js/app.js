@@ -89,7 +89,7 @@ const refreshPreview = () => {
     console.error('Unable to render preview', error);
     if (elements.previewArea) {
       elements.previewArea.innerHTML = `
-        <div class="preview-placeholder" role="status">
+        <div class="preview-placeholder" role="status" aria-live="polite">
           <strong>Preview unavailable</strong>
           <span>Something went wrong while rendering this activity. Check your content and try again.</span>
         </div>
