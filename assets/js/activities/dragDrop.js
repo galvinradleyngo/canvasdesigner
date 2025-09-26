@@ -1,5 +1,21 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
+const getFirstBucketId = (buckets) => {
+  if (!Array.isArray(buckets) || buckets.length === 0) {
+    return null;
+  }
+  const firstBucket = buckets[0];
+  return firstBucket && firstBucket.id ? firstBucket.id : null;
+};
+
+const getBucketTitle = (bucket) => {
+  if (!bucket) {
+    return 'Untitled drop zone';
+  }
+  const title = typeof bucket.title === 'string' ? bucket.title.trim() : '';
+  return title || 'Untitled drop zone';
+};
+
 const normalizeAuthoringData = (data = {}) => {
   const prompt = typeof data.prompt === 'string' ? data.prompt.trim() : '';
   const instructions = typeof data.instructions === 'string' ? data.instructions.trim() : '';
@@ -318,7 +334,7 @@ const ensureItems = (working) => {
     working.items.push({
       id: uid('item'),
       text: 'New idea',
-      correctBucketId: working.buckets[0]?.id ?? null
+      correctBucketId: getFirstBucketId(working.buckets)
     });
   }
 };
@@ -344,7 +360,7 @@ const buildEditor = (container, data, onUpdate) => {
         working.buckets.forEach((bucket) => {
           const option = document.createElement('option');
           option.value = bucket.id;
-          option.textContent = bucket.title?.trim() || 'Untitled drop zone';
+          option.textContent = getBucketTitle(bucket);
           select.append(option);
         });
         if (currentValue && working.buckets.some((bucket) => bucket.id === currentValue)) {
@@ -354,7 +370,8 @@ const buildEditor = (container, data, onUpdate) => {
           const itemId = select.dataset.itemId;
           const itemIndex = working.items.findIndex((item) => item.id === itemId);
           if (itemIndex >= 0) {
-            working.items[itemIndex].correctBucketId = select.value || working.buckets[0]?.id ?? null;
+            const fallbackBucketId = select.value || getFirstBucketId(working.buckets);
+            working.items[itemIndex].correctBucketId = fallbackBucketId || null;
           }
         }
       });
@@ -436,7 +453,7 @@ const buildEditor = (container, data, onUpdate) => {
           if (card.correctBucketId === removedId) {
             return {
               ...card,
-              correctBucketId: working.buckets[0]?.id ?? null
+              correctBucketId: getFirstBucketId(working.buckets)
             };
           }
           return card;
@@ -493,7 +510,7 @@ const buildEditor = (container, data, onUpdate) => {
       working.items.push({
         id: uid('item'),
         text: `Card ${working.items.length + 1}`,
-        correctBucketId: working.buckets[0]?.id ?? null
+        correctBucketId: getFirstBucketId(working.buckets)
       });
       emit();
     });
@@ -547,12 +564,12 @@ const buildEditor = (container, data, onUpdate) => {
       working.buckets.forEach((bucket) => {
         const option = document.createElement('option');
         option.value = bucket.id;
-        option.textContent = bucket.title?.trim() || 'Untitled drop zone';
+        option.textContent = getBucketTitle(bucket);
         answerSelect.append(option);
       });
-      answerSelect.value = card.correctBucketId && working.buckets.some((bucket) => bucket.id === card.correctBucketId)
-        ? card.correctBucketId
-        : working.buckets[0]?.id ?? '';
+      const isValidSelection = card.correctBucketId && working.buckets.some((bucket) => bucket.id === card.correctBucketId);
+      const fallbackBucketId = getFirstBucketId(working.buckets);
+      answerSelect.value = isValidSelection ? card.correctBucketId : fallbackBucketId || '';
       working.items[index].correctBucketId = answerSelect.value || null;
       answerSelect.addEventListener('change', () => {
         working.items[index].correctBucketId = answerSelect.value || null;
@@ -700,7 +717,7 @@ const renderPreview = (container, data) => {
     items.forEach((item) => {
       const card = cards.get(item.id);
       if (!card) return;
-      const placement = placements.get(item.id) ?? null;
+      const placement = placements.has(item.id) ? placements.get(item.id) : null;
       if (!placement) {
         card.classList.remove('is-correct', 'is-incorrect');
         return;
