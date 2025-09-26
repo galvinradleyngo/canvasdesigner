@@ -29,7 +29,8 @@ const elements = {
   hideEmbedBtn: document.getElementById('hideEmbedBtn'),
   embedSnippet: document.getElementById('embedSnippet'),
   embedPanel: document.getElementById('embedPanel'),
-  statusToast: document.getElementById('statusToast')
+  statusToast: document.getElementById('statusToast'),
+  animationToggle: document.getElementById('animationToggle')
 };
 
 const getActiveActivity = () => {
@@ -85,7 +86,10 @@ const refreshEmbed = () => {
 const refreshPreview = () => {
   const activity = getActiveActivity();
   if (!activity) return;
-  activity.renderPreview(elements.previewArea, state.data);
+  const shouldPlayAnimations = elements.animationToggle ? elements.animationToggle.checked : true;
+  activity.renderPreview(elements.previewArea, state.data, {
+    playAnimations: shouldPlayAnimations
+  });
 };
 
 const rebuildEditor = () => {
@@ -439,6 +443,12 @@ const bindEvents = () => {
   if (elements.hideEmbedBtn) {
     elements.hideEmbedBtn.addEventListener('click', () => {
       setEmbedPanelOpen(false);
+    });
+  }
+
+  if (elements.animationToggle) {
+    elements.animationToggle.addEventListener('change', () => {
+      refreshPreview();
     });
   }
 };

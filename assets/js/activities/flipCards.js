@@ -359,9 +359,10 @@ const buildEditor = (container, data, onUpdate) => {
   rerender();
 };
 
-const renderPreview = (container, data) => {
+const renderPreview = (container, data, options = {}) => {
   container.innerHTML = '';
   const working = ensureWorkingState(data);
+  const playAnimations = Boolean(options && options.playAnimations);
   if (!working.cards.length) {
     const empty = document.createElement('div');
     empty.className = 'empty-state';
@@ -380,7 +381,9 @@ const renderPreview = (container, data) => {
 
     const inner = document.createElement('div');
     inner.className = 'flipcard-inner';
-    inner.classList.add('animate');
+    if (playAnimations) {
+      inner.classList.add('animate');
+    }
 
     const createFace = (faceKey, fallbackText) => {
       const face = document.createElement('div');
@@ -414,10 +417,14 @@ const renderPreview = (container, data) => {
     const setFlipState = (flipped) => {
       if (flipped) {
         cardWrapper.classList.add('flipped');
-        inner.classList.remove('animate');
+        if (playAnimations) {
+          inner.classList.remove('animate');
+        }
       } else {
         cardWrapper.classList.remove('flipped');
-        inner.classList.add('animate');
+        if (playAnimations) {
+          inner.classList.add('animate');
+        }
       }
       cardWrapper.setAttribute('aria-pressed', flipped ? 'true' : 'false');
     };
