@@ -162,7 +162,7 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   loading="lazy"
   referrerpolicy="no-referrer"
   sandbox="allow-scripts allow-same-origin"
-  style="width: 100%; min-height: 420px; border: 0; border-radius: 12px; overflow: hidden;"
+  style="width: 100%; min-height: 420px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
   src="${viewerUrl.toString()}"
 ></iframe>
 <script type="text/javascript">
