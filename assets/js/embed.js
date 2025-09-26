@@ -104,7 +104,7 @@ export const generateEmbed = ({ type, title, description, data }) => {
 
   const encoded = encodePayload(payload);
   const viewerUrl = new URL(VIEWER_URL);
-  viewerUrl.searchParams.set('data', encoded);
+  viewerUrl.hash = encoded;
 
   const iframeTitle = escapeHtml(safeTitle || activity.label);
 

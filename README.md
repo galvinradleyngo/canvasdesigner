@@ -48,6 +48,7 @@ docs/
 - The app uses vanilla JavaScript modules (`type="module"`) so it can run from the filesystem without a build step.
 - Activity editors encapsulate their own input rendering logic to avoid conflicts during concurrent development.
 - Embed snippets now render via a sandboxed iframe hitting `https://galvinradleyngo.github.io/canvasdesigner/embed.html`, keeping Canvas-compatible markup while isolating scripts and styles.
+- Payloads are encoded into the iframe URL hash instead of the query string so large activities are no longer rejected by LMS proxy layers that enforce strict request-length limits.
 - The hosted viewer validates the payload version, activity type, and text fields before rendering to guard against tampered URLs.
 
 ### Viewer base URL configuration
