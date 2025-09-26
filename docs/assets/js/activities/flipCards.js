@@ -467,7 +467,8 @@ const renderPreview = (container, data, options = {}) => {
       const textWrapper = document.createElement('div');
       textWrapper.className = 'flipcard-face-content';
       const paragraph = document.createElement('p');
-      paragraph.textContent = card[faceKey] || fallbackText;
+      const value = card[faceKey];
+      paragraph.textContent = typeof value === 'string' ? value : fallbackText;
       textWrapper.append(paragraph);
       face.append(textWrapper);
       return face;
@@ -540,13 +541,17 @@ const embedTemplate = (data, containerId) => {
                 card.frontColor || DEFAULT_FRONT_COLORS[(useSyncedColors ? 0 : index) % DEFAULT_FRONT_COLORS.length]
               )};">
                 ${card.frontImage ? `<img src="${escapeHtml(card.frontImage)}" alt="" />` : ''}
-                <div class="cd-flipcard-face-content"><p>${escapeHtml(card.front || 'Front')}</p></div>
+                <div class="cd-flipcard-face-content"><p>${
+                  typeof card.front === 'string' ? escapeHtml(card.front) : 'Front'
+                }</p></div>
               </div>
               <div class="cd-flipcard-face cd-flipcard-back${card.backImage ? ' has-image' : ''}" style="background: ${escapeHtml(
                 card.backColor || DEFAULT_BACK_COLOR
               )};">
                 ${card.backImage ? `<img src="${escapeHtml(card.backImage)}" alt="" />` : ''}
-                <div class="cd-flipcard-face-content"><p>${escapeHtml(card.back || 'Back')}</p></div>
+                <div class="cd-flipcard-face-content"><p>${
+                  typeof card.back === 'string' ? escapeHtml(card.back) : 'Back'
+                }</p></div>
               </div>
             </div>
           </div>`
@@ -576,7 +581,7 @@ const embedTemplate = (data, containerId) => {
       min-height: 160px;
     }
     #${containerId} .cd-flipcard-inner.animate {
-      animation: cd-pulse-card 12s ease-in-out infinite;
+      animation: cd-flipcard-preview 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
     }
     #${containerId} .cd-flipcard.flipped .cd-flipcard-inner {
       transform: rotateY(180deg);
@@ -653,13 +658,18 @@ const embedTemplate = (data, containerId) => {
         transform: translateY(0) scale(1);
       }
     }
-    @keyframes cd-pulse-card {
-      0%,
-      100% {
-        transform: translateY(0);
+    @keyframes cd-flipcard-preview {
+      0% {
+        transform: rotateY(0deg);
       }
-      50% {
-        transform: translateY(-6px);
+      45% {
+        transform: rotateY(180deg);
+      }
+      55% {
+        transform: rotateY(180deg);
+      }
+      100% {
+        transform: rotateY(0deg);
       }
     }
   `,
