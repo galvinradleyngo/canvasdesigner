@@ -1,5 +1,7 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
 const createSampleHotspots = () => [
   {
     id: uid('hotspot'),
@@ -113,6 +115,16 @@ const buildEditor = (container, data, onUpdate) => {
       overlay.className = 'hotspot-overlay';
       overlay.setAttribute('role', 'presentation');
 
+      const updateActiveMarkers = () => {
+        overlay.querySelectorAll('.hotspot-marker').forEach((el) => {
+          if (el.dataset.id === activeId) {
+            el.classList.add('active');
+          } else {
+            el.classList.remove('active');
+          }
+        });
+      };
+
       overlay.addEventListener('click', (event) => {
         if (!activeId) return;
         const rect = preview.getBoundingClientRect();
@@ -133,15 +145,74 @@ const buildEditor = (container, data, onUpdate) => {
         marker.style.top = `${spot.y}%`;
         marker.textContent = index + 1;
         marker.dataset.id = spot.id;
-        if (spot.id === activeId) marker.classList.add('active');
         marker.addEventListener('click', (event) => {
           event.stopPropagation();
           activeId = spot.id;
           emit();
         });
+        marker.addEventListener('pointerdown', (event) => {
+          event.stopPropagation();
+          const pointerId = event.pointerId;
+          let isDragging = false;
+          const rect = preview.getBoundingClientRect();
+          activeId = spot.id;
+          emit(false);
+          updateActiveMarkers();
+
+          const updatePosition = (clientX, clientY) => {
+            const relativeX = clamp(((clientX - rect.left) / rect.width) * 100, 0, 100);
+            const relativeY = clamp(((clientY - rect.top) / rect.height) * 100, 0, 100);
+            spot.x = Math.round(relativeX * 10) / 10;
+            spot.y = Math.round(relativeY * 10) / 10;
+            marker.style.left = `${spot.x}%`;
+            marker.style.top = `${spot.y}%`;
+            emit(false);
+          };
+
+          const handlePointerMove = (moveEvent) => {
+            moveEvent.preventDefault();
+            if (!isDragging) {
+              isDragging = true;
+              marker.classList.add('dragging');
+            }
+            updatePosition(moveEvent.clientX, moveEvent.clientY);
+          };
+
+          const cleanup = () => {
+            if (isDragging) {
+              marker.classList.remove('dragging');
+            }
+            try {
+              marker.releasePointerCapture(pointerId);
+            } catch (error) {
+              /* noop */
+            }
+            marker.removeEventListener('pointermove', handlePointerMove);
+            marker.removeEventListener('pointerup', handlePointerUp);
+            marker.removeEventListener('pointercancel', handlePointerCancel);
+            if (isDragging) {
+              emit();
+            }
+          };
+
+          const handlePointerUp = (upEvent) => {
+            upEvent.preventDefault();
+            cleanup();
+          };
+
+          const handlePointerCancel = () => {
+            cleanup();
+          };
+
+          marker.setPointerCapture(pointerId);
+          marker.addEventListener('pointermove', handlePointerMove);
+          marker.addEventListener('pointerup', handlePointerUp);
+          marker.addEventListener('pointercancel', handlePointerCancel);
+        });
         overlay.append(marker);
       });
 
+      updateActiveMarkers();
       preview.append(overlay);
 
       const helper = document.createElement('p');
