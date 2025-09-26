@@ -51,6 +51,7 @@ docs/
 - Embed snippets register a lightweight relay script that streams the payload to the viewer via `postMessage`, keeping the iframe `src` short enough for strict LMS proxies while still encoding the payload in the URL hash so older snippets keep working.
 - Payloads are encoded into the iframe URL hash instead of the query string so large activities are no longer rejected by LMS proxy layers that enforce strict request-length limits.
 - Saved activities embed their project identifier so the hosted viewer can pull the latest data from Firestore on load, ensuring Canvas reflects edits without re-copying the snippet.
+- Payloads are encoded into the iframe URL hash instead of the query string so large activities are no longer rejected by LMS proxy layers that enforce strict request-length limits.
 - The hosted viewer validates the payload version, activity type, and text fields before rendering to guard against tampered URLs.
 
 ### Viewer base URL configuration
