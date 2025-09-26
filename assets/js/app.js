@@ -3,6 +3,13 @@ import { clone, formatDate, uid } from './utils.js';
 import { listProjects, saveProject, deleteProject, getProject } from './storage.js';
 import { generateEmbed } from './embed.js';
 
+const PREVIEW_ERROR_TEMPLATE = `
+  <div class="preview-placeholder preview-error" role="alert" aria-live="assertive">
+    <strong>Unable to render preview</strong>
+    <span>Check your activity content and try again.</span>
+  </div>
+`;
+
 const state = {
   id: null,
   type: defaultActivityId,
@@ -30,7 +37,6 @@ const elements = {
   embedDialog: document.getElementById('embedDialog'),
   embedOutput: document.getElementById('embedOutput'),
   dialogCopyBtn: document.getElementById('dialogCopyBtn'),
-  loadProjectSelect: document.getElementById('savedProjects'),
   animationToggle: document.getElementById('animationToggle'),
   statusToast: document.getElementById('statusToast')
 };
@@ -74,10 +80,16 @@ const refreshEmbed = () => {
 
 const refreshPreview = () => {
   const activity = getActiveActivity();
-  if (!activity) return;
-  activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: elements.animationToggle.checked
-  });
+  const previewHost = elements.previewArea;
+  if (!activity || !previewHost) return;
+  try {
+    activity.renderPreview(previewHost, state.data, {
+      playAnimations: elements.animationToggle?.checked
+    });
+  } catch (error) {
+    console.error('Unable to render preview', error);
+    previewHost.innerHTML = PREVIEW_ERROR_TEMPLATE;
+  }
 };
 
 const rebuildEditor = () => {
