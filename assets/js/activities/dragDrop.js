@@ -331,10 +331,11 @@ const EMPTY_PREVIEW_TEMPLATE = `
   </div>
 `;
 
-const normalizePreviewData = (rawData = {}) => {
+const sanitizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const normalizeAuthoringData = (rawData = {}) => {
   const fallback = template();
   const fallbackBuckets = clone(fallback.buckets);
-  const sanitizeText = (value) => (typeof value === 'string' ? value.trim() : '');
   const rawBuckets = Array.isArray(rawData.buckets)
     ? rawData.buckets.filter((bucket) => bucket && bucket.id)
     : [];
@@ -346,16 +347,16 @@ const normalizePreviewData = (rawData = {}) => {
   }));
 
   const bucketIds = new Set(buckets.map((bucket) => bucket.id));
-  const items = Array.isArray(rawData.items)
-    ? rawData.items
-        .filter((item) => item && item.id)
-        .map((item) => ({
-          ...item,
-          text: sanitizeText(item.text),
-          correctBucketId: bucketIds.has(item.correctBucketId) ? item.correctBucketId : null
-        }))
-        .filter((item) => item.text.length > 0)
+  const rawItems = Array.isArray(rawData.items)
+    ? rawData.items.filter((item) => item && item.id)
     : [];
+  const items = rawItems
+    .map((item) => ({
+      ...item,
+      text: sanitizeText(item.text),
+      correctBucketId: bucketIds.has(item.correctBucketId) ? item.correctBucketId : null
+    }))
+    .filter((item) => item.text.length > 0);
 
   return {
     hasBuckets: rawBuckets.length > 0,
@@ -371,7 +372,7 @@ const renderPreview = (container, data) => {
   if (!container) return;
   container.innerHTML = '';
 
-  const { hasBuckets, hasItems, buckets, items, prompt, instructions } = normalizePreviewData(data);
+  const { hasBuckets, hasItems, buckets, items, prompt, instructions } = normalizeAuthoringData(data);
 
   if (!hasBuckets || !hasItems) {
     container.innerHTML = EMPTY_PREVIEW_TEMPLATE;
@@ -556,10 +557,22 @@ const renderPreview = (container, data) => {
 };
 
 const embedTemplate = (data, containerId) => {
-  const buckets = Array.isArray(data.buckets) && data.buckets.length ? data.buckets : template().buckets;
-  const items = Array.isArray(data.items) ? data.items : [];
-  const prompt = data.prompt?.trim() || '';
-  const instructions = data.instructions?.trim() || '';
+  const { hasBuckets, hasItems, buckets, items, prompt, instructions } = normalizeAuthoringData(data);
+
+  if (!hasBuckets || !hasItems) {
+    return {
+      html: `
+        <div class="cd-dragdrop cd-dragdrop--empty" data-widget="dragdrop">
+          <div class="preview-placeholder" role="status" aria-live="polite">
+            <strong>Configure drop zones and cards</strong>
+            <span>Add at least one drop zone and draggable card to embed this activity.</span>
+          </div>
+        </div>
+      `,
+      css: '',
+      js: ''
+    };
+  }
 
   const cardsHtml = items
     .map(
