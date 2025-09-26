@@ -1227,7 +1227,7 @@ textarea:focus {
   color: white;
   font-weight: 600;
   box-shadow: 0 12px 18px rgba(99, 102, 241, 0.35);
-  cursor: pointer;
+  cursor: grab;
   pointer-events: auto;
   transform: translate(-50%, -50%) scale(1);
   transition: transform 160ms ease, box-shadow 160ms ease;
@@ -1237,6 +1237,12 @@ textarea:focus {
 .hotspot-marker:focus-visible {
   transform: translate(-50%, -50%) scale(1.08);
   box-shadow: 0 14px 22px rgba(99, 102, 241, 0.45);
+}
+
+.hotspot-marker.dragging {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.12);
+  box-shadow: 0 20px 32px rgba(99, 102, 241, 0.55);
 }
 
 .hotspot-popover {
