@@ -1,29 +1,27 @@
 import { activities } from './activities/index.js';
-import { escapeHtml, uid } from './utils.js';
+import { escapeHtml } from './utils.js';
 
-const baseStyles = (containerId) => `
-  #${containerId} {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #0f172a;
-    line-height: 1.5;
-    display: grid;
-    gap: 1rem;
+const VIEWER_URL = 'https://galvinradleyngo.github.io/canvasdesigner/embed.html';
+
+const sanitizeText = (value, { maxLength = 500 } = {}) => {
+  if (typeof value !== 'string') {
+    return '';
   }
-  #${containerId} *,
-  #${containerId} *::before,
-  #${containerId} *::after {
-    box-sizing: border-box;
-  }
-  #${containerId} .cd-embed-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0;
-  }
-  #${containerId} .cd-embed-description {
-    margin: 0;
-    color: rgba(15, 23, 42, 0.7);
-  }
-`;
+  const trimmed = value.trim();
+  return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
+};
+
+const encodePayload = (payload) => {
+  const json = JSON.stringify(payload);
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(json);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  const base64 = btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+};
 
 export const generateEmbed = ({ type, title, description, data }) => {
   const activity = activities[type];
@@ -31,24 +29,30 @@ export const generateEmbed = ({ type, title, description, data }) => {
     throw new Error('Unknown activity type');
   }
 
-  const containerId = `cd-embed-${uid('activity')}`;
-  const parts = activity.embedTemplate(data, containerId);
-  const heading = title ? `<h2 class="cd-embed-title">${escapeHtml(title)}</h2>` : '';
-  const desc = description
-    ? `<p class="cd-embed-description">${escapeHtml(description)}</p>`
-    : '';
+  const safeTitle = sanitizeText(title);
+  const safeDescription = sanitizeText(description, { maxLength: 1200 });
+  const payload = {
+    v: 1,
+    type,
+    title: safeTitle,
+    description: safeDescription,
+    content: data
+  };
 
-  return `<!-- Canvas Designer Studio embed: ${escapeHtml(title || activity.label)} -->
-<div id="${containerId}" class="cd-embed cd-embed-${escapeHtml(type)}" data-activity="${escapeHtml(type)}">
-  ${heading}
-  ${desc}
-  ${parts.html}
-</div>
-<style>
-${baseStyles(containerId)}
-${parts.css}
-</style>
-<script>
-${parts.js}
-</script>`;
+  const encoded = encodePayload(payload);
+  const viewerUrl = new URL(VIEWER_URL);
+  viewerUrl.searchParams.set('data', encoded);
+
+  const iframeTitle = escapeHtml(safeTitle || activity.label);
+
+  return `<!-- Canvas Designer Studio embed: ${iframeTitle} -->
+<iframe
+  class="cd-embed-frame"
+  title="${iframeTitle}"
+  loading="lazy"
+  referrerpolicy="no-referrer"
+  sandbox="allow-scripts allow-same-origin"
+  style="width: 100%; min-height: 420px; border: 0; border-radius: 12px; overflow: hidden;"
+  src="${viewerUrl.toString()}"
+></iframe>`;
 };
