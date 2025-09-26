@@ -1,12 +1,12 @@
 # Canvas Designer Studio
 
-Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for three activity types: flip cards, accordions, and hotspots.
+Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for three activity types: flip cards, drag & drop, and hotspots.
 
 ## Features
 
-- 🎯 **Activity builder** – Guided authoring panels for flip cards, accordions, and hotspot explorations.
+- 🎯 **Activity builder** – Guided authoring panels for flip cards, drag & drop matchers, and hotspot explorations.
 - ✨ **Live preview** – Interactions update in real time with accessible controls and animation toggles.
-- 💾 **Local saving** – Store an unlimited number of activities in the browser and reload them for future edits.
+- ☁️ **Cloud saving** – Store and retrieve activities securely in Firebase so they follow you across devices.
 - 🔗 **Canvas-ready embed code** – Generates a self-contained HTML/CSS/JS snippet suitable for Canvas LMS (or any LMS that accepts iframe/HTML embeds).
 - 🖼️ **Image hotspots** – Upload a custom image, place hotspots visually, and describe each point of interest.
 - 🌈 **Polished UI** – Responsive layout, rich styling, and subtle animations for an inspiring authoring experience.
@@ -15,7 +15,7 @@ Canvas Designer Studio is a modern single-page web app for crafting interactive 
 
 1. Open `index.html` in your preferred browser.
 2. Choose an activity type and customize its content in the left-hand panel.
-3. Use **Save activity** to keep work-in-progress in local storage. Saved activities appear in the dropdown for easy retrieval.
+3. Use **Save activity** to sync work-in-progress to Firebase. Saved activities appear in the dropdown for easy retrieval on any device.
 4. Preview the interaction on the right. Use the toggle to pause or resume entrance animations.
 5. Copy the generated embed snippet from the **Embed code** section or open the dialog for a full-screen view. Paste the snippet into the Canvas LMS HTML editor.
 
@@ -31,12 +31,12 @@ assets/
   js/
     app.js            # Application bootstrap and state management
     embed.js          # Canvas embed code generator
-    storage.js        # Local storage helper utilities
+    storage.js        # Firebase persistence helpers
     utils.js          # Shared helpers
     activities/
       index.js        # Activity registry
       flipCards.js    # Flip card editor + renderer
-      accordions.js   # Accordion editor + renderer
+      dragDrop.js     # Drag & drop editor + renderer
       hotspots.js     # Hotspot editor + renderer
 ```
 
