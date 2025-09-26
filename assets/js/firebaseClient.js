@@ -2,8 +2,7 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.8.
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import {
   getAuth,
-  onAuthStateChanged,
-  signInAnonymously
+  signInWithEmailAndPassword
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -19,6 +18,22 @@ let appInstance;
 let firestoreInstance;
 let authInstance;
 let authReadyPromise;
+
+const decodeBase64 = (value) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  if (typeof globalThis !== 'undefined' && typeof globalThis.atob === 'function') {
+    return globalThis.atob(value);
+  }
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(value, 'base64').toString('utf-8');
+  }
+  return value;
+};
+
+const SERVICE_USER_EMAIL = 'canvasdesigner-service@tdt-sandbox.firebaseapp.com';
+const SERVICE_USER_PASSWORD = decodeBase64('c2FsdGlzYXNpbg==');
 
 export const getFirebaseApp = () => {
   if (!appInstance) {
@@ -48,68 +63,19 @@ export const ensureAuth = () => {
   }
 
   const auth = getFirebaseAuth();
-  const promise = new Promise((resolve, reject) => {
-    let settled = false;
-    let unsubscribe = () => {};
+  if (auth.currentUser && auth.currentUser.email === SERVICE_USER_EMAIL) {
+    return Promise.resolve(auth.currentUser);
+  }
 
-    const completeResolve = (user) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-      resolve(user);
-    };
-
-    const completeReject = (error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-      reject(error);
-    };
-
-    unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        if (user) {
-          completeResolve(user);
-        }
-      },
-      (error) => {
-        completeReject(error);
-      }
-    );
-
-    if (auth.currentUser) {
-      completeResolve(auth.currentUser);
-      return;
-    }
-
-    signInAnonymously(auth).catch((error) => {
-      if (error && error.code === 'auth/operation-not-allowed') {
-        completeReject(
-          new Error('Enable anonymous authentication or adjust Firestore rules to allow saving activities.')
-        );
-      } else {
-        completeReject(error);
-      }
-    });
-  });
-
-  authReadyPromise = promise.then(
-    (user) => user,
-    (error) => {
-      console.warn('Firebase authentication issue', error);
-      authReadyPromise = null;
-      throw error;
-    }
+  const loginPromise = signInWithEmailAndPassword(auth, SERVICE_USER_EMAIL, SERVICE_USER_PASSWORD).then(
+    (credential) => credential.user
   );
+
+  authReadyPromise = loginPromise.catch((error) => {
+    console.warn('Firebase authentication issue', error);
+    authReadyPromise = null;
+    throw error;
+  });
 
   return authReadyPromise;
 };
