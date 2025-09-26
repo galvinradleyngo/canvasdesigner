@@ -26,8 +26,9 @@
             id="showEmbedBtn"
             class="primary-button"
             type="button"
-            aria-controls="embedPanel"
+            aria-controls="embedModal"
             aria-expanded="false"
+            aria-haspopup="dialog"
           >
             Embed code
           </button>
@@ -76,24 +77,6 @@
             </div>
             <div id="editorContent" class="editor-content" aria-live="polite"></div>
           </section>
-          <section
-            id="embedPanel"
-            class="panel-block embed-panel"
-            data-open="false"
-            aria-hidden="true"
-          >
-            <div class="embed-panel-header">
-              <div>
-                <h2 class="panel-title">Embed code for Canvas</h2>
-                <p class="hint">Copy this HTML into Canvas using the rich content editor's HTML mode.</p>
-              </div>
-              <button id="hideEmbedBtn" class="ghost-button" type="button" aria-label="Hide embed code">Hide</button>
-            </div>
-            <textarea id="embedSnippet" class="code-preview" rows="7" readonly></textarea>
-            <div class="panel-actions">
-              <button id="copyEmbedInlineBtn" class="ghost-button" type="button">Copy</button>
-            </div>
-          </section>
         </aside>
         <section class="preview-panel">
           <div class="preview-header">
@@ -110,6 +93,45 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <div id="embedModal" class="modal" data-open="false" aria-hidden="true">
+      <div class="modal-backdrop" data-modal-dismiss="true" aria-hidden="true"></div>
+      <div
+        id="embedModalDialog"
+        class="modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="embedModalTitle"
+        aria-describedby="embedModalDescription"
+        tabindex="-1"
+      >
+        <div class="modal-header">
+          <div>
+            <h2 id="embedModalTitle" class="panel-title">Embed code for Canvas</h2>
+            <p id="embedModalDescription" class="hint">
+              Copy this HTML into Canvas using the rich content editor's HTML mode.
+            </p>
+          </div>
+          <button
+            id="closeEmbedModalBtn"
+            class="ghost-button modal-close"
+            type="button"
+            aria-label="Close embed code dialog"
+          >
+            Close
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="field" for="embedSnippet">
+            <span class="field-label">Embed HTML</span>
+            <textarea id="embedSnippet" class="code-preview" rows="8" readonly></textarea>
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button id="copyEmbedBtn" class="primary-button" type="button">Copy embed code</button>
+        </div>
+      </div>
     </div>
 
     <template id="hotspot-marker-template">

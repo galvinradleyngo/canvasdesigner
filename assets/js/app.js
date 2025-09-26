@@ -24,13 +24,63 @@ const elements = {
   deleteProjectBtn: document.getElementById('deleteProjectBtn'),
   newProjectBtn: document.getElementById('newProjectBtn'),
   savedProjects: document.getElementById('savedProjects'),
-  copyEmbedInlineBtn: document.getElementById('copyEmbedInlineBtn'),
+  copyEmbedBtn: document.getElementById('copyEmbedBtn'),
   showEmbedBtn: document.getElementById('showEmbedBtn'),
-  hideEmbedBtn: document.getElementById('hideEmbedBtn'),
+  closeEmbedModalBtn: document.getElementById('closeEmbedModalBtn'),
   embedSnippet: document.getElementById('embedSnippet'),
-  embedPanel: document.getElementById('embedPanel'),
+  embedModal: document.getElementById('embedModal'),
+  embedModalDialog: document.getElementById('embedModalDialog'),
   statusToast: document.getElementById('statusToast'),
   animationToggle: document.getElementById('animationToggle')
+};
+
+const focusableModalSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'textarea:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])'
+].join(', ');
+
+const modalState = {
+  lastFocusedElement: null
+};
+
+const isElementVisible = (element) => {
+  if (!element) return false;
+  if (element.disabled || element.getAttribute('aria-hidden') === 'true') {
+    return false;
+  }
+
+  if (element.offsetParent) {
+    return true;
+  }
+
+  if (typeof element.getBoundingClientRect === 'function') {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  return true;
+};
+
+const getFocusableElements = (container) => {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(focusableModalSelector)).filter((element) =>
+    isElementVisible(element)
+  );
+};
+
+const focusElement = (element) => {
+  if (!element || typeof element.focus !== 'function') {
+    return;
+  }
+  try {
+    element.focus({ preventScroll: true });
+  } catch (error) {
+    element.focus();
+  }
 };
 
 const getActiveActivity = () => {
@@ -321,61 +371,117 @@ const copyToClipboard = async (value) => {
   }
 };
 
-const setEmbedPanelOpen = (open) => {
-  if (!elements.embedPanel) {
+const setEmbedModalOpen = (open) => {
+  if (!elements.embedModal) {
+    return;
+  }
+
+  const currentState = elements.embedModal.dataset.open === 'true';
+  if (open === currentState) {
     return;
   }
 
   const nextState = open ? 'true' : 'false';
-  elements.embedPanel.dataset.open = nextState;
-  elements.embedPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  elements.embedModal.dataset.open = nextState;
+  elements.embedModal.setAttribute('aria-hidden', open ? 'false' : 'true');
 
   if (elements.showEmbedBtn) {
     elements.showEmbedBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
-  if (elements.embedSnippet) {
-    elements.embedSnippet.tabIndex = open ? 0 : -1;
-  }
-
-  if (
-    !open &&
-    elements.embedSnippet &&
-    document.activeElement === elements.embedSnippet &&
-    elements.showEmbedBtn
-  ) {
-    elements.showEmbedBtn.focus();
-  }
-
   if (open) {
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(() => {
-        if (elements.embedPanel && typeof elements.embedPanel.scrollIntoView === 'function') {
-          elements.embedPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
+    modalState.lastFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    if (document.body) {
+      document.body.classList.add('modal-open');
     }
 
-    if (elements.embedSnippet) {
-      setTimeout(() => {
-        if (elements.embedSnippet) {
-          try {
-            elements.embedSnippet.focus();
-          } catch (error) {
-            console.warn('Unable to focus embed textarea', error);
-          }
-        }
-      }, 220);
+    const dialog = elements.embedModalDialog || elements.embedModal;
+    const focusable = getFocusableElements(dialog);
+    const target = focusable.length ? focusable[0] : dialog;
+
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        focusElement(target);
+      });
+    } else {
+      focusElement(target);
+    }
+  } else {
+    if (document.body) {
+      document.body.classList.remove('modal-open');
+    }
+
+    const returnTarget =
+      modalState.lastFocusedElement && document.contains(modalState.lastFocusedElement)
+        ? modalState.lastFocusedElement
+        : elements.showEmbedBtn;
+
+    modalState.lastFocusedElement = null;
+
+    if (returnTarget) {
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => {
+          focusElement(returnTarget);
+        });
+      } else {
+        focusElement(returnTarget);
+      }
     }
   }
 };
 
-const toggleEmbedPanel = () => {
-  if (!elements.embedPanel) {
+const handleEmbedModalKeydown = (event) => {
+  if (!elements.embedModal || elements.embedModal.dataset.open !== 'true') {
     return;
   }
-  const isOpen = elements.embedPanel.dataset.open === 'true';
-  setEmbedPanelOpen(!isOpen);
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    setEmbedModalOpen(false);
+    return;
+  }
+
+  if (event.key !== 'Tab') {
+    return;
+  }
+
+  const dialog = elements.embedModalDialog || elements.embedModal;
+  const focusable = getFocusableElements(dialog);
+
+  if (!focusable.length) {
+    event.preventDefault();
+    focusElement(dialog);
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const activeElement = document.activeElement;
+  const focusIsInside = activeElement && dialog.contains(activeElement);
+
+  if (event.shiftKey) {
+    if (!focusIsInside || activeElement === first) {
+      event.preventDefault();
+      focusElement(last);
+    }
+    return;
+  }
+
+  if (!focusIsInside || activeElement === last) {
+    event.preventDefault();
+    focusElement(first);
+  }
+};
+
+const openEmbedModal = () => {
+  refreshEmbed();
+  setEmbedModalOpen(true);
+};
+
+const closeEmbedModal = () => {
+  setEmbedModalOpen(false);
 };
 
 const bindEvents = () => {
@@ -429,20 +535,33 @@ const bindEvents = () => {
     });
   });
 
-  elements.copyEmbedInlineBtn.addEventListener('click', () => {
-    if (!elements.embedSnippet) {
-      return;
-    }
-    copyToClipboard(elements.embedSnippet.value);
-  });
-
-  if (elements.showEmbedBtn) {
-    elements.showEmbedBtn.addEventListener('click', toggleEmbedPanel);
+  if (elements.copyEmbedBtn) {
+    elements.copyEmbedBtn.addEventListener('click', () => {
+      if (!elements.embedSnippet) {
+        return;
+      }
+      copyToClipboard(elements.embedSnippet.value);
+    });
   }
 
-  if (elements.hideEmbedBtn) {
-    elements.hideEmbedBtn.addEventListener('click', () => {
-      setEmbedPanelOpen(false);
+  if (elements.showEmbedBtn) {
+    elements.showEmbedBtn.addEventListener('click', openEmbedModal);
+  }
+
+  if (elements.closeEmbedModalBtn) {
+    elements.closeEmbedModalBtn.addEventListener('click', closeEmbedModal);
+  }
+
+  if (elements.embedModal) {
+    elements.embedModal.addEventListener('keydown', handleEmbedModalKeydown);
+    elements.embedModal.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (target.dataset.modalDismiss === 'true' || target === elements.embedModal) {
+        closeEmbedModal();
+      }
     });
   }
 
@@ -458,7 +577,7 @@ const init = async () => {
   elements.titleInput.value = state.title;
   elements.descriptionInput.value = state.description;
   bindEvents();
-  setEmbedPanelOpen(false);
+  setEmbedModalOpen(false);
   await refreshSavedProjects();
   showStatus('Ready to create!');
 };
