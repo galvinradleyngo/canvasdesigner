@@ -11,6 +11,65 @@ const state = {
   data: clone(activities[defaultActivityId].template())
 };
 
+const lazyActivityLoaders = {
+  flipCards: async () => (await import('./activities/flipCards.js')).flipCards,
+  dragDrop: async () => (await import('./activities/dragDrop.js')).dragDrop,
+  hotspots: async () => (await import('./activities/hotspots.js')).hotspots,
+  accordion: async () => (await import('./activities/accordion.js')).accordion,
+  timeline: async () => (await import('./activities/timeline.js')).timeline
+};
+
+const pendingActivityLoads = new Map();
+
+const registerActivity = (type, activity) => {
+  if (!activity || typeof activity !== 'object') {
+    return null;
+  }
+  const key = typeof activity.id === 'string' && activity.id.trim() ? activity.id : type;
+  if (key) {
+    activities[key] = activity;
+    if (key !== type) {
+      activities[type] = activity;
+    }
+  }
+  return activities[type] || activity;
+};
+
+const ensureActivityRegistered = async (type) => {
+  if (!type) {
+    return null;
+  }
+
+  if (activities[type]) {
+    return activities[type];
+  }
+
+  if (pendingActivityLoads.has(type)) {
+    const existing = await pendingActivityLoads.get(type);
+    return existing || activities[type] || null;
+  }
+
+  const loader = lazyActivityLoaders[type];
+  if (!loader) {
+    return activities[type] || null;
+  }
+
+  const loadPromise = (async () => {
+    try {
+      const loaded = await loader();
+      return registerActivity(type, loaded);
+    } catch (error) {
+      console.error(`Unable to load activity module "${type}"`, error);
+      return null;
+    } finally {
+      pendingActivityLoads.delete(type);
+    }
+  })();
+
+  pendingActivityLoads.set(type, loadPromise);
+  return loadPromise;
+};
+
 const elements = {
   tabs: Array.from(document.querySelectorAll('.activity-tab')),
   titleInput: document.getElementById('titleInput'),
@@ -253,21 +312,36 @@ const refreshSavedProjects = async (selectedId = state.id) => {
   }
 };
 
-const loadTemplate = () => {
-  state.data = clone(getActiveActivity().template());
+const loadTemplate = async () => {
+  const activity = await ensureActivityRegistered(state.type);
+  if (!activity) {
+    showStatus('Unable to load this template right now. Try refreshing the page.', 'warning');
+    return;
+  }
+  state.data = clone(activity.template());
   refreshActivityView();
 };
 
-const loadExample = () => {
-  state.data = clone(getActiveActivity().example());
+const loadExample = async () => {
+  const activity = await ensureActivityRegistered(state.type);
+  if (!activity) {
+    showStatus('Unable to load this example right now. Try refreshing the page.', 'warning');
+    return;
+  }
+  state.data = clone(activity.example());
   refreshActivityView();
 };
 
 const resetProject = async ({ refreshList = false, silent = false } = {}) => {
+  let activity = await ensureActivityRegistered(state.type);
+  if (!activity) {
+    state.type = defaultActivityId;
+    activity = await ensureActivityRegistered(state.type);
+  }
   state.id = null;
   state.title = '';
   state.description = '';
-  state.data = clone(getActiveActivity().template());
+  state.data = clone((activity || getActiveActivity()).template());
   elements.titleInput.value = '';
   elements.descriptionInput.value = '';
   refreshActivityView();
@@ -336,14 +410,17 @@ const handleLoadProject = async () => {
       return;
     }
 
-    if (!activities[project.type]) {
+    let nextType = project.type;
+    let activity = await ensureActivityRegistered(nextType);
+    if (!activity) {
       showStatus('This activity type is no longer available. Loaded the default template instead.', 'warning');
-      state.type = defaultActivityId;
-      state.data = clone(getActiveActivity().template());
-    } else {
-      state.type = project.type;
-      state.data = project.data ? clone(project.data) : clone(getActiveActivity().template());
+      nextType = defaultActivityId;
+      activity = await ensureActivityRegistered(nextType);
     }
+
+    state.type = nextType;
+    const template = activity ? activity.template() : getActiveActivity().template();
+    state.data = project.data ? clone(project.data) : clone(template);
 
     state.id = project.id;
     state.title = project.title || '';
@@ -520,17 +597,33 @@ const bindEvents = () => {
   elements.tabs.forEach((tab) => {
     tab.addEventListener('click', async () => {
       const newType = tab.dataset.activity;
-      if (!activities[newType] || state.type === newType) return;
-      state.type = newType;
-      state.id = null;
-      state.title = '';
-      state.description = '';
-      state.data = clone(getActiveActivity().template());
-      elements.titleInput.value = '';
-      elements.descriptionInput.value = '';
-      refreshActivityView();
-      elements.titleInput.focus();
-      showStatus(`${getActiveActivity().label} template loaded`);
+      if (!newType || state.type === newType) return;
+      tab.disabled = true;
+      tab.dataset.loading = 'true';
+      try {
+        const activity = await ensureActivityRegistered(newType);
+        if (!activity) {
+          showStatus('Unable to load that activity right now. Try refreshing the page.', 'warning');
+          return;
+        }
+
+        state.type = newType;
+        state.id = null;
+        state.title = '';
+        state.description = '';
+        state.data = clone(activity.template());
+        elements.titleInput.value = '';
+        elements.descriptionInput.value = '';
+        refreshActivityView();
+        elements.titleInput.focus();
+        showStatus(`${activity.label} template loaded`);
+      } catch (error) {
+        console.error(error);
+        showStatus('Something went wrong while switching activities.', 'warning');
+      } finally {
+        tab.disabled = false;
+        delete tab.dataset.loading;
+      }
     });
   });
 
@@ -544,8 +637,16 @@ const bindEvents = () => {
     refreshEmbed();
   });
 
-  elements.loadTemplateBtn.addEventListener('click', loadTemplate);
-  elements.loadExampleBtn.addEventListener('click', loadExample);
+  elements.loadTemplateBtn.addEventListener('click', () => {
+    loadTemplate().catch((error) => {
+      console.error(error);
+    });
+  });
+  elements.loadExampleBtn.addEventListener('click', () => {
+    loadExample().catch((error) => {
+      console.error(error);
+    });
+  });
   elements.saveProjectBtn.addEventListener('click', () => {
     handleSaveProject().catch((error) => {
       console.error(error);
@@ -614,6 +715,7 @@ const bindEvents = () => {
 };
 
 const init = async () => {
+  await ensureActivityRegistered(state.type);
   refreshActivityView();
   elements.titleInput.value = state.title;
   elements.descriptionInput.value = state.description;
