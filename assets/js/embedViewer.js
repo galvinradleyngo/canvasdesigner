@@ -9,6 +9,7 @@ const baseStyles = (containerId) => `
     line-height: 1.5;
     display: grid;
     gap: 1rem;
+    background: transparent;
   }
   #${containerId} *,
   #${containerId} *::before,
