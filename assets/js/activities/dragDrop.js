@@ -1,43 +1,140 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
-const template = () => ({
-  prompt: 'Sort each card into the matching category.',
-  instructions: 'Drag items from the tray into the drop zones. There may be more than one correct answer per zone.',
-  buckets: [
-    { id: uid('bucket'), title: 'Category A', description: 'Use this zone for items that belong in group A.' },
-    { id: uid('bucket'), title: 'Category B', description: 'Place group B items here.' }
-  ],
-  items: [
-    { id: uid('item'), text: 'Example card 1', correctBucketId: null },
-    { id: uid('item'), text: 'Example card 2', correctBucketId: null }
-  ]
-});
+const createTemplateBuckets = () => {
+  const bucketA = uid('bucket');
+  const bucketB = uid('bucket');
+  return {
+    buckets: [
+      {
+        id: bucketA,
+        title: 'Concepts',
+        description: 'Big ideas, terms, or vocabulary.'
+      },
+      {
+        id: bucketB,
+        title: 'Examples',
+        description: 'Real-world applications or evidence.'
+      }
+    ],
+    items: [
+      { id: uid('item'), text: 'Plate tectonics', correctBucketId: bucketA },
+      { id: uid('item'), text: 'San Andreas Fault', correctBucketId: bucketB },
+      { id: uid('item'), text: 'Divergent boundary', correctBucketId: bucketA },
+      { id: uid('item'), text: 'Mid-Atlantic Ridge', correctBucketId: bucketB }
+    ]
+  };
+};
 
-const example = () => ({
-  prompt: 'Match each moon to the correct planet.',
-  instructions: 'Drag every moon to the planet it orbits.',
-  buckets: [
-    { id: uid('bucket'), title: 'Mars', description: 'Moons that orbit the planet Mars.' },
-    { id: uid('bucket'), title: 'Jupiter', description: 'Moons that orbit the planet Jupiter.' }
-  ],
-  items: [
-    { id: uid('item'), text: 'Phobos', correctBucketId: null },
-    { id: uid('item'), text: 'Deimos', correctBucketId: null },
-    { id: uid('item'), text: 'Europa', correctBucketId: null },
-    { id: uid('item'), text: 'Ganymede', correctBucketId: null }
-  ]
-});
+const template = () => {
+  const { buckets, items } = createTemplateBuckets();
+  return {
+    prompt: 'Describe the challenge learners should solve.',
+    instructions: 'Give learners a short instruction for how to complete the drag & drop task.',
+    buckets,
+    items
+  };
+};
+
+const example = () => {
+  const bucketA = uid('bucket');
+  const bucketB = uid('bucket');
+  return {
+    prompt: 'Sort each tectonic example into the matching plate boundary type.',
+    instructions: 'Drag the cards into the correct drop zone, then use “Check answers” to get instant feedback.',
+    buckets: [
+      {
+        id: bucketA,
+        title: 'Convergent boundaries',
+        description: 'Where plates collide and one may subduct beneath another.'
+      },
+      {
+        id: bucketB,
+        title: 'Divergent boundaries',
+        description: 'Where plates move apart and new crust forms.'
+      }
+    ],
+    items: [
+      { id: uid('item'), text: 'Mariana Trench', correctBucketId: bucketA },
+      { id: uid('item'), text: 'Mid-Atlantic Ridge', correctBucketId: bucketB },
+      { id: uid('item'), text: 'Andes Mountains', correctBucketId: bucketA },
+      { id: uid('item'), text: 'East African Rift', correctBucketId: bucketB }
+    ]
+  };
+};
+
+const ensureBuckets = (working) => {
+  if (!Array.isArray(working.buckets) || working.buckets.length === 0) {
+    const { buckets } = createTemplateBuckets();
+    working.buckets = buckets;
+    return;
+  }
+  working.buckets = working.buckets.map((bucket, index) => ({
+    id: bucket?.id || uid('bucket'),
+    title: typeof bucket?.title === 'string' ? bucket.title : `Drop zone ${index + 1}`,
+    description: typeof bucket?.description === 'string' ? bucket.description : ''
+  }));
+};
+
+const ensureItems = (working) => {
+  if (!Array.isArray(working.items)) {
+    working.items = [];
+  }
+  if (working.items.length === 0) {
+    working.items.push({
+      id: uid('item'),
+      text: 'New card',
+      correctBucketId: working.buckets[0]?.id ?? null
+    });
+    return;
+  }
+  const bucketIds = new Set(working.buckets.map((bucket) => bucket.id));
+  working.items = working.items.map((item, index) => ({
+    id: item?.id || uid('item'),
+    text: typeof item?.text === 'string' ? item.text : `Card ${index + 1}`,
+    correctBucketId: bucketIds.has(item?.correctBucketId) ? item.correctBucketId : null
+  }));
+};
 
 const ensureDefaults = (working) => {
-  working.prompt ||= '';
-  working.instructions ||= '';
-  working.buckets ||= [];
-  working.items ||= [];
+  working.prompt = typeof working.prompt === 'string' ? working.prompt : '';
+  working.instructions = typeof working.instructions === 'string' ? working.instructions : '';
+  ensureBuckets(working);
+  ensureItems(working);
 };
 
 const buildEditor = (container, data, onUpdate) => {
   const working = clone(data);
   ensureDefaults(working);
+
+  const updateBucketOptions = () => {
+    container.querySelectorAll('select[data-item-id]').forEach((select) => {
+      const previousValue = select.value;
+      const allowEmpty = select.dataset.allowEmpty === 'true';
+      select.innerHTML = '';
+      if (allowEmpty) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No correct answer';
+        select.append(option);
+      }
+      working.buckets.forEach((bucket) => {
+        const option = document.createElement('option');
+        option.value = bucket.id;
+        option.textContent = bucket.title?.trim() || 'Untitled drop zone';
+        select.append(option);
+      });
+      if (previousValue && working.buckets.some((bucket) => bucket.id === previousValue)) {
+        select.value = previousValue;
+      } else {
+        select.value = allowEmpty ? '' : working.buckets[0]?.id ?? '';
+        const itemId = select.dataset.itemId;
+        const itemIndex = working.items.findIndex((item) => item.id === itemId);
+        if (itemIndex >= 0) {
+          working.items[itemIndex].correctBucketId = select.value || null;
+        }
+      }
+    });
+  };
 
   const emit = (refresh = true) => {
     onUpdate(clone(working));
@@ -56,27 +153,27 @@ const buildEditor = (container, data, onUpdate) => {
     const promptInput = document.createElement('textarea');
     promptInput.rows = 2;
     promptInput.value = working.prompt;
-    promptInput.placeholder = 'Describe the matching task.';
+    promptInput.placeholder = 'What should learners do?';
     promptInput.addEventListener('input', () => {
       working.prompt = promptInput.value;
       emit(false);
     });
     promptField.append(promptInput);
-    container.append(promptField);
 
-    const instructionsField = document.createElement('label');
-    instructionsField.className = 'field';
-    instructionsField.innerHTML = '<span class="field-label">Learner instructions</span>';
-    const instructionsInput = document.createElement('textarea');
-    instructionsInput.rows = 3;
-    instructionsInput.value = working.instructions;
-    instructionsInput.placeholder = 'Tell learners how to complete the activity.';
-    instructionsInput.addEventListener('input', () => {
-      working.instructions = instructionsInput.value;
+    const instructionField = document.createElement('label');
+    instructionField.className = 'field';
+    instructionField.innerHTML = '<span class="field-label">Instructions</span>';
+    const instructionInput = document.createElement('textarea');
+    instructionInput.rows = 3;
+    instructionInput.value = working.instructions;
+    instructionInput.placeholder = 'Give learners a short instruction for the drag & drop task.';
+    instructionInput.addEventListener('input', () => {
+      working.instructions = instructionInput.value;
       emit(false);
     });
-    instructionsField.append(instructionsInput);
-    container.append(instructionsField);
+    instructionField.append(instructionInput);
+
+    container.append(promptField, instructionField);
 
     const bucketGroup = document.createElement('div');
     bucketGroup.className = 'editor-group';
@@ -84,6 +181,8 @@ const buildEditor = (container, data, onUpdate) => {
     bucketHeader.className = 'editor-item-header';
     bucketHeader.innerHTML = '<span>Drop zones</span>';
 
+    const bucketActions = document.createElement('div');
+    bucketActions.className = 'editor-item-actions';
     const addBucketBtn = document.createElement('button');
     addBucketBtn.type = 'button';
     addBucketBtn.className = 'ghost-button';
@@ -96,18 +195,15 @@ const buildEditor = (container, data, onUpdate) => {
       });
       emit();
     });
-
-    const bucketHeaderActions = document.createElement('div');
-    bucketHeaderActions.className = 'editor-item-actions';
-    bucketHeaderActions.append(addBucketBtn);
-    bucketHeader.append(bucketHeaderActions);
+    bucketActions.append(addBucketBtn);
+    bucketHeader.append(bucketActions);
     bucketGroup.append(bucketHeader);
 
-    if (working.buckets.length === 0) {
-      const emptyBuckets = document.createElement('div');
-      emptyBuckets.className = 'empty-state';
-      emptyBuckets.innerHTML = '<p>No drop zones yet. Add at least one zone to start.</p>';
-      bucketGroup.append(emptyBuckets);
+    if (!working.buckets.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<p>No drop zones yet. Add at least one zone to start.</p>';
+      bucketGroup.append(empty);
     }
 
     working.buckets.forEach((bucket, index) => {
@@ -126,11 +222,12 @@ const buildEditor = (container, data, onUpdate) => {
       duplicateBtn.className = 'muted-button';
       duplicateBtn.textContent = 'Duplicate';
       duplicateBtn.addEventListener('click', () => {
-        working.buckets.splice(index + 1, 0, {
+        const cloneBucket = {
           ...clone(bucket),
           id: uid('bucket'),
-          title: `${bucket.title || `Drop zone ${index + 1}`} (copy)`
-        });
+          title: `${bucket.title?.trim() || `Drop zone ${index + 1}`} (copy)`
+        };
+        working.buckets.splice(index + 1, 0, cloneBucket);
         emit();
       });
 
@@ -138,11 +235,16 @@ const buildEditor = (container, data, onUpdate) => {
       deleteBtn.type = 'button';
       deleteBtn.className = 'muted-button';
       deleteBtn.textContent = 'Remove';
+      deleteBtn.disabled = working.buckets.length <= 1;
       deleteBtn.addEventListener('click', () => {
-        const removed = working.buckets.splice(index, 1)[0];
-        working.items = working.items.map((item) =>
-          item.correctBucketId === removed.id ? { ...item, correctBucketId: null } : item
-        );
+        const removedId = working.buckets.splice(index, 1)[0]?.id;
+        ensureBuckets(working);
+        working.items = working.items.map((item) => {
+          if (item.correctBucketId === removedId) {
+            return { ...item, correctBucketId: working.buckets[0]?.id ?? null };
+          }
+          return item;
+        });
         emit();
       });
 
@@ -154,23 +256,24 @@ const buildEditor = (container, data, onUpdate) => {
       titleField.className = 'field';
       titleField.innerHTML = '<span class="field-label">Title</span>';
       const titleInput = document.createElement('input');
-      titleInput.className = 'text-input';
       titleInput.type = 'text';
+      titleInput.className = 'text-input';
       titleInput.value = bucket.title || '';
-      titleInput.placeholder = `Drop zone ${index + 1}`;
+      titleInput.placeholder = 'e.g. Key concept';
       titleInput.addEventListener('input', () => {
         working.buckets[index].title = titleInput.value;
         emit(false);
+        updateBucketOptions();
       });
       titleField.append(titleInput);
 
       const descriptionField = document.createElement('label');
       descriptionField.className = 'field';
-      descriptionField.innerHTML = '<span class="field-label">Description (optional)</span>';
+      descriptionField.innerHTML = '<span class="field-label">Helper text (optional)</span>';
       const descriptionInput = document.createElement('textarea');
       descriptionInput.rows = 2;
       descriptionInput.value = bucket.description || '';
-      descriptionInput.placeholder = 'Explain what belongs in this drop zone.';
+      descriptionInput.placeholder = 'Give a short hint or definition.';
       descriptionInput.addEventListener('input', () => {
         working.buckets[index].description = descriptionInput.value;
         emit(false);
@@ -187,31 +290,33 @@ const buildEditor = (container, data, onUpdate) => {
     itemGroup.className = 'editor-group';
     const itemHeader = document.createElement('div');
     itemHeader.className = 'editor-item-header';
-    itemHeader.innerHTML = '<span>Draggable items</span>';
+    itemHeader.innerHTML = '<span>Draggable cards</span>';
 
+    const itemActions = document.createElement('div');
+    itemActions.className = 'editor-item-actions';
     const addItemBtn = document.createElement('button');
     addItemBtn.type = 'button';
     addItemBtn.className = 'ghost-button';
-    addItemBtn.textContent = 'Add item';
+    addItemBtn.textContent = 'Add card';
     addItemBtn.addEventListener('click', () => {
-      working.items.push({ id: uid('item'), text: 'New item', correctBucketId: null });
+      ensureBuckets(working);
+      working.items.push({
+        id: uid('item'),
+        text: `Card ${working.items.length + 1}`,
+        correctBucketId: working.buckets[0]?.id ?? null
+      });
       emit();
     });
-
-    const itemHeaderActions = document.createElement('div');
-    itemHeaderActions.className = 'editor-item-actions';
-    itemHeaderActions.append(addItemBtn);
-    itemHeader.append(itemHeaderActions);
+    itemActions.append(addItemBtn);
+    itemHeader.append(itemActions);
     itemGroup.append(itemHeader);
 
-    if (working.items.length === 0) {
-      const emptyItems = document.createElement('div');
-      emptyItems.className = 'empty-state';
-      emptyItems.innerHTML = '<p>No items yet. Add draggable cards for learners to sort.</p>';
-      itemGroup.append(emptyItems);
+    if (!working.items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<p>No cards yet. Add draggable cards for learners to sort.</p>';
+      itemGroup.append(empty);
     }
-
-    const bucketOptions = working.buckets.map((bucket) => ({ id: bucket.id, title: bucket.title }));
 
     working.items.forEach((item, index) => {
       const itemCard = document.createElement('div');
@@ -219,40 +324,44 @@ const buildEditor = (container, data, onUpdate) => {
 
       const cardHeader = document.createElement('div');
       cardHeader.className = 'editor-item-header';
-      cardHeader.innerHTML = `<span>Item ${index + 1}</span>`;
+      cardHeader.innerHTML = `<span>Card ${index + 1}</span>`;
 
       const cardActions = document.createElement('div');
       cardActions.className = 'editor-item-actions';
 
-      const duplicateItemBtn = document.createElement('button');
-      duplicateItemBtn.type = 'button';
-      duplicateItemBtn.className = 'muted-button';
-      duplicateItemBtn.textContent = 'Duplicate';
-      duplicateItemBtn.addEventListener('click', () => {
-        working.items.splice(index + 1, 0, { ...clone(item), id: uid('item') });
+      const duplicateBtn = document.createElement('button');
+      duplicateBtn.type = 'button';
+      duplicateBtn.className = 'muted-button';
+      duplicateBtn.textContent = 'Duplicate';
+      duplicateBtn.addEventListener('click', () => {
+        const cloneItem = { ...clone(item), id: uid('item') };
+        working.items.splice(index + 1, 0, cloneItem);
         emit();
       });
 
-      const deleteItemBtn = document.createElement('button');
-      deleteItemBtn.type = 'button';
-      deleteItemBtn.className = 'muted-button';
-      deleteItemBtn.textContent = 'Remove';
-      deleteItemBtn.addEventListener('click', () => {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'muted-button';
+      deleteBtn.textContent = 'Remove';
+      deleteBtn.addEventListener('click', () => {
         working.items.splice(index, 1);
+        if (!working.items.length) {
+          ensureItems(working);
+        }
         emit();
       });
 
-      cardActions.append(duplicateItemBtn, deleteItemBtn);
+      cardActions.append(duplicateBtn, deleteBtn);
       cardHeader.append(cardActions);
       itemCard.append(cardHeader);
 
       const textField = document.createElement('label');
       textField.className = 'field';
-      textField.innerHTML = '<span class="field-label">Item text</span>';
+      textField.innerHTML = '<span class="field-label">Card text</span>';
       const textInput = document.createElement('textarea');
       textInput.rows = 2;
       textInput.value = item.text || '';
-      textInput.placeholder = 'e.g. An example learners must sort';
+      textInput.placeholder = 'What should appear on the draggable card?';
       textInput.addEventListener('input', () => {
         working.items[index].text = textInput.value;
         emit(false);
@@ -264,17 +373,8 @@ const buildEditor = (container, data, onUpdate) => {
       correctField.innerHTML = '<span class="field-label">Correct drop zone (optional)</span>';
       const correctSelect = document.createElement('select');
       correctSelect.className = 'select-input';
-      const noOption = document.createElement('option');
-      noOption.value = '';
-      noOption.textContent = 'No correct answer';
-      correctSelect.append(noOption);
-      bucketOptions.forEach((option) => {
-        const opt = document.createElement('option');
-        opt.value = option.id;
-        opt.textContent = option.title || 'Drop zone';
-        correctSelect.append(opt);
-      });
-      correctSelect.value = item.correctBucketId || '';
+      correctSelect.dataset.itemId = item.id;
+      correctSelect.dataset.allowEmpty = 'true';
       correctSelect.addEventListener('change', () => {
         working.items[index].correctBucketId = correctSelect.value || null;
         emit(false);
@@ -286,6 +386,7 @@ const buildEditor = (container, data, onUpdate) => {
     });
 
     container.append(itemGroup);
+    updateBucketOptions();
   };
 
   rerender();
@@ -303,12 +404,14 @@ const normalizePreviewData = (rawData = {}) => {
   const fallbackBuckets = clone(fallback.buckets);
   const fallbackItems = clone(fallback.items);
   const sanitizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+
   const rawBuckets = Array.isArray(rawData.buckets)
     ? rawData.buckets.filter((bucket) => bucket && bucket.id)
     : [];
   const bucketsSource = rawBuckets.length > 0 ? rawBuckets : fallbackBuckets;
   const buckets = bucketsSource.map((bucket, index) => ({
     ...bucket,
+    id: bucket.id || uid('bucket'),
     title: sanitizeText(bucket.title) || `Drop zone ${index + 1}`,
     description: sanitizeText(bucket.description)
   }));
@@ -319,9 +422,10 @@ const normalizePreviewData = (rawData = {}) => {
     : [];
   const itemsSource = rawItems.length > 0 ? rawItems : fallbackItems;
   const items = itemsSource
-    .map((item) => ({
+    .map((item, index) => ({
       ...item,
-      text: sanitizeText(item.text),
+      id: item.id || uid('item'),
+      text: sanitizeText(item.text) || `Card ${index + 1}`,
       correctBucketId: bucketIds.has(item.correctBucketId) ? item.correctBucketId : null
     }))
     .filter((item) => item.text.length > 0);
@@ -424,200 +528,322 @@ const renderItemHtml = (item) => `
   </button>
 `;
 
-const embedTemplate = (data, containerId) => {
-  const { buckets, items, prompt, instructions } = normalizePreviewData(data);
-
-  const html = `
-    <div class="cd-dragdrop" aria-live="polite">
-      ${prompt ? `<div class=\"cd-dragdrop-prompt\">${escapeHtml(prompt)}</div>` : ''}
-      ${instructions ? `<p class=\"cd-dragdrop-instructions\">${escapeHtml(instructions)}</p>` : ''}
-      <div class="cd-dragdrop-board">
-        <div class="cd-dragdrop-pool" role="list" aria-label="Unplaced items">
-          ${items.map((item) => renderItemHtml(item)).join('')}
-        </div>
-        <div class="cd-dragdrop-buckets" role="list">
-          ${buckets.map((bucket) => renderBucketHtml(bucket)).join('')}
-        </div>
-      </div>
+const buildEmptyEmbed = (containerId) => ({
+  html: `
+    <div class="cd-dragdrop cd-dragdrop--empty" role="status" aria-live="polite">
+      <strong>Configure drop zones and cards</strong>
+      <p>Add at least one drop zone and draggable card to publish this activity.</p>
     </div>
-  `;
-
-  const css = `
-    #${containerId} .cd-dragdrop {
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 1.25rem;
-      padding: 1.5rem;
-      box-shadow: 0 24px 48px -28px rgba(15, 23, 42, 0.35);
+  `,
+  css: `
+    #${containerId} .cd-dragdrop--empty {
       display: grid;
-      gap: 1.5rem;
-    }
-    #${containerId} .cd-dragdrop-prompt {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 0;
-    }
-    #${containerId} .cd-dragdrop-instructions {
-      margin: 0;
-      color: rgba(15, 23, 42, 0.72);
-    }
-    #${containerId} .cd-dragdrop-board {
-      display: grid;
-      gap: 1.5rem;
-    }
-    #${containerId} .cd-dragdrop-pool {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      border: 2px dashed rgba(99, 102, 241, 0.35);
-      border-radius: 1rem;
+      gap: 0.5rem;
       padding: 1rem;
-      background: rgba(99, 102, 241, 0.05);
-      min-height: 3.75rem;
-      transition: border-color 0.2s ease, background 0.2s ease;
+      border-radius: 1rem;
+      border: 1px dashed rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.08);
+      color: rgba(15, 23, 42, 0.75);
+      text-align: center;
+      justify-items: center;
     }
-    #${containerId} .cd-dragdrop-pool.is-hovered {
-      border-color: rgba(99, 102, 241, 0.6);
-      background: rgba(99, 102, 241, 0.12);
-    }
-    #${containerId} .cd-dragdrop-pool:empty::before {
-      content: 'All items placed';
-      color: rgba(15, 23, 42, 0.55);
-      font-size: 0.875rem;
-    }
-    #${containerId} .cd-dragdrop-item {
-      border: 1px solid rgba(148, 163, 184, 0.55);
-      border-radius: 999px;
-      background: white;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.95rem;
-      cursor: grab;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 12px 28px -22px rgba(15, 23, 42, 0.6);
-    }
-    #${containerId} .cd-dragdrop-item:focus {
-      outline: 2px solid rgba(99, 102, 241, 0.6);
-      outline-offset: 2px;
-    }
-    #${containerId} .cd-dragdrop-item.is-dragging {
-      opacity: 0.6;
-      transform: scale(0.98);
-    }
-    #${containerId} .cd-dragdrop-buckets {
-      display: grid;
-      gap: 1.2rem;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    }
-    #${containerId} .cd-dragdrop-bucket {
-      background: rgba(249, 250, 251, 0.92);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 1.1rem;
-      padding: 1.1rem;
-      display: grid;
-      gap: 0.75rem;
-      box-shadow: 0 20px 40px -30px rgba(15, 23, 42, 0.45);
-    }
-    #${containerId} .cd-dragdrop-bucket h3 {
-      margin: 0;
+    #${containerId} .cd-dragdrop--empty strong {
       font-size: 1.05rem;
-      font-weight: 600;
     }
-    #${containerId} .cd-dragdrop-bucket p {
+    #${containerId} .cd-dragdrop--empty p {
       margin: 0;
       font-size: 0.9rem;
-      color: rgba(15, 23, 42, 0.65);
+      max-width: 24rem;
     }
-    #${containerId} .cd-dragdrop-bucket-items {
-      border: 2px dashed rgba(99, 102, 241, 0.35);
-      border-radius: 0.9rem;
-      padding: 0.85rem;
-      min-height: 4rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      align-content: flex-start;
-      background: rgba(255, 255, 255, 0.72);
-      transition: border-color 0.2s ease, background 0.2s ease;
-    }
-    #${containerId} .cd-dragdrop-bucket-items.is-hovered {
-      border-color: rgba(99, 102, 241, 0.6);
-      background: rgba(99, 102, 241, 0.1);
-    }
-    #${containerId} .cd-dragdrop-bucket-items:empty::before {
-      content: 'Drop items here';
-      color: rgba(15, 23, 42, 0.55);
-      font-size: 0.85rem;
-    }
-    @media (min-width: 900px) {
+  `,
+  js: ''
+});
+
+const embedTemplate = (data, containerId) => {
+  const { hasBuckets, hasItems, buckets, items, prompt, instructions } = normalizePreviewData(data);
+
+  if (!hasBuckets || !hasItems) {
+    return buildEmptyEmbed(containerId);
+  }
+
+  const cardsHtml = items
+    .map(
+      (item) => `
+        <div class="cd-dragdrop-item" draggable="true" data-item-id="${escapeHtml(item.id)}" data-correct="${escapeHtml(
+          item.correctBucketId || ''
+        )}">
+          ${escapeHtml(item.text || '')}
+        </div>
+      `
+    )
+    .join('');
+
+  const zonesHtml = buckets
+    .map(
+      (bucket) => `
+        <div class="cd-dragdrop-zone">
+          <div class="cd-dragdrop-zone-header">
+            <h4 class="cd-dragdrop-zone-title">${escapeHtml(bucket.title || 'Drop zone')}</h4>
+            ${bucket.description ? `<p class="cd-dragdrop-zone-description">${escapeHtml(bucket.description)}</p>` : ''}
+          </div>
+          <div class="cd-dragdrop-zone-body" data-drop-zone="${escapeHtml(bucket.id)}"></div>
+        </div>
+      `
+    )
+    .join('');
+
+  return {
+    html: `
+      <div class="cd-dragdrop" data-widget="dragdrop">
+        ${prompt ? `<h3 class="cd-dragdrop-prompt">${escapeHtml(prompt)}</h3>` : ''}
+        ${instructions ? `<p class="cd-dragdrop-instructions">${escapeHtml(instructions)}</p>` : ''}
+        <div class="cd-dragdrop-board">
+          <div class="cd-dragdrop-pool">
+            <h4 class="cd-dragdrop-subtitle">Card bank</h4>
+            <div class="cd-dragdrop-zone-body" data-drop-zone="pool">
+              ${cardsHtml}
+            </div>
+          </div>
+          <div class="cd-dragdrop-zones">
+            ${zonesHtml}
+          </div>
+        </div>
+        <div class="cd-dragdrop-actions">
+          <button type="button" data-action="check">Check answers</button>
+          <button type="button" data-action="reset">Reset</button>
+        </div>
+        <p class="cd-dragdrop-feedback" data-feedback hidden></p>
+      </div>
+    `,
+    css: `
+      #${containerId} .cd-dragdrop {
+        display: grid;
+        gap: 1rem;
+        background: rgba(15, 23, 42, 0.02);
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+      #${containerId} .cd-dragdrop-prompt {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      #${containerId} .cd-dragdrop-instructions {
+        margin: 0;
+        color: rgba(15, 23, 42, 0.7);
+      }
       #${containerId} .cd-dragdrop-board {
-        grid-template-columns: minmax(240px, 1fr) 2fr;
-        align-items: start;
+        display: grid;
+        gap: 1rem;
       }
-    }
-  `;
-
-  const js = `
-    (function(){
-      const root = document.getElementById('${containerId}');
-      if (!root) return;
-
-      const pool = root.querySelector('.cd-dragdrop-pool');
-      let draggedId = null;
-
-      const toggleHover = (target, value) => {
-        target.classList.toggle('is-hovered', value);
-      };
-
-      const registerDropTarget = (target) => {
-        target.addEventListener('dragover', (event) => {
-          event.preventDefault();
-          toggleHover(target, true);
-        });
-        target.addEventListener('dragleave', () => {
-          toggleHover(target, false);
-        });
-        target.addEventListener('drop', (event) => {
-          event.preventDefault();
-          toggleHover(target, false);
-          if (!draggedId) return;
-          const item = root.querySelector('.cd-dragdrop-item[data-id="' + draggedId + '"]');
-          if (item) {
-            target.appendChild(item);
-            item.focus({ preventScroll: false });
-          }
-        });
-      };
-
-      const items = Array.from(root.querySelectorAll('.cd-dragdrop-item'));
-      items.forEach((item) => {
-        item.setAttribute('draggable', 'true');
-        item.addEventListener('dragstart', () => {
-          draggedId = item.dataset.id;
-          item.classList.add('is-dragging');
-        });
-        item.addEventListener('dragend', () => {
-          draggedId = null;
-          item.classList.remove('is-dragging');
-        });
-        item.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' && pool) {
-            pool.appendChild(item);
-            item.focus();
-          }
-        });
-      });
-
-      if (pool) {
-        registerDropTarget(pool);
+      @media (min-width: 720px) {
+        #${containerId} .cd-dragdrop-board {
+          grid-template-columns: minmax(0, 220px) 1fr;
+        }
       }
+      #${containerId} .cd-dragdrop-pool,
+      #${containerId} .cd-dragdrop-zone {
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 14px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+      }
+      #${containerId} .cd-dragdrop-subtitle {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: rgba(15, 23, 42, 0.75);
+      }
+      #${containerId} .cd-dragdrop-zone-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      #${containerId} .cd-dragdrop-zone-description {
+        margin: 0.25rem 0 0;
+        font-size: 0.9rem;
+        color: rgba(15, 23, 42, 0.65);
+      }
+      #${containerId} .cd-dragdrop-zone-body {
+        min-height: 120px;
+        display: grid;
+        gap: 0.6rem;
+        align-content: flex-start;
+        background: rgba(99, 102, 241, 0.05);
+        border-radius: 12px;
+        padding: 0.75rem;
+        border: 1px dashed rgba(99, 102, 241, 0.3);
+        transition: border 160ms ease, background 160ms ease;
+      }
+      #${containerId} .cd-dragdrop-zone-body.is-over {
+        border-color: rgba(79, 70, 229, 0.8);
+        background: rgba(79, 70, 229, 0.08);
+      }
+      #${containerId} .cd-dragdrop-item {
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(79, 70, 229, 0.12);
+        border: 1px solid rgba(79, 70, 229, 0.28);
+        font-weight: 500;
+        cursor: grab;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+      #${containerId} .cd-dragdrop-item.is-dragging {
+        opacity: 0.75;
+        transform: scale(1.02);
+        box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
+      }
+      #${containerId} .cd-dragdrop-item.is-correct {
+        border-color: rgba(34, 197, 94, 0.6);
+        background: rgba(34, 197, 94, 0.12);
+      }
+      #${containerId} .cd-dragdrop-item.is-incorrect {
+        border-color: rgba(239, 68, 68, 0.6);
+        background: rgba(239, 68, 68, 0.12);
+      }
+      #${containerId} .cd-dragdrop-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      #${containerId} .cd-dragdrop-actions button {
+        border-radius: 999px;
+        border: none;
+        padding: 0.55rem 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 160ms ease, transform 120ms ease;
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='check'] {
+        background: rgba(79, 70, 229, 1);
+        color: white;
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='check']:hover {
+        background: rgba(67, 56, 202, 1);
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='reset'] {
+        background: rgba(15, 23, 42, 0.08);
+        color: rgba(15, 23, 42, 0.85);
+      }
+      #${containerId} .cd-dragdrop-actions button[data-action='reset']:hover {
+        background: rgba(15, 23, 42, 0.12);
+      }
+      #${containerId} .cd-dragdrop-feedback {
+        margin: 0;
+        font-weight: 500;
+        color: rgba(15, 23, 42, 0.75);
+      }
+    `,
+    js: `
+      (function(){
+        const root = document.getElementById('${containerId}');
+        if (!root) return;
+        const widget = root.querySelector('[data-widget="dragdrop"]');
+        if (!widget) return;
+        const placements = new Map();
+        const dropTargets = new Map();
 
-      root.querySelectorAll('.cd-dragdrop-bucket-items').forEach((bucket) => {
-        registerDropTarget(bucket);
-      });
-    })();
-  `;
+        const cards = widget.querySelectorAll('.cd-dragdrop-item');
+        cards.forEach((card) => {
+          const itemId = card.dataset.itemId;
+          placements.set(itemId, null);
+          card.addEventListener('dragstart', (event) => {
+            event.dataTransfer.setData('text/plain', itemId);
+            requestAnimationFrame(() => card.classList.add('is-dragging'));
+          });
+          card.addEventListener('dragend', () => {
+            card.classList.remove('is-dragging');
+          });
+        });
 
-  return { html, css, js };
+        const bodies = widget.querySelectorAll('.cd-dragdrop-zone-body');
+        bodies.forEach((zone) => {
+          const bucketId = zone.dataset.dropZone === 'pool' ? null : zone.dataset.dropZone;
+          dropTargets.set(bucketId, zone);
+          zone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            zone.classList.add('is-over');
+          });
+          zone.addEventListener('dragleave', () => {
+            zone.classList.remove('is-over');
+          });
+          zone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            zone.classList.remove('is-over');
+            const itemId = event.dataTransfer.getData('text/plain');
+            if (!itemId) return;
+            placeItem(itemId, bucketId);
+          });
+        });
+
+        const placeItem = (itemId, bucketId) => {
+          const card = widget.querySelector('[data-item-id="' + itemId + '"]');
+          const target = dropTargets.get(bucketId) || dropTargets.get(null);
+          if (!card || !target) return;
+          card.classList.remove('is-correct', 'is-incorrect');
+          target.appendChild(card);
+          placements.set(itemId, bucketId);
+        };
+
+        const feedback = widget.querySelector('[data-feedback]');
+        const checkBtn = widget.querySelector('button[data-action="check"]');
+        const resetBtn = widget.querySelector('button[data-action="reset"]');
+
+        const evaluate = () => {
+          let total = 0;
+          let correct = 0;
+          cards.forEach((card) => {
+            const expected = card.dataset.correct || '';
+            const itemId = card.dataset.itemId;
+            if (!itemId || !expected) {
+              card.classList.remove('is-correct', 'is-incorrect');
+              return;
+            }
+            total += 1;
+            const placement = placements.get(itemId) || '';
+            const isCorrect = placement === expected;
+            card.classList.toggle('is-correct', isCorrect);
+            card.classList.toggle('is-incorrect', !isCorrect);
+            if (isCorrect) {
+              correct += 1;
+            }
+          });
+          if (feedback) {
+            feedback.hidden = false;
+            if (total === 0) {
+              feedback.textContent = 'Add cards to this activity to enable feedback.';
+            } else {
+              feedback.textContent = 'You placed ' + correct + ' of ' + total + ' cards correctly.';
+            }
+          }
+        };
+
+        const reset = () => {
+          cards.forEach((card) => {
+            placeItem(card.dataset.itemId, null);
+          });
+          if (feedback) {
+            feedback.hidden = true;
+            feedback.textContent = '';
+          }
+        };
+
+        if (checkBtn) {
+          checkBtn.addEventListener('click', evaluate);
+        }
+        if (resetBtn) {
+          resetBtn.addEventListener('click', reset);
+        }
+
+        reset();
+      })();
+    `
+  };
 };
 
 export const dragDrop = {
