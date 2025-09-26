@@ -48,6 +48,8 @@ docs/
 - The app uses vanilla JavaScript modules (`type="module"`) so it can run from the filesystem without a build step.
 - Activity editors encapsulate their own input rendering logic to avoid conflicts during concurrent development.
 - Embed snippets now render via a sandboxed iframe hitting `https://galvinradleyngo.github.io/canvasdesigner/embed.html`, keeping Canvas-compatible markup while isolating scripts and styles.
+- Embed snippets register a lightweight relay script that streams the payload to the viewer via `postMessage`, keeping the iframe `src` short enough for strict LMS proxies while still embedding a hash fallback for older snippets.
+- Saved activities embed their project identifier so the hosted viewer can pull the latest data from Firestore on load, ensuring Canvas reflects edits without re-copying the snippet.
 - The hosted viewer validates the payload version, activity type, and text fields before rendering to guard against tampered URLs.
 
 ### Viewer base URL configuration
