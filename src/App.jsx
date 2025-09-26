@@ -179,6 +179,21 @@ export default function App() {
     console.info("Edit task", id);
   }, []);
 
+  const clearPriority = useCallback(() => {
+    setListPriority(null);
+  }, []);
+
+  const priorityLabel = useMemo(() => {
+    if (!listPriority) return null;
+    const labels = {
+      todo: "Highlighting to-do tasks",
+      inprogress: "Highlighting in-progress tasks",
+      overdue: "Highlighting overdue tasks",
+      blocked: "Highlighting blocked tasks",
+    };
+    return labels[listPriority] || "Highlighting selected tasks";
+  }, [listPriority]);
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-8 p-6">
       <header className="rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-6 shadow">
@@ -247,22 +262,31 @@ export default function App() {
 
       <section ref={tasksSectionRef} className="glass-surface -mx-4 rounded-3xl border border-white/70 bg-white/80 p-4 shadow sm:mx-0 sm:p-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2" onClick={handleTasksHeaderClick}>
-          <div>
+          <div className="space-y-1">
             <h2 className="text-lg font-semibold text-slate-800">Team checklist</h2>
             <p className="text-sm text-slate-500">Manage accountability and keep blockers moving.</p>
+            {priorityLabel && (
+              <div className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                <span className="inline-block h-2 w-2 rounded-full bg-indigo-500" aria-hidden="true" />
+                {priorityLabel}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <button
               type="button"
-              onClick={() => setTaskSortMode("dueDate")}
-              className={`rounded-full px-3 py-1 ${taskSortMode === "dueDate" ? "bg-slate-900 text-white" : "bg-slate-100"}`}
+              onClick={() => {
+                setTaskSortMode("dueDate");
+                setListPriority(null);
+              }}
+              className={`rounded-full px-3 py-1 transition ${taskSortMode === "dueDate" ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200"}`}
             >
               Sort by due date
             </button>
             <button
               type="button"
               onClick={() => setTaskSortMode("status")}
-              className={`rounded-full px-3 py-1 ${taskSortMode === "status" ? "bg-slate-900 text-white" : "bg-slate-100"}`}
+              className={`rounded-full px-3 py-1 transition ${taskSortMode === "status" ? "bg-slate-900 text-white" : "bg-slate-100 hover:bg-slate-200"}`}
             >
               Group by status
             </button>
@@ -279,6 +303,18 @@ export default function App() {
               <ChevronDown className={`transition-transform ${tasksCollapsed ? "-rotate-90" : "rotate-0"}`} />
               {tasksCollapsed ? "Expand" : "Collapse"}
             </button>
+            {listPriority && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  clearPriority();
+                }}
+                className="ml-1 inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600 transition hover:bg-slate-200"
+              >
+                Clear highlight
+              </button>
+            )}
           </div>
         </div>
         <div id={checklistPanelId} hidden={tasksCollapsed}>
