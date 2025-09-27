@@ -18,7 +18,8 @@ const lazyActivityLoaders = {
   accordion: async () => (await import('./activities/accordion.js')).accordion,
   timeline: async () => (await import('./activities/timeline.js')).timeline,
   branchingScenarios: async () => (await import('./activities/branchingScenarios.js')).branchingScenarios,
-  imageCarousel: async () => (await import('./activities/imageCarousel.js')).imageCarousel
+  imageCarousel: async () => (await import('./activities/imageCarousel.js')).imageCarousel,
+  immersiveText: async () => (await import('./activities/immersiveText.js')).immersiveText
 };
 
 const pendingActivityLoads = new Map();

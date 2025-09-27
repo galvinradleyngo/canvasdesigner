@@ -5,6 +5,7 @@ import { accordion } from './accordion.js';
 import { timeline } from './timeline.js';
 import { branchingScenarios } from './branchingScenarios.js';
 import { imageCarousel } from './imageCarousel.js';
+import { immersiveText } from './immersiveText.js';
 
 export const activities = {
   [flipCards.id]: flipCards,
@@ -13,7 +14,8 @@ export const activities = {
   [accordion.id]: accordion,
   [timeline.id]: timeline,
   [branchingScenarios.id]: branchingScenarios,
-  [imageCarousel.id]: imageCarousel
+  [imageCarousel.id]: imageCarousel,
+  [immersiveText.id]: immersiveText
 };
 
 export const defaultActivityId = flipCards.id;
