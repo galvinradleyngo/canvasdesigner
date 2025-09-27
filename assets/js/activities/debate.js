@@ -1213,9 +1213,10 @@ const embedTemplate = (data, containerId) => {
         return trimmed.length > max ? trimmed.slice(0, max) : trimmed;
       };
 
-      const normalise = (view, index = 0) => {
-        const stance = view && view.stance === 'con' ? 'con' : 'pro';
-        const baseId = typeof view?.id === 'string' && view.id.trim() ? view.id.trim() : `view-${Date.now().toString(36)}-${index}`;
+        const normalise = (view, index = 0) => {
+          const stance = view && view.stance === 'con' ? 'con' : 'pro';
+          const fallbackId = 'view-' + Date.now().toString(36) + '-' + index;
+          const baseId = typeof view?.id === 'string' && view.id.trim() ? view.id.trim() : fallbackId;
         const headline = clampText(view?.headline ?? '', 120);
         const summary = clampText(view?.summary ?? '', 320);
         const author = clampText(view?.author ?? '', 80);
@@ -1274,7 +1275,7 @@ const embedTemplate = (data, containerId) => {
 
         sorted.forEach((view) => {
           const card = document.createElement('article');
-          card.className = `cd-debate-view cd-debate-view--${view.stance}`;
+          card.className = 'cd-debate-view cd-debate-view--' + (view.stance === 'con' ? 'con' : 'pro');
 
           const headerRow = document.createElement('div');
           headerRow.className = 'cd-debate-view-header';
@@ -1285,7 +1286,7 @@ const embedTemplate = (data, containerId) => {
 
           const votes = document.createElement('span');
           votes.className = 'cd-debate-view-votes';
-          votes.textContent = `${view.votes} vote${view.votes === 1 ? '' : 's'}`;
+          votes.textContent = view.votes + ' vote' + (view.votes === 1 ? '' : 's');
 
           headerRow.append(tag, votes);
 
@@ -1301,7 +1302,7 @@ const embedTemplate = (data, containerId) => {
           footerRow.className = 'cd-debate-view-footer';
 
           const author = document.createElement('span');
-          author.textContent = `Shared by ${view.author || 'Anonymous learner'}`;
+          author.textContent = 'Shared by ' + (view.author || 'Anonymous learner');
 
           const voteBtn = document.createElement('button');
           voteBtn.type = 'button';
@@ -1339,7 +1340,7 @@ const embedTemplate = (data, containerId) => {
 
           const view = normalise(
             {
-              id: `view-${Date.now().toString(36)}-${views.length}`,
+              id: 'view-' + Date.now().toString(36) + '-' + views.length,
               author: name,
               stance,
               headline,
