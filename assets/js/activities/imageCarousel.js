@@ -1,5 +1,11 @@
 import { clone, compressImageFile, escapeHtml, uid } from '../utils.js';
 
+const SLIDE_IMAGE_COMPRESSION = {
+  maxWidth: 1400,
+  maxHeight: 1400,
+  quality: 0.8
+};
+
 const clampAutoplaySeconds = (value) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -105,7 +111,7 @@ const buildEditor = (container, data, onUpdate) => {
       return;
     }
     try {
-      const dataUrl = await compressImageFile(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+      const dataUrl = await compressImageFile(file, SLIDE_IMAGE_COMPRESSION);
       working.slides[index].imageUrl = dataUrl;
       emit();
     } catch (error) {
@@ -124,6 +130,15 @@ const buildEditor = (container, data, onUpdate) => {
 
   const rerender = () => {
     container.innerHTML = '';
+
+    const createIconButton = (label, pathData) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'muted-button icon-button';
+      button.setAttribute('aria-label', label);
+      button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="${pathData}" /></svg>`;
+      return button;
+    };
 
     const settingsBlock = document.createElement('div');
     settingsBlock.className = 'editor-block';
@@ -178,17 +193,11 @@ const buildEditor = (container, data, onUpdate) => {
       const actions = document.createElement('div');
       actions.className = 'editor-item-actions';
 
-      const upButton = document.createElement('button');
-      upButton.type = 'button';
-      upButton.className = 'muted-button';
-      upButton.textContent = 'Move up';
+      const upButton = createIconButton('Move slide up', 'M12 6L7 11h10l-5-5z');
       upButton.disabled = index === 0;
       upButton.addEventListener('click', () => moveSlide(index, index - 1));
 
-      const downButton = document.createElement('button');
-      downButton.type = 'button';
-      downButton.className = 'muted-button';
-      downButton.textContent = 'Move down';
+      const downButton = createIconButton('Move slide down', 'M12 18l5-5H7l5 5z');
       downButton.disabled = index === working.slides.length - 1;
       downButton.addEventListener('click', () => moveSlide(index, index + 1));
 
