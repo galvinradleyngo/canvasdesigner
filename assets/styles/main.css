@@ -1547,7 +1547,7 @@ textarea:focus {
 @media (max-width: 640px) {
   .flipcard-grid {
     gap: 16px;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 
   .flipcard-inner {
