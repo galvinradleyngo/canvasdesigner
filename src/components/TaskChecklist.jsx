@@ -173,7 +173,7 @@ export default function TaskChecklist({
       {activeGroups.length > 0 && (
         <ul className="space-y-2">
           {activeGroups.map(({ id, heading, items }) => (
-            <li key={id} className="glass-card p-4 w-full space-y-3">
+            <li key={id} className="glass-card w-full space-y-3 p-4">
               <div className="text-sm font-semibold text-slate-700/90">{heading}</div>
               <ul className="space-y-2">
                 {items.map((t) => {
@@ -210,7 +210,7 @@ export default function TaskChecklist({
                   return (
                     <li key={t.id}>
                       <div
-                        className={`flex items-center gap-3 rounded-3xl border px-4 py-3 shadow-[0_18px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur transition-all ${containerTone} ${priorityRing}`}
+                        className={`flex flex-col gap-3 rounded-3xl border px-4 py-3 shadow-[0_18px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur transition-all sm:flex-row sm:items-center ${containerTone} ${priorityRing}`}
                       >
                         <input
                           type="checkbox"
@@ -226,7 +226,7 @@ export default function TaskChecklist({
                         <button
                           type="button"
                           onClick={() => onEdit(t.id)}
-                          className="flex-1 min-w-0 text-left focus:outline-none"
+                          className="w-full min-w-0 text-left focus:outline-none sm:flex-1 sm:w-auto"
                           title={`${t.title || "Untitled task"}${
                             milestone ? ` – ${milestone.title}` : " – Unassigned"
                           }`}
@@ -238,7 +238,7 @@ export default function TaskChecklist({
                             for {milestone ? milestone.title : "Unassigned"} • {assignee ? assignee.name : "Unassigned"}
                           </div>
                         </button>
-                        <div className="flex flex-col items-end gap-1 text-[11px] font-semibold uppercase tracking-wide">
+                        <div className="flex w-full flex-wrap items-start gap-2 text-[11px] font-semibold uppercase tracking-wide sm:w-auto sm:flex-col sm:items-end sm:text-right">
                           <span
                             className={`shrink-0 rounded-full border px-2.5 py-1 shadow-sm backdrop-blur ${statusBadgeClass}`}
                           >
@@ -269,7 +269,7 @@ export default function TaskChecklist({
               const assignee = team.find((m) => m.id === t.assigneeId);
               return (
                 <li key={t.id}>
-                  <div className="flex items-center gap-3 rounded-3xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-emerald-700 shadow-[0_18px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur">
+                  <div className="flex flex-col gap-3 rounded-3xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-emerald-700 shadow-[0_18px_32px_-20px_rgba(15,23,42,0.45)] backdrop-blur sm:flex-row sm:items-center">
                     <input
                       type="checkbox"
                       className="h-5 w-5 shrink-0 rounded-full border-2 border-emerald-300 text-emerald-600 focus:ring-2 focus:ring-emerald-300"
@@ -284,7 +284,7 @@ export default function TaskChecklist({
                     <button
                       type="button"
                       onClick={() => onEdit(t.id)}
-                      className="flex-1 min-w-0 text-left focus:outline-none"
+                      className="w-full min-w-0 text-left focus:outline-none sm:flex-1 sm:w-auto"
                       title={`${t.title || "Untitled task"}${
                         milestone ? ` – ${milestone.title}` : " – Unassigned"
                       }`}
@@ -299,7 +299,7 @@ export default function TaskChecklist({
                         Completed: {t.completedDate ? formatDate(t.completedDate) : "—"}
                       </div>
                     </button>
-                    <span className="shrink-0 self-start rounded-full border border-emerald-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 shadow-sm">
+                    <span className="shrink-0 self-start rounded-full border border-emerald-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 shadow-sm sm:self-center">
                       Done
                     </span>
                   </div>
