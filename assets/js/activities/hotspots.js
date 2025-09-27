@@ -580,6 +580,21 @@ const embedTemplate = (data, containerId) => ({
   `
 });
 
+const learningTip = {
+  intro: 'Hotspots invite learners to explore an image and reveal layered context right where it appears.',
+  when: 'Use them when spatial relationships or visual cues matter—maps, lab setups, artworks, equipment layouts, or complex diagrams.',
+  considerations: [
+    'Select a high-resolution image and crop thoughtfully so every marker area stays clear on different screens.',
+    'Write concise titles and offer descriptive text or transcripts so screen reader users can access the same insights.',
+    'Provide a guiding question or suggested sequence if you need learners to follow a particular narrative through the hotspots.'
+  ],
+  examples: [
+    'Geography module: annotate a regional map with climate impacts and local data stories.',
+    'Studio art critique: highlight composition choices directly on a student artwork.',
+    'STEM safety briefing: point out critical instruments and protective gear on a lab bench.'
+  ]
+};
+
 export const hotspots = {
   id: 'hotspots',
   label: 'Hotspots',
@@ -587,5 +602,6 @@ export const hotspots = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };

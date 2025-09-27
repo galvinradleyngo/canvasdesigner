@@ -622,6 +622,21 @@ const embedTemplate = (data, containerId) => {
   return { html, css, js };
 };
 
+const learningTip = {
+  intro: 'Image carousels curate a guided gallery so learners can focus on one visual story beat at a time.',
+  when: 'Use them to compare variations, walk through a visual process, or showcase exemplars when the imagery carries the main insight.',
+  considerations: [
+    'Sequence slides intentionally and write concise captions that spotlight what to notice in each frame.',
+    'Limit the deck to a manageable set—around four to six images keeps learners oriented and avoids fatigue.',
+    'Provide descriptive alt text or a companion transcript so every learner can access the full narrative.'
+  ],
+  examples: [
+    'Art history spotlight: contrast interpretations of the same theme with curator commentary per slide.',
+    'Science lab prep: illustrate stages of an experiment alongside safety reminders and setup tips.',
+    'Design critique: show before-and-after iterations of a prototype with notes on design decisions.'
+  ]
+};
+
 export const imageCarousel = {
   id: 'imageCarousel',
   label: 'Image carousel',
@@ -629,5 +644,6 @@ export const imageCarousel = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };

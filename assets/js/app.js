@@ -95,7 +95,18 @@ const elements = {
   statusToast: document.getElementById('statusToast'),
   animationToggle: document.getElementById('animationToggle'),
   appMain: document.querySelector('.app-main'),
-  previewToggleButtons: Array.from(document.querySelectorAll('[data-preview-toggle]'))
+  previewToggleButtons: Array.from(document.querySelectorAll('[data-preview-toggle]')),
+  tipToggle: document.getElementById('activityTipToggle'),
+  tipToggleLabel: document.getElementById('activityTipToggleLabel'),
+  tipPanel: document.getElementById('activityTipPanel'),
+  tipTitle: document.getElementById('activityTipTitle'),
+  tipIntro: document.getElementById('activityTipIntro'),
+  tipWhen: document.getElementById('activityTipWhen'),
+  tipWhenSection: document.getElementById('activityTipWhenSection'),
+  tipConsiderations: document.getElementById('activityTipConsiderations'),
+  tipConsiderationsSection: document.getElementById('activityTipConsiderationsSection'),
+  tipExamples: document.getElementById('activityTipExamples'),
+  tipExamplesSection: document.getElementById('activityTipExamplesSection')
 };
 
 const focusableModalSelector = [
@@ -112,6 +123,7 @@ const modalState = {
 };
 
 let previewHidden = false;
+let tipsExpanded = false;
 
 const isElementVisible = (element) => {
   if (!element) return false;
@@ -148,6 +160,100 @@ const focusElement = (element) => {
     element.focus();
   }
 };
+
+const normaliseText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const setTipsExpanded = (expanded) => {
+  tipsExpanded = Boolean(expanded);
+  if (elements.tipToggle) {
+    elements.tipToggle.setAttribute('aria-expanded', tipsExpanded ? 'true' : 'false');
+  }
+  if (elements.tipToggleLabel) {
+    elements.tipToggleLabel.textContent = tipsExpanded ? 'Hide learning tips' : 'Show learning tips';
+  }
+  if (elements.tipPanel) {
+    if (tipsExpanded) {
+      elements.tipPanel.removeAttribute('hidden');
+    } else {
+      elements.tipPanel.setAttribute('hidden', '');
+    }
+  }
+};
+
+const populateList = (element, items) => {
+  if (!element) return false;
+  element.innerHTML = '';
+  if (!Array.isArray(items)) {
+    return false;
+  }
+  items.forEach((item) => {
+    const text = normaliseText(item);
+    if (!text) return;
+    const li = document.createElement('li');
+    li.textContent = text;
+    element.append(li);
+  });
+  return element.childElementCount > 0;
+};
+
+const updateSectionVisibility = (section, visible) => {
+  if (!section) return;
+  section.hidden = !visible;
+};
+
+const updateActivityTip = () => {
+  if (!elements.tipToggle) {
+    return;
+  }
+
+  const activity = getActiveActivity();
+  const tip = activity && activity.learningTip ? activity.learningTip : null;
+
+  if (!tip) {
+    if (elements.tipToggle) {
+      elements.tipToggle.disabled = true;
+    }
+    if (elements.tipPanel) {
+      elements.tipPanel.setAttribute('hidden', '');
+      elements.tipPanel.removeAttribute('aria-label');
+    }
+    setTipsExpanded(false);
+    return;
+  }
+
+  elements.tipToggle.disabled = false;
+
+  const titleText = activity && activity.label ? `${activity.label} learning design tips` : 'Learning design tips';
+  if (elements.tipTitle) {
+    elements.tipTitle.textContent = titleText;
+  }
+  if (elements.tipPanel) {
+    elements.tipPanel.setAttribute('aria-label', titleText);
+  }
+
+  const intro = normaliseText(tip.intro);
+  if (elements.tipIntro) {
+    elements.tipIntro.textContent = intro;
+    elements.tipIntro.hidden = intro.length === 0;
+  }
+
+  const whenText = normaliseText(tip.when);
+  if (elements.tipWhen) {
+    elements.tipWhen.textContent = whenText;
+  }
+  updateSectionVisibility(elements.tipWhenSection, whenText.length > 0);
+
+  const hasConsiderations = populateList(elements.tipConsiderations, tip.considerations);
+  updateSectionVisibility(elements.tipConsiderationsSection, hasConsiderations);
+
+  const hasExamples = populateList(elements.tipExamples, tip.examples);
+  updateSectionVisibility(elements.tipExamplesSection, hasExamples);
+
+  const shouldExpand = tipsExpanded && !elements.tipToggle.disabled;
+  setTipsExpanded(shouldExpand);
+};
+
+setTipsExpanded(false);
 
 const getActiveActivity = () => {
   const activity = activities[state.type];
@@ -249,6 +355,7 @@ const rebuildEditor = () => {
 
 const refreshActivityView = () => {
   updateActivityTabs();
+  updateActivityTip();
   rebuildEditor();
   refreshPreview();
   refreshEmbed();
@@ -713,6 +820,15 @@ const bindEvents = () => {
       button.addEventListener('click', () => {
         setPreviewHidden(!previewHidden);
       });
+    });
+  }
+
+  if (elements.tipToggle) {
+    elements.tipToggle.addEventListener('click', () => {
+      if (elements.tipToggle.disabled) {
+        return;
+      }
+      setTipsExpanded(!tipsExpanded);
     });
   }
 };

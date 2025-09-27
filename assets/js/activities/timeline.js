@@ -641,6 +641,21 @@ const embedTemplate = (data, containerId) => {
   };
 };
 
+const learningTip = {
+  intro: 'Timelines help learners visualise sequences, dependencies, and momentum across a story or process.',
+  when: 'Use them when chronology or progression matters—showing how milestones build on one another or how parallel events connect.',
+  considerations: [
+    'Keep event titles concise and descriptive so the flow of the story is easy to scan.',
+    'Choose a consistent level of date granularity and trim any timestamps that do not advance the narrative.',
+    'Call out pivotal transitions with brief annotations, icons, or media so turning points stand out.'
+  ],
+  examples: [
+    'History seminar: trace the key milestones that led to a social movement or policy shift.',
+    'Health sciences: map a patient case from triage to discharge with decision points highlighted.',
+    'Business course: chart a product release roadmap alongside major customer insights.'
+  ]
+};
+
 export const timeline = {
   id: 'timeline',
   label: 'Timeline',
@@ -648,5 +663,6 @@ export const timeline = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };
