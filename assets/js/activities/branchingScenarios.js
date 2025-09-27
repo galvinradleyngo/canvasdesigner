@@ -4,7 +4,8 @@ const createChoice = (overrides = {}, index = 0) => {
   const base = {
     id: uid('branch-choice'),
     label: `Option ${index + 1}`,
-    outcome: 'Describe what happens next.'
+    outcome: 'Describe what happens next.',
+    nextStepId: ''
   };
   const choice = { ...base, ...overrides };
   if (!choice.id) {
@@ -15,6 +16,9 @@ const createChoice = (overrides = {}, index = 0) => {
   }
   if (typeof choice.outcome !== 'string') {
     choice.outcome = '';
+  }
+  if (typeof choice.nextStepId !== 'string') {
+    choice.nextStepId = '';
   }
   return choice;
 };
@@ -55,15 +59,28 @@ const createStep = (overrides = {}, index = 0) => {
   return step;
 };
 
+const pruneChoiceDestinations = (steps) => {
+  const validIds = new Set(steps.map((step) => step.id));
+  steps.forEach((step) => {
+    step.choices.forEach((choice) => {
+      if (choice.nextStepId && !validIds.has(choice.nextStepId)) {
+        choice.nextStepId = '';
+      }
+    });
+  });
+  return steps;
+};
+
 const normaliseSteps = (steps) => {
   if (!Array.isArray(steps)) {
     return [];
   }
-  return steps.map((step, index) => createStep(step, index));
+  const normalised = steps.map((step, index) => createStep(step, index));
+  return pruneChoiceDestinations(normalised);
 };
 
-const createSampleSteps = () =>
-  normaliseSteps([
+const createSampleSteps = () => {
+  const steps = normaliseSteps([
     {
       title: 'Decide how to respond',
       prompt: 'A learner submits a project a day late. How do you respond?',
@@ -93,6 +110,13 @@ const createSampleSteps = () =>
       ])
     }
   ]);
+  if (steps[1]) {
+    steps[0].choices.forEach((choice) => {
+      choice.nextStepId = steps[1].id;
+    });
+  }
+  return steps;
+};
 
 const template = () => ({
   introTitle: 'Guide learners through a realistic scenario',
@@ -104,12 +128,13 @@ const example = () => ({
   introTitle: 'Supportive coaching conversation',
   introBody:
     'You are an instructional coach meeting with a new teacher whose class has struggled with engagement this week.',
-  steps: normaliseSteps([
-    {
-      title: 'Opening the conversation',
-      prompt: 'How do you begin the coaching session?',
-      choices: normaliseChoices([
-        {
+  steps: (() => {
+    const steps = normaliseSteps([
+      {
+        title: 'Opening the conversation',
+        prompt: 'How do you begin the coaching session?',
+        choices: normaliseChoices([
+          {
           label: 'Start with appreciative feedback',
           outcome: 'The teacher relaxes and shares a recent success, opening the door to collaborative problem solving.'
         },
@@ -136,18 +161,30 @@ const example = () => ({
     {
       title: 'Closing the loop',
       prompt: 'How will you follow up after the lesson?',
-      choices: normaliseChoices([
-        {
-          label: 'Set a quick feedback check-in',
-          outcome: 'You celebrate wins and tweak the approach together, reinforcing a trusting partnership.'
-        },
-        {
-          label: 'Ask for a written reflection only',
-          outcome: 'The teacher submits a brief summary, but opportunities for deeper coaching are missed.'
-        }
-      ])
+        choices: normaliseChoices([
+          {
+            label: 'Set a quick feedback check-in',
+            outcome: 'You celebrate wins and tweak the approach together, reinforcing a trusting partnership.'
+          },
+          {
+            label: 'Ask for a written reflection only',
+            outcome: 'The teacher submits a brief summary, but opportunities for deeper coaching are missed.'
+          }
+        ])
+      }
+    ]);
+    if (steps[1]) {
+      steps[0].choices.forEach((choice) => {
+        choice.nextStepId = steps[1].id;
+      });
     }
-  ])
+    if (steps[2]) {
+      steps[1].choices.forEach((choice) => {
+        choice.nextStepId = steps[2].id;
+      });
+    }
+    return steps;
+  })()
 });
 
 const ensureWorkingState = (data) => {
@@ -163,6 +200,7 @@ const buildEditor = (container, data, onUpdate) => {
   const working = ensureWorkingState(data);
 
   const emit = (refresh = true) => {
+    pruneChoiceDestinations(working.steps);
     onUpdate(clone(working));
     if (refresh) {
       rerender();
@@ -334,7 +372,42 @@ const buildEditor = (container, data, onUpdate) => {
         });
         outcomeField.append(outcomeInput);
 
-        choiceBlock.append(labelField, outcomeField);
+        const nextField = document.createElement('label');
+        nextField.className = 'field';
+        nextField.innerHTML = '<span class="field-label">Next decision</span>';
+
+        const nextSelect = document.createElement('select');
+        nextSelect.className = 'select-input';
+
+        const endOption = document.createElement('option');
+        endOption.value = '';
+        endOption.textContent = 'Ends scenario';
+        nextSelect.append(endOption);
+
+        working.steps.forEach((stepOption, stepIndex) => {
+          const option = document.createElement('option');
+          option.value = stepOption.id;
+          option.textContent = `Decision ${stepIndex + 1}${
+            stepOption.title ? `: ${stepOption.title}` : ''
+          }`;
+          if (stepOption.id === choice.nextStepId) {
+            option.selected = true;
+          }
+          if (stepOption.id === step.id) {
+            option.textContent += ' (current)';
+            option.disabled = true;
+          }
+          nextSelect.append(option);
+        });
+
+        nextSelect.addEventListener('change', () => {
+          working.steps[index].choices[choiceIndex].nextStepId = nextSelect.value;
+          emit(false);
+        });
+
+        nextField.append(nextSelect);
+
+        choiceBlock.append(labelField, outcomeField, nextField);
         choicesContainer.append(choiceBlock);
       });
 
@@ -453,6 +526,18 @@ const renderPreview = (container, data) => {
         detail.append(body);
       }
 
+      const destination = document.createElement('p');
+      destination.className = 'branching-next-step';
+      const targetIndex = working.steps.findIndex((item) => item.id === choice.nextStepId);
+      if (targetIndex >= 0) {
+        const target = working.steps[targetIndex];
+        const titleSuffix = target.title ? `: ${target.title}` : '';
+        destination.textContent = `Leads to Decision ${targetIndex + 1}${titleSuffix}`;
+      } else {
+        destination.textContent = 'Ends the scenario';
+      }
+      detail.append(destination);
+
       optionsList.append(detail);
     });
 
@@ -467,6 +552,7 @@ const renderPreview = (container, data) => {
 const embedTemplate = (data, containerId) => {
   const working = ensureWorkingState(data);
   const steps = working.steps;
+  const decisionMap = new Map(steps.map((step, index) => [step.id, { index, title: step.title }]));
 
   const html = steps.length
     ? `
@@ -490,13 +576,20 @@ const embedTemplate = (data, containerId) => {
             </div>
             <div class="cd-branching-options">
               ${step.choices
-                .map(
-                  (choice, choiceIndex) => `
+                .map((choice, choiceIndex) => {
+                  const target = decisionMap.get(choice.nextStepId);
+                  const leads = target
+                    ? `Next: Decision ${target.index + 1}${
+                        target.title ? `: ${escapeHtml(target.title)}` : ''
+                      }`
+                    : 'Next: Scenario ends';
+                  return `
                 <details class="cd-branching-option"${choiceIndex === 0 ? ' open' : ''}>
                   <summary>${escapeHtml(choice.label || 'Learner choice')}</summary>
                   ${choice.outcome ? `<div class="cd-branching-outcome"><p>${escapeHtml(choice.outcome)}</p></div>` : ''}
-                </details>`
-                )
+                  <p class="cd-branching-next">${leads}</p>
+                </details>`;
+                })
                 .join('')}
             </div>
           </li>`
@@ -607,6 +700,12 @@ const embedTemplate = (data, containerId) => {
     }
     #${containerId} .cd-branching-outcome p {
       margin: 0;
+    }
+    #${containerId} .cd-branching-next {
+      margin: 0 1rem 0.85rem;
+      font-size: 0.9rem;
+      color: rgba(79, 70, 229, 0.85);
+      font-weight: 600;
     }
     #${containerId} .cd-branching-empty {
       text-align: center;

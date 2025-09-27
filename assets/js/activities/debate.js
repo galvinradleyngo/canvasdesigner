@@ -1,291 +1,200 @@
 import { clone, uid, escapeHtml } from '../utils.js';
 
-const DEFAULT_PROMPT = 'Should cities convert major downtown streets into pedestrian-only plazas?';
-const DEFAULT_CONTEXT =
-  'Frame the motion in everyday language and outline why it matters to the class before teams take the floor.';
-const DEFAULT_AUDIENCE_TASK =
-  'Listen for the most compelling evidence from each side. After closing statements, vote and explain your reasoning.';
+const DEFAULT_QUESTION = 'Should cities convert major downtown streets into pedestrian-only plazas?';
+const DEFAULT_INSTRUCTIONS =
+  'Explain how the debate will run and what evidence or reasoning learners should pay attention to.';
 
-const SAMPLE_POINTS = [
-  'Pedestrian plazas boost local business visibility and encourage foot traffic.',
-  'Car-free zones improve air quality and make streets safer for families.',
-  'Delivery and accessibility plans can be scheduled during off-peak hours to minimise disruption.',
-  'Road closures increase congestion on surrounding streets and slow emergency response times.',
-  'Some residents rely on car access for work, healthcare, or mobility needs.',
-  'Pilot programs let the city gather data before making a permanent decision.'
+const SAMPLE_ARGUMENTS = [
+  { text: 'Pedestrian plazas boost local business visibility and encourage foot traffic.', votes: 12 },
+  { text: 'Road closures increase congestion on surrounding streets and slow emergency response times.', votes: 9 },
+  { text: 'Car-free zones improve air quality and make streets safer for families.', votes: 7 },
+  { text: 'Some residents rely on car access for work, healthcare, or mobility needs.', votes: 6 }
 ];
 
-const SAMPLE_VIEWS = [
+const SIDE_PRESETS = [
   {
-    stance: 'pro',
-    headline: 'Car-free space encourages everyday use',
-    summary:
-      'Families linger longer when they feel safe. The plaza would unlock casual meetups after school instead of everyone driving straight home.',
-    author: 'Kayla',
-    votes: 18
+    name: 'Supports the motion',
+    statement: 'Argues for adopting the proposal.',
+    arguments: [SAMPLE_ARGUMENTS[0], SAMPLE_ARGUMENTS[2]]
   },
   {
-    stance: 'con',
-    headline: 'Accessibility planning must come first',
-    summary:
-      'My neighbour uses a mobility van that needs curb access. Until we have a detailed loading plan we risk excluding people.',
-    author: 'Miguel',
-    votes: 14
-  },
-  {
-    stance: 'pro',
-    headline: 'Air quality improvements help the whole block',
-    summary:
-      'Sensors on similar projects show pollution drops quickly without idling cars. Cleaner air makes outdoor learning possible.',
-    author: 'Amina',
-    votes: 9
+    name: 'Challenges the motion',
+    statement: 'Argues against adopting the proposal.',
+    arguments: [SAMPLE_ARGUMENTS[1], SAMPLE_ARGUMENTS[3]]
   }
 ];
 
-const createPoint = (overrides = {}, index = 0) => {
+const createArgument = (overrides = {}, index = 0) => {
+  const sample = SAMPLE_ARGUMENTS[index % SAMPLE_ARGUMENTS.length] || SAMPLE_ARGUMENTS[0];
   const base = {
-    id: uid('debate-point'),
-    text: SAMPLE_POINTS[index % SAMPLE_POINTS.length]
+    id: uid('debate-argument'),
+    text: sample.text,
+    votes: sample.votes
   };
-  const point = { ...base, ...overrides };
-  if (!point.id) {
-    point.id = uid('debate-point');
+  const source = typeof overrides === 'string' ? { text: overrides } : overrides || {};
+  const argument = { ...base, ...source };
+  if (!argument.id || typeof argument.id !== 'string') {
+    argument.id = uid('debate-argument');
+  } else {
+    argument.id = argument.id.trim() || uid('debate-argument');
   }
-  if (typeof point.text !== 'string') {
-    point.text = '';
+  if (typeof argument.text !== 'string') {
+    argument.text = '';
   }
-  return point;
+  argument.text = argument.text.trim();
+  const parsedVotes = Number.parseInt(argument.votes, 10);
+  argument.votes = Number.isFinite(parsedVotes) && parsedVotes >= 0 ? parsedVotes : 0;
+  return argument;
 };
 
-const createLearnerView = (overrides = {}, index = 0) => {
-  const baseSample = SAMPLE_VIEWS[index % SAMPLE_VIEWS.length];
-  const base = {
-    id: uid('debate-view'),
-    stance: baseSample?.stance || (index % 2 === 0 ? 'pro' : 'con'),
-    headline: baseSample?.headline || 'Offer a fresh perspective',
-    summary: baseSample?.summary || 'Share why this idea matters for the motion.',
-    author: baseSample?.author || `Learner ${index + 1}`,
-    votes: baseSample?.votes || 6
-  };
-  const view = { ...base, ...overrides };
-  if (!view.id) {
-    view.id = uid('debate-view');
-  }
-  if (view.stance !== 'pro' && view.stance !== 'con') {
-    view.stance = base.stance;
-  }
-  view.headline = typeof view.headline === 'string' ? view.headline : '';
-  view.summary = typeof view.summary === 'string' ? view.summary : '';
-  view.author = typeof view.author === 'string' ? view.author : '';
-  const parsedVotes = Number.parseInt(view.votes, 10);
-  view.votes = Number.isFinite(parsedVotes) && parsedVotes > 0 ? parsedVotes : 1;
-  return view;
-};
-
-const normalisePoints = (points) => {
-  if (!Array.isArray(points)) {
+const normaliseArguments = (argumentsList, offset = 0) => {
+  if (!Array.isArray(argumentsList)) {
     return [];
   }
-  return points.map((point, index) => createPoint(point, index));
+  return argumentsList.map((argument, index) => createArgument(argument, offset + index));
 };
 
-const normaliseLearnerViews = (views) => {
-  if (!Array.isArray(views) || !views.length) {
-    return SAMPLE_VIEWS.map((view, index) => createLearnerView(view, index));
-  }
-  return views.map((view, index) => createLearnerView(view, index));
-};
-
-const createSampleLearnerViews = () => SAMPLE_VIEWS.map((view, index) => createLearnerView(view, index));
-
-const TEAM_LABELS = [
-  {
-    name: 'Affirmative team',
-    stance: 'Supports the motion and argues for adopting it.'
-  },
-  {
-    name: 'Opposing team',
-    stance: 'Challenges the motion and argues against adopting it.'
-  }
-];
-
-const createTeam = (overrides = {}, index = 0) => {
-  const defaults = TEAM_LABELS[index % TEAM_LABELS.length];
+const createSide = (overrides = {}, index = 0) => {
+  const preset = SIDE_PRESETS[index % SIDE_PRESETS.length];
   const base = {
-    id: uid('debate-team'),
-    name: defaults?.name || `Team ${index + 1}`,
-    stance: defaults?.stance || 'Shares a unique perspective on the motion.',
-    opening: 'State the team\'s claim, define key terms, and outline the roadmap for your argument.',
-    evidence: normalisePoints([
-      { text: SAMPLE_POINTS[index % SAMPLE_POINTS.length] },
-      { text: SAMPLE_POINTS[(index + 1) % SAMPLE_POINTS.length] }
-    ]),
-    closing: 'Summarise your strongest evidence and remind the audience what is at stake.'
+    id: uid('debate-side'),
+    name: preset?.name || `Side ${index + 1}`,
+    statement: preset?.statement || 'Summarise this perspective in one sentence.',
+    arguments: normaliseArguments(preset?.arguments || [], index * 3)
   };
-  const team = { ...base, ...overrides };
-  if (!team.id) {
-    team.id = uid('debate-team');
+  const side = { ...base, ...overrides };
+  if (!side.id || typeof side.id !== 'string') {
+    side.id = uid('debate-side');
+  } else {
+    side.id = side.id.trim() || uid('debate-side');
   }
-  if (typeof team.name !== 'string') {
-    team.name = '';
+  if (typeof side.name !== 'string') {
+    side.name = '';
   }
-  if (typeof team.stance !== 'string') {
-    team.stance = '';
+  side.name = side.name.trim();
+  if (typeof side.statement !== 'string') {
+    side.statement = '';
   }
-  if (typeof team.opening !== 'string') {
-    team.opening = '';
-  }
-  if (typeof team.closing !== 'string') {
-    team.closing = '';
-  }
-  team.evidence = normalisePoints(team.evidence);
-  if (!team.evidence.length) {
-    team.evidence = normalisePoints([
-      { text: SAMPLE_POINTS[index % SAMPLE_POINTS.length] }
-    ]);
-  }
-  return team;
+  side.statement = side.statement.trim();
+  side.arguments = normaliseArguments(side.arguments, index * 3);
+  return side;
 };
 
-const normaliseTeams = (teams) => {
-  if (!Array.isArray(teams) || teams.length === 0) {
-    return createSampleTeams();
-  }
-  const cleaned = teams.map((team, index) => createTeam(team, index));
-  if (cleaned.length < 2) {
-    cleaned.push(createTeam({}, cleaned.length));
+const normaliseSides = (sides) => {
+  const cleaned = Array.isArray(sides) ? sides.slice(0, 2).map((side, index) => createSide(side, index)) : [];
+  while (cleaned.length < 2) {
+    cleaned.push(createSide({}, cleaned.length));
   }
   return cleaned;
 };
 
-const createSampleTeams = () =>
-  [
-    createTeam(
-      {
-        name: 'Affirmative team',
-        stance: 'Argues that plazas make the city healthier and more vibrant.',
-        opening:
-          'We affirm the motion. Converting our main street unlocks safer walking routes, draws visitors, and boosts neighbourhood pride.',
-        evidence: normalisePoints([
-          { text: 'Cities that pedestrianised central streets saw retail sales rise by up to 30% within a year.' },
-          { text: 'Removing vehicle lanes frees space for seating, art, and community events that increase dwell time.' },
-          { text: 'Air quality sensors in comparable pilots recorded a 40% drop in nitrogen dioxide during peak hours.' }
-        ]),
-        closing:
-          'A plaza invites people back to the heart of the city. We urge you to vote yes for a greener, safer downtown.'
-      },
-      0
-    ),
-    createTeam(
-      {
-        name: 'Opposing team',
-        stance: 'Argues that closing the street harms accessibility and equity.',
-        opening:
-          'We negate the motion. The plan ignores residents who depend on direct vehicle access and adds traffic to fragile side streets.',
-        evidence: normalisePoints([
-          { text: 'Transport surveys show 45% of downtown workers commute by car due to limited transit coverage.' },
-          { text: 'Emergency services warn that rerouting adds four critical minutes to peak response times.' },
-          { text: 'Delivery drivers and disability advocates have not been consulted on viable loading zones.' }
-        ]),
-        closing:
-          'Equity requires us to improve, not remove, access. Vote no until the city designs a solution that serves everyone.'
-      },
-      1
-    )
-  ];
-
-const template = () => ({
-  prompt: DEFAULT_PROMPT,
-  context: DEFAULT_CONTEXT,
-  audienceTask: DEFAULT_AUDIENCE_TASK,
-  teams: createSampleTeams(),
-  learnerViews: createSampleLearnerViews()
-});
-
-const example = () => ({
-  prompt: 'Should our school adopt a four-day instructional week next year?',
-  context:
-    'Students analysed attendance data, extracurricular schedules, and family surveys. Use those findings to frame your stance.',
-  audienceTask:
-    'Capture the most convincing piece of evidence you hear from each side. Decide which argument best addressed community needs.',
-  teams: [
-    createTeam(
-      {
-        name: 'Pro change team',
-        stance: 'Argues a four-day week increases engagement and well-being.',
-        opening:
-          'We support the shift. A focused schedule gives teachers more collaboration time and students richer project blocks.',
-        evidence: normalisePoints([
-          { text: 'Districts piloting four-day weeks reported a 12% drop in student absences.' },
-          { text: 'Teachers use the fifth day for co-planning and intervention, boosting instructional quality.' },
-          { text: 'Longer class periods allow labs, performances, and internships that rarely fit into 48-minute blocks.' }
-        ]),
-        closing:
-          'Our community gains flexibility without sacrificing learning. Vote yes to reimagine how we use time.'
-      },
-      0
-    ),
-    createTeam(
-      {
-        name: 'Keep five days team',
-        stance: 'Argues continuity matters more than schedule changes.',
-        opening:
-          'We oppose the shift. Families rely on consistent schedules and data on achievement impacts remains inconclusive.',
-        evidence: normalisePoints([
-          { text: 'State assessments show neutral academic results after schedule changes—no guaranteed gains.' },
-          { text: 'Working families face added childcare costs on the fifth day.' },
-          { text: 'Extracurriculars may shrink when travel and practice windows collide with condensed academics.' }
-        ]),
-        closing:
-          'Stability supports every learner. Keep the five-day week while we invest in supports that already work.'
-      },
-      1
-    )
-  ],
-  learnerViews: [
-    createLearnerView(
-      {
-        stance: 'pro',
-        headline: 'Four days can reduce student burnout',
-        summary: 'Survey responses mentioned feeling exhausted by Thursday. A flex day could support rest and tutoring.',
-        author: 'Jordan',
-        votes: 16
-      },
-      0
-    ),
-    createLearnerView(
-      {
-        stance: 'con',
-        headline: 'Families need consistent supervision',
-        summary: 'My caregivers both work Fridays. Paying for an extra day of childcare would be tough for our budget.',
-        author: 'Aaliyah',
-        votes: 11
-      },
-      1
-    ),
-    createLearnerView(
-      {
-        stance: 'pro',
-        headline: 'Clubs could meet for longer intensives',
-        summary: 'Imagine robotics and theatre having a dedicated build day. It might help us compete at regionals.',
-        author: 'Elliot',
-        votes: 8
-      },
-      2
-    )
-  ]
-});
+const convertLegacyData = (data) => {
+  if (!data) return null;
+  const question = typeof data.prompt === 'string' && data.prompt.trim() ? data.prompt.trim() : '';
+  const instructionSource = [data.context, data.audienceTask].find(
+    (value) => typeof value === 'string' && value.trim()
+  );
+  const instructions = instructionSource ? instructionSource.trim() : '';
+  if (!Array.isArray(data.teams)) {
+    if (!question && !instructions) {
+      return null;
+    }
+    return { question, instructions, sides: undefined };
+  }
+  const sides = data.teams.slice(0, 2).map((team) => {
+    const evidence = Array.isArray(team?.evidence)
+      ? team.evidence
+          .map((point) => (typeof point?.text === 'string' ? point.text : ''))
+          .filter((text) => text && text.trim().length)
+      : [];
+    return {
+      id: typeof team?.id === 'string' ? team.id : undefined,
+      name: typeof team?.name === 'string' ? team.name : undefined,
+      statement:
+        typeof team?.stance === 'string'
+          ? team.stance
+          : typeof team?.opening === 'string'
+          ? team.opening
+          : '',
+      arguments: evidence.map((text) => ({ text, votes: 0 }))
+    };
+  });
+  if (Array.isArray(data.learnerViews)) {
+    data.learnerViews.forEach((view) => {
+      if (!view || typeof view.summary !== 'string') {
+        return;
+      }
+      const stanceIndex = view.stance === 'con' ? 1 : 0;
+      const target = sides[stanceIndex] || sides[0];
+      if (!target) {
+        return;
+      }
+      target.arguments.push({
+        text: view.summary,
+        votes: Number.parseInt(view.votes, 10) || 1
+      });
+    });
+  }
+  return { question, instructions, sides };
+};
 
 const ensureWorkingState = (data) => {
   const safe = data ? clone(data) : {};
-  return {
-    prompt: typeof safe.prompt === 'string' ? safe.prompt : DEFAULT_PROMPT,
-    context: typeof safe.context === 'string' ? safe.context : DEFAULT_CONTEXT,
-    audienceTask: typeof safe.audienceTask === 'string' ? safe.audienceTask : DEFAULT_AUDIENCE_TASK,
-    teams: normaliseTeams(safe.teams),
-    learnerViews: normaliseLearnerViews(safe.learnerViews)
-  };
+  const legacy = convertLegacyData(safe) || {};
+  const question =
+    typeof safe.question === 'string' && safe.question.trim()
+      ? safe.question.trim()
+      : legacy.question || DEFAULT_QUESTION;
+  const instructions =
+    typeof safe.instructions === 'string' && safe.instructions.trim()
+      ? safe.instructions.trim()
+      : legacy.instructions || DEFAULT_INSTRUCTIONS;
+  const sidesSource = Array.isArray(safe.sides) && safe.sides.length ? safe.sides : legacy.sides;
+  const sides = normaliseSides(sidesSource);
+  return { question, instructions, sides };
 };
+
+const template = () => ({
+  question: DEFAULT_QUESTION,
+  instructions: DEFAULT_INSTRUCTIONS,
+  sides: normaliseSides(SIDE_PRESETS)
+});
+
+const example = () => ({
+  question: 'Should our school adopt a four-day instructional week next year?',
+  instructions:
+    'Teams researched schedules, staffing, and family routines. As you listen, capture the evidence that most influences you.',
+  sides: normaliseSides([
+    {
+      name: 'Pro change',
+      statement: 'Argues that a focused four-day week increases engagement and staff collaboration.',
+      arguments: [
+        {
+          text: 'Districts piloting a shorter week saw chronic absenteeism drop by 12% thanks to longer project blocks.',
+          votes: 10
+        },
+        {
+          text: 'Teachers gain a shared planning day to align interventions and enrichment for struggling learners.',
+          votes: 7
+        }
+      ]
+    },
+    {
+      name: 'Keep five days',
+      statement: 'Argues that a traditional week best serves families and extracurricular programs.',
+      arguments: [
+        {
+          text: 'Local childcare providers are already at capacity—families would scramble for coverage on the fifth day.',
+          votes: 9
+        },
+        {
+          text: 'Athletics and arts rehearsals would need evening rescheduling, adding stress instead of relief.',
+          votes: 6
+        }
+      ]
+    }
+  ])
+});
 
 const buildEditor = (container, data, onUpdate) => {
   const working = ensureWorkingState(data);
@@ -300,1066 +209,663 @@ const buildEditor = (container, data, onUpdate) => {
   const rerender = () => {
     container.innerHTML = '';
 
-    const promptField = document.createElement('label');
-    promptField.className = 'field';
-    promptField.innerHTML = '<span class="field-label">Debate motion</span>';
-    const promptInput = document.createElement('textarea');
-    promptInput.rows = 2;
-    promptInput.value = working.prompt;
-    promptInput.placeholder = 'Phrase the motion learners will debate.';
-    promptInput.addEventListener('input', () => {
-      working.prompt = promptInput.value;
+    const questionField = document.createElement('label');
+    questionField.className = 'field';
+    questionField.innerHTML = '<span class="field-label">Debate question</span>';
+    const questionInput = document.createElement('input');
+    questionInput.type = 'text';
+    questionInput.value = working.question;
+    questionInput.placeholder = 'What motion or prompt will learners debate?';
+    questionInput.addEventListener('input', () => {
+      working.question = questionInput.value;
       emit(false);
     });
-    promptField.append(promptInput);
+    questionField.append(questionInput);
 
-    const contextField = document.createElement('label');
-    contextField.className = 'field';
-    contextField.innerHTML = '<span class="field-label">Context or briefing</span>';
-    const contextInput = document.createElement('textarea');
-    contextInput.rows = 3;
-    contextInput.value = working.context;
-    contextInput.placeholder = 'Share background knowledge, vocabulary, or constraints.';
-    contextInput.addEventListener('input', () => {
-      working.context = contextInput.value;
+    const instructionsField = document.createElement('label');
+    instructionsField.className = 'field';
+    instructionsField.innerHTML = '<span class="field-label">Facilitation instructions</span>';
+    const instructionsInput = document.createElement('textarea');
+    instructionsInput.rows = 3;
+    instructionsInput.value = working.instructions;
+    instructionsInput.placeholder = 'Explain timing, evidence expectations, or norms for the debate.';
+    instructionsInput.addEventListener('input', () => {
+      working.instructions = instructionsInput.value;
       emit(false);
     });
-    contextField.append(contextInput);
+    instructionsField.append(instructionsInput);
 
-    const audienceField = document.createElement('label');
-    audienceField.className = 'field';
-    audienceField.innerHTML = '<span class="field-label">Audience task</span>';
-    const audienceInput = document.createElement('textarea');
-    audienceInput.rows = 2;
-    audienceInput.value = working.audienceTask;
-    audienceInput.placeholder = 'Explain how listeners will participate or provide feedback.';
-    audienceInput.addEventListener('input', () => {
-      working.audienceTask = audienceInput.value;
-      emit(false);
-    });
-    audienceField.append(audienceInput);
+    container.append(questionField, instructionsField);
 
-    container.append(promptField, contextField, audienceField);
-
-    if (!working.teams.length) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.innerHTML = '<p>No perspectives yet. Add at least two teams to plan your debate.</p>';
-      container.append(empty);
-    }
-
-    working.teams.forEach((team, index) => {
-      const editorItem = document.createElement('div');
-      editorItem.className = 'editor-item';
+    working.sides.forEach((side, index) => {
+      const item = document.createElement('div');
+      item.className = 'editor-item';
 
       const header = document.createElement('div');
       header.className = 'editor-item-header';
-      header.innerHTML = `<span>Perspective ${index + 1}</span>`;
-
-      const actions = document.createElement('div');
-      actions.className = 'editor-item-actions';
-
-      const duplicateBtn = document.createElement('button');
-      duplicateBtn.type = 'button';
-      duplicateBtn.className = 'muted-button';
-      duplicateBtn.textContent = 'Duplicate';
-      duplicateBtn.addEventListener('click', () => {
-        const cloneSource = clone(team);
-        working.teams.splice(index + 1, 0, createTeam({ ...cloneSource, id: uid('debate-team') }, index + 1));
-        emit();
-      });
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.type = 'button';
-      deleteBtn.className = 'muted-button';
-      deleteBtn.textContent = 'Remove';
-      deleteBtn.disabled = working.teams.length <= 2;
-      deleteBtn.addEventListener('click', () => {
-        if (working.teams.length <= 2) {
-          return;
-        }
-        working.teams.splice(index, 1);
-        emit();
-      });
-
-      actions.append(duplicateBtn, deleteBtn);
-      header.append(actions);
+      header.innerHTML = `<span>Side ${index + 1}</span>`;
+      item.append(header);
 
       const nameField = document.createElement('label');
       nameField.className = 'field';
-      nameField.innerHTML = '<span class="field-label">Team name</span>';
+      nameField.innerHTML = '<span class="field-label">Side name</span>';
       const nameInput = document.createElement('input');
       nameInput.type = 'text';
-      nameInput.className = 'text-input';
-      nameInput.value = team.name;
-      nameInput.placeholder = 'e.g. Affirmative team';
+      nameInput.value = side.name;
+      nameInput.placeholder = 'e.g. Supports the motion';
       nameInput.addEventListener('input', () => {
-        working.teams[index].name = nameInput.value;
+        working.sides[index].name = nameInput.value;
         emit(false);
       });
       nameField.append(nameInput);
 
       const stanceField = document.createElement('label');
       stanceField.className = 'field';
-      stanceField.innerHTML = '<span class="field-label">Stance summary</span>';
+      stanceField.innerHTML = '<span class="field-label">Position statement</span>';
       const stanceInput = document.createElement('textarea');
       stanceInput.rows = 2;
-      stanceInput.value = team.stance;
-      stanceInput.placeholder = 'Clarify how this team interprets the motion.';
+      stanceInput.value = side.statement;
+      stanceInput.placeholder = 'Summarise the core claim this side will defend.';
       stanceInput.addEventListener('input', () => {
-        working.teams[index].stance = stanceInput.value;
+        working.sides[index].statement = stanceInput.value;
         emit(false);
       });
       stanceField.append(stanceInput);
 
-      const openingField = document.createElement('label');
-      openingField.className = 'field';
-      openingField.innerHTML = '<span class="field-label">Opening statement</span>';
-      const openingInput = document.createElement('textarea');
-      openingInput.rows = 3;
-      openingInput.value = team.opening;
-      openingInput.placeholder = 'Outline the claim, key definitions, and the roadmap.';
-      openingInput.addEventListener('input', () => {
-        working.teams[index].opening = openingInput.value;
-        emit(false);
-      });
-      openingField.append(openingInput);
+      item.append(nameField, stanceField);
 
-      const evidenceWrapper = document.createElement('div');
-      evidenceWrapper.className = 'field';
-      evidenceWrapper.innerHTML = '<span class="field-label">Supporting points</span>';
+      const argumentsSection = document.createElement('div');
+      argumentsSection.className = 'editor-stack';
 
-      team.evidence.forEach((point, pointIndex) => {
-        const row = document.createElement('div');
-        row.className = 'field field--inline';
+      if (!side.arguments.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = '<p>No arguments yet. Add at least one talking point to model the structure.</p>';
+        argumentsSection.append(empty);
+      } else {
+        side.arguments.forEach((argument, argumentIndex) => {
+          const block = document.createElement('div');
+          block.className = 'editor-subitem';
 
-        const label = document.createElement('span');
-        label.className = 'field-label';
-        label.textContent = `Point ${pointIndex + 1}`;
+          const blockHeader = document.createElement('div');
+          blockHeader.className = 'editor-subitem-header';
+          blockHeader.innerHTML = `<span>Argument ${argumentIndex + 1}</span>`;
 
-        const group = document.createElement('div');
-        group.className = 'field-inline-group';
+          const actions = document.createElement('div');
+          actions.className = 'editor-subitem-actions';
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'muted-button';
+          removeBtn.textContent = 'Remove';
+          removeBtn.disabled = side.arguments.length <= 1;
+          removeBtn.addEventListener('click', () => {
+            if (working.sides[index].arguments.length <= 1) {
+              return;
+            }
+            working.sides[index].arguments.splice(argumentIndex, 1);
+            emit();
+          });
+          actions.append(removeBtn);
+          blockHeader.append(actions);
+          block.append(blockHeader);
 
-        const pointInput = document.createElement('textarea');
-        pointInput.rows = 2;
-        pointInput.value = point.text;
-        pointInput.placeholder = 'Add evidence, reasoning, or an example.';
-        pointInput.addEventListener('input', () => {
-          working.teams[index].evidence[pointIndex].text = pointInput.value;
-          emit(false);
+          const textField = document.createElement('label');
+          textField.className = 'field';
+          textField.innerHTML = '<span class="field-label">Argument text</span>';
+          const textArea = document.createElement('textarea');
+          textArea.rows = 2;
+          textArea.value = argument.text;
+          textArea.placeholder = 'Capture the reasoning or evidence this side will offer.';
+          textArea.addEventListener('input', () => {
+            working.sides[index].arguments[argumentIndex].text = textArea.value;
+            emit(false);
+          });
+          textField.append(textArea);
+
+          const votesField = document.createElement('label');
+          votesField.className = 'field';
+          votesField.innerHTML = '<span class="field-label">Starting votes</span>';
+          const votesInput = document.createElement('input');
+          votesInput.type = 'number';
+          votesInput.min = '0';
+          votesInput.value = String(argument.votes);
+          votesInput.addEventListener('input', () => {
+            const parsed = Number.parseInt(votesInput.value, 10);
+            working.sides[index].arguments[argumentIndex].votes = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+            emit(false);
+          });
+          votesField.append(votesInput);
+
+          block.append(textField, votesField);
+          argumentsSection.append(block);
         });
+      }
 
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'muted-button';
-        removeBtn.textContent = 'Remove';
-        removeBtn.disabled = team.evidence.length <= 1;
-        removeBtn.addEventListener('click', () => {
-          if (team.evidence.length <= 1) {
-            return;
-          }
-          working.teams[index].evidence.splice(pointIndex, 1);
-          emit();
-        });
-
-        group.append(pointInput, removeBtn);
-        row.append(label, group);
-        evidenceWrapper.append(row);
-      });
-
-      const addPointBtn = document.createElement('button');
-      addPointBtn.type = 'button';
-      addPointBtn.className = 'ghost-button';
-      addPointBtn.textContent = 'Add supporting point';
-      addPointBtn.addEventListener('click', () => {
-        working.teams[index].evidence.push(createPoint({ text: 'Add a new supporting idea.' }, team.evidence.length));
+      const addArgumentBtn = document.createElement('button');
+      addArgumentBtn.type = 'button';
+      addArgumentBtn.className = 'ghost-button';
+      addArgumentBtn.textContent = 'Add argument';
+      addArgumentBtn.addEventListener('click', () => {
+        working.sides[index].arguments.push(createArgument({ text: '', votes: 0 }, side.arguments.length));
         emit();
       });
-      evidenceWrapper.append(addPointBtn);
 
-      const closingField = document.createElement('label');
-      closingField.className = 'field';
-      closingField.innerHTML = '<span class="field-label">Closing statement</span>';
-      const closingInput = document.createElement('textarea');
-      closingInput.rows = 3;
-      closingInput.value = team.closing;
-      closingInput.placeholder = 'Help the audience remember your strongest ideas.';
-      closingInput.addEventListener('input', () => {
-        working.teams[index].closing = closingInput.value;
-        emit(false);
-      });
-      closingField.append(closingInput);
-
-      editorItem.append(header, nameField, stanceField, openingField, evidenceWrapper, closingField);
-      container.append(editorItem);
+      argumentsSection.append(addArgumentBtn);
+      item.append(argumentsSection);
+      container.append(item);
     });
-
-    const addTeamBtn = document.createElement('button');
-    addTeamBtn.type = 'button';
-    addTeamBtn.className = 'ghost-button';
-    addTeamBtn.textContent = 'Add perspective';
-    addTeamBtn.addEventListener('click', () => {
-      working.teams.push(createTeam({ name: `Team ${working.teams.length + 1}` }, working.teams.length));
-      emit();
-    });
-
-    container.append(addTeamBtn);
   };
 
   rerender();
 };
 
 const renderPreview = (container, data) => {
-  const working = ensureWorkingState(data);
   container.innerHTML = '';
+  const working = ensureWorkingState(data);
 
-  const state = {
-    views: working.learnerViews.map((view, index) => createLearnerView(view, index))
-  };
+  const state = (() => {
+    if (!container.__debatePreviewState) {
+      container.__debatePreviewState = {
+        additions: new Map(),
+        votes: new Map()
+      };
+    }
+    const existing = container.__debatePreviewState;
+    if (!(existing.additions instanceof Map)) {
+      existing.additions = new Map();
+    }
+    if (!(existing.votes instanceof Map)) {
+      existing.votes = new Map();
+    }
+    const validIds = new Set(working.sides.map((side) => side.id));
+    Array.from(existing.additions.keys()).forEach((key) => {
+      if (!validIds.has(key)) {
+        existing.additions.delete(key);
+      }
+    });
+    return existing;
+  })();
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'debate';
+  wrapper.className = 'debate-preview';
 
   const header = document.createElement('div');
-  header.className = 'debate-header';
+  header.className = 'debate-preview-header';
 
   const title = document.createElement('h3');
-  title.className = 'debate-title';
-  title.textContent = working.prompt;
+  title.className = 'debate-preview-question';
+  title.textContent = working.question;
+  header.append(title);
 
-  const context = document.createElement('p');
-  context.className = 'debate-context';
-  context.textContent = working.context;
+  if (working.instructions) {
+    const intro = document.createElement('p');
+    intro.className = 'debate-preview-instructions';
+    intro.textContent = working.instructions;
+    header.append(intro);
+  }
 
-  header.append(title, context);
   wrapper.append(header);
 
-  const layout = document.createElement('div');
-  layout.className = 'debate-layout';
-  wrapper.append(layout);
+  const columns = document.createElement('div');
+  columns.className = 'debate-preview-columns';
 
-  const teamsSection = document.createElement('section');
-  teamsSection.className = 'debate-teams';
+  working.sides.forEach((side) => {
+    const column = document.createElement('article');
+    column.className = 'debate-preview-side';
 
-  const teamsHeading = document.createElement('h4');
-  teamsHeading.className = 'debate-subheading';
-  teamsHeading.textContent = 'Team positions';
-  teamsSection.append(teamsHeading);
+    const name = document.createElement('h4');
+    name.className = 'debate-preview-side-title';
+    name.textContent = side.name || 'Debate side';
 
-  const grid = document.createElement('div');
-  grid.className = 'debate-grid';
+    const statement = document.createElement('p');
+    statement.className = 'debate-preview-side-statement';
+    statement.textContent = side.statement || 'Clarify this stance in the editor to guide participants.';
 
-  working.teams.forEach((team) => {
-    const card = document.createElement('article');
-    card.className = 'debate-team';
+    const list = document.createElement('div');
+    list.className = 'debate-preview-arguments';
 
-    const name = document.createElement('h5');
-    name.className = 'debate-team-name';
-    name.textContent = team.name;
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'debate-preview-add-button';
+    addButton.textContent = '＋ Add argument';
 
-    const stance = document.createElement('p');
-    stance.className = 'debate-team-stance';
-    stance.textContent = team.stance;
+    const addForm = document.createElement('form');
+    addForm.className = 'debate-preview-add-form';
+    addForm.hidden = true;
+    addForm.setAttribute('novalidate', '');
 
-    const opening = document.createElement('p');
-    opening.className = 'debate-opening';
-    opening.textContent = team.opening;
+    const addField = document.createElement('label');
+    addField.className = 'debate-preview-add-field';
+    addField.innerHTML = '<span>Argument text</span>';
+    const addInput = document.createElement('textarea');
+    addInput.rows = 2;
+    addInput.placeholder = 'Add a quick argument to test the flow.';
+    addField.append(addInput);
 
-    const listHeading = document.createElement('p');
-    listHeading.className = 'debate-subheading';
-    listHeading.textContent = 'Supporting points';
+    const addActions = document.createElement('div');
+    addActions.className = 'debate-preview-add-actions';
 
-    const list = document.createElement('ul');
-    list.className = 'debate-points';
-    team.evidence.forEach((point) => {
-      const item = document.createElement('li');
-      item.className = 'debate-point';
-      item.textContent = point.text;
-      list.append(item);
-    });
+    const submitAdd = document.createElement('button');
+    submitAdd.type = 'submit';
+    submitAdd.textContent = 'Add';
 
-    const closing = document.createElement('p');
-    closing.className = 'debate-closing';
-    closing.textContent = team.closing;
+    const cancelAdd = document.createElement('button');
+    cancelAdd.type = 'button';
+    cancelAdd.textContent = 'Cancel';
 
-    card.append(name, stance, opening, listHeading, list, closing);
-    grid.append(card);
-  });
+    addActions.append(submitAdd, cancelAdd);
+    addForm.append(addField, addActions);
 
-  teamsSection.append(grid);
+    const getCombinedArguments = () => {
+      const extras = state.additions.get(side.id) || [];
+      const combined = [
+        ...side.arguments.map((argument) => ({ ...argument })),
+        ...extras.map((argument) => ({ ...argument }))
+      ];
+      combined.forEach((argument) => {
+        const extraVotes = state.votes.get(argument.id) || 0;
+        argument.displayVotes = argument.votes + extraVotes;
+      });
+      combined.sort((a, b) => {
+        if (b.displayVotes !== a.displayVotes) {
+          return b.displayVotes - a.displayVotes;
+        }
+        return a.text.localeCompare(b.text, undefined, { sensitivity: 'base' });
+      });
+      return combined;
+    };
 
-  const audience = document.createElement('aside');
-  audience.className = 'debate-audience';
-
-  const audienceTitle = document.createElement('h4');
-  audienceTitle.className = 'debate-subheading';
-  audienceTitle.textContent = 'Audience task';
-
-  const audienceBody = document.createElement('p');
-  audienceBody.textContent = working.audienceTask;
-
-  audience.append(audienceTitle, audienceBody);
-  teamsSection.append(audience);
-
-  layout.append(teamsSection);
-
-  const contributions = document.createElement('section');
-  contributions.className = 'debate-contributions';
-
-  const contributionsHeader = document.createElement('div');
-  contributionsHeader.className = 'debate-contributions-header';
-
-  const contributionsTitle = document.createElement('h4');
-  contributionsTitle.className = 'debate-subheading';
-  contributionsTitle.textContent = 'Learner views';
-
-  const contributionsIntro = document.createElement('p');
-  contributionsIntro.className = 'debate-contributions-intro';
-  contributionsIntro.textContent = 'Vote for the ideas that resonate and add your take to broaden the debate.';
-
-  contributionsHeader.append(contributionsTitle, contributionsIntro);
-  contributions.append(contributionsHeader);
-
-  const viewsList = document.createElement('div');
-  viewsList.className = 'debate-views';
-  contributions.append(viewsList);
-
-  const status = document.createElement('p');
-  status.className = 'debate-status';
-  status.hidden = true;
-  contributions.append(status);
-
-  const form = document.createElement('form');
-  form.className = 'debate-form';
-  form.setAttribute('novalidate', '');
-
-  const nameField = document.createElement('label');
-  nameField.className = 'debate-form-field';
-  nameField.innerHTML = '<span>Your name</span>';
-  const nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.name = 'name';
-  nameInput.placeholder = 'e.g. Jordan';
-  nameInput.autocomplete = 'name';
-  nameField.append(nameInput);
-
-  const stanceField = document.createElement('fieldset');
-  stanceField.className = 'debate-form-field debate-form-field--choices';
-  const stanceLegend = document.createElement('legend');
-  stanceLegend.textContent = 'Stance';
-  stanceField.append(stanceLegend);
-
-  const stanceOptions = [
-    { value: 'pro', label: 'Support the motion' },
-    { value: 'con', label: 'Challenge the motion' }
-  ];
-
-  stanceOptions.forEach((option, optionIndex) => {
-    const label = document.createElement('label');
-    label.className = 'debate-choice';
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.name = 'stance';
-    input.value = option.value;
-    if (optionIndex === 0) {
-      input.checked = true;
-    }
-    const span = document.createElement('span');
-    span.textContent = option.label;
-    label.append(input, span);
-    stanceField.append(label);
-  });
-
-  const headlineField = document.createElement('label');
-  headlineField.className = 'debate-form-field';
-  headlineField.innerHTML = '<span>Headline</span>';
-  const headlineInput = document.createElement('input');
-  headlineInput.type = 'text';
-  headlineInput.name = 'headline';
-  headlineInput.placeholder = 'Summarise your view';
-  headlineField.append(headlineInput);
-
-  const summaryField = document.createElement('label');
-  summaryField.className = 'debate-form-field';
-  summaryField.innerHTML = '<span>Your reasoning</span>';
-  const summaryInput = document.createElement('textarea');
-  summaryInput.name = 'summary';
-  summaryInput.rows = 3;
-  summaryInput.placeholder = 'Share the evidence or experience behind your stance.';
-  summaryField.append(summaryInput);
-
-  const submit = document.createElement('button');
-  submit.type = 'submit';
-  submit.textContent = 'Share your view';
-
-  form.append(nameField, stanceField, headlineField, summaryField, submit);
-  contributions.append(form);
-
-  const setStatus = (message, tone = 'info') => {
-    if (message) {
-      status.hidden = false;
-      status.textContent = message;
-      status.dataset.tone = tone;
-    } else {
-      status.hidden = true;
-      status.textContent = '';
-      delete status.dataset.tone;
-    }
-  };
-
-  const renderViews = () => {
-    viewsList.innerHTML = '';
-    if (!state.views.length) {
-      const empty = document.createElement('p');
-      empty.className = 'debate-empty';
-      empty.textContent = 'No views yet. Be the first to share your perspective.';
-      viewsList.append(empty);
-      return;
-    }
-
-    const sorted = [...state.views].sort((a, b) => {
-      if (b.votes !== a.votes) {
-        return b.votes - a.votes;
+    const renderArguments = () => {
+      list.innerHTML = '';
+      const combined = getCombinedArguments();
+      if (!combined.length) {
+        const empty = document.createElement('p');
+        empty.className = 'debate-preview-empty';
+        empty.textContent = 'No arguments yet. Use the plus button to add one.';
+        list.append(empty);
+        return;
       }
-      return a.headline.localeCompare(b.headline, undefined, { sensitivity: 'base' });
+
+      combined.forEach((argument) => {
+        const item = document.createElement('div');
+        item.className = 'debate-preview-argument';
+
+        const text = document.createElement('p');
+        text.textContent = argument.text || 'Add detail to describe this talking point.';
+
+        const voteBtn = document.createElement('button');
+        voteBtn.type = 'button';
+        voteBtn.className = 'debate-preview-vote';
+        voteBtn.setAttribute('aria-label', 'Upvote argument');
+        voteBtn.textContent = `👍 ${argument.displayVotes}`;
+        voteBtn.addEventListener('click', () => {
+          const current = state.votes.get(argument.id) || 0;
+          state.votes.set(argument.id, current + 1);
+          renderArguments();
+        });
+
+        item.append(text, voteBtn);
+        list.append(item);
+      });
+    };
+
+    addButton.addEventListener('click', () => {
+      addForm.hidden = false;
+      addInput.focus();
     });
 
-    sorted.forEach((view) => {
-      const card = document.createElement('article');
-      card.className = `debate-view debate-view--${view.stance}`;
-
-      const headerRow = document.createElement('div');
-      headerRow.className = 'debate-view-header';
-
-      const tag = document.createElement('span');
-      tag.className = 'debate-view-tag';
-      tag.textContent = view.stance === 'pro' ? 'Supports' : 'Challenges';
-
-      const votes = document.createElement('span');
-      votes.className = 'debate-view-votes';
-      votes.textContent = `${view.votes} vote${view.votes === 1 ? '' : 's'}`;
-
-      headerRow.append(tag, votes);
-
-      const headline = document.createElement('h5');
-      headline.className = 'debate-view-headline';
-      headline.textContent = view.headline;
-
-      const summary = document.createElement('p');
-      summary.className = 'debate-view-summary';
-      summary.textContent = view.summary;
-
-      const footerRow = document.createElement('div');
-      footerRow.className = 'debate-view-footer';
-
-      const author = document.createElement('span');
-      author.textContent = `Shared by ${view.author || 'Anonymous learner'}`;
-
-      const voteBtn = document.createElement('button');
-      voteBtn.type = 'button';
-      voteBtn.className = 'debate-vote';
-      voteBtn.textContent = 'Upvote';
-      voteBtn.addEventListener('click', () => {
-        view.votes += 1;
-        renderViews();
-      });
-
-      footerRow.append(author, voteBtn);
-
-      card.append(headerRow, headline, summary, footerRow);
-      viewsList.append(card);
+    cancelAdd.addEventListener('click', () => {
+      addForm.hidden = true;
+      addInput.value = '';
     });
-  };
 
-  renderViews();
+    addForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const value = addInput.value.trim();
+      if (!value) {
+        return;
+      }
+      const additions = state.additions.get(side.id) || [];
+      additions.push({ id: uid('preview-argument'), text: value, votes: 0 });
+      state.additions.set(side.id, additions);
+      addInput.value = '';
+      addForm.hidden = true;
+      renderArguments();
+    });
 
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    setStatus('');
-    const formData = new FormData(form);
-    const name = (formData.get('name') || '').toString().trim();
-    const stance = (formData.get('stance') || 'pro').toString();
-    const headline = (formData.get('headline') || '').toString().trim();
-    const summary = (formData.get('summary') || '').toString().trim();
-
-    if (!name || !headline || !summary) {
-      setStatus('Add your name, a headline, and a short explanation to post.', 'error');
-      return;
-    }
-
-    const view = createLearnerView(
-      {
-        author: name,
-        stance,
-        headline,
-        summary,
-        votes: 1
-      },
-      state.views.length
-    );
-
-    state.views.push(view);
-    renderViews();
-    form.reset();
-    if (stanceField.querySelector('input[type="radio"]')) {
-      stanceField.querySelectorAll('input[type="radio"]').forEach((input, index) => {
-        input.checked = index === 0;
-      });
-    }
-    setStatus('Thanks! Your view is now visible to the group.', 'success');
+    column.append(name, statement, list, addButton, addForm);
+    columns.append(column);
+    renderArguments();
   });
 
-  layout.append(contributions);
+  wrapper.append(columns);
   container.append(wrapper);
 };
 
-const serializeViews = (views) =>
-  JSON.stringify(views)
-    .replace(/</g, '\\u003c')
-    .replace(/>/g, '\\u003e')
-    .replace(/&/g, '\\u0026');
+const serializeForScript = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
 const embedTemplate = (data, containerId) => {
   const working = ensureWorkingState(data);
-  const teams = working.teams.length ? working.teams : createSampleTeams();
-  const safePrompt = escapeHtml(working.prompt);
-  const safeContext = escapeHtml(working.context);
-  const safeAudience = escapeHtml(working.audienceTask);
-  const views = working.learnerViews.length ? working.learnerViews : createSampleLearnerViews();
-  const serializedViews = serializeViews(
-    views.map((view, index) => {
-      const item = createLearnerView(view, index);
-      return {
-        id: item.id,
-        stance: item.stance,
-        headline: item.headline,
-        summary: item.summary,
-        author: item.author,
-        votes: item.votes
-      };
-    })
-  );
+  const sides = working.sides.map((side) => ({
+    id: side.id,
+    name: side.name,
+    statement: side.statement,
+    arguments: side.arguments.map((argument) => ({
+      id: argument.id,
+      text: argument.text,
+      votes: argument.votes
+    }))
+  }));
+
+  const scriptData = { question: working.question, instructions: working.instructions, sides };
+
   return {
     html: `
-    <section class="cd-debate" aria-labelledby="${containerId}-title">
-      <header class="cd-debate-header">
-        <p class="cd-debate-kicker">Debate lab</p>
-        <h3 id="${containerId}-title" class="cd-debate-title">${safePrompt}</h3>
-        <p class="cd-debate-context">${safeContext}</p>
-      </header>
-      <div class="cd-debate-body">
-        <section class="cd-debate-teams" aria-label="Team positions">
-          <h4 class="cd-debate-subheading">Team positions</h4>
-          <div class="cd-debate-grid">
-            ${teams
-              .map(
-                (team) => `
-              <article class="cd-debate-team">
-                <h5 class="cd-debate-team-name">${escapeHtml(team.name)}</h5>
-                <p class="cd-debate-team-stance">${escapeHtml(team.stance)}</p>
-                <p class="cd-debate-opening">${escapeHtml(team.opening)}</p>
-                <p class="cd-debate-subheading">Supporting points</p>
-                <ul class="cd-debate-points">
-                  ${team.evidence
-                    .map(
-                      (point) => `
-                    <li class="cd-debate-point">${escapeHtml(point.text)}</li>`
-                    )
-                    .join('')}
-                </ul>
-                <p class="cd-debate-closing">${escapeHtml(team.closing)}</p>
-              </article>`
-              )
-              .join('')}
-          </div>
-          <aside class="cd-debate-audience">
-            <h4 class="cd-debate-subheading">Audience task</h4>
-            <p>${safeAudience}</p>
-          </aside>
-        </section>
-        <section class="cd-debate-contributions" aria-label="Learner views">
-          <div class="cd-debate-contributions-header">
-            <h4 class="cd-debate-subheading">Learner views</h4>
-            <p>Vote for the most helpful ideas and add your own perspective.</p>
-          </div>
-          <div class="cd-debate-views" data-debate-views></div>
-          <p class="cd-debate-status" data-debate-status hidden></p>
-          <form class="cd-debate-form" data-debate-form novalidate>
-            <label class="cd-debate-field">
-              <span>Your name</span>
-              <input type="text" name="name" autocomplete="name" placeholder="e.g. Jordan" />
-            </label>
-            <fieldset class="cd-debate-field cd-debate-field--choices">
-              <legend>Stance</legend>
-              <label><input type="radio" name="stance" value="pro" checked /> <span>Support the motion</span></label>
-              <label><input type="radio" name="stance" value="con" /> <span>Challenge the motion</span></label>
-            </fieldset>
-            <label class="cd-debate-field">
-              <span>Headline</span>
-              <input type="text" name="headline" placeholder="Summarise your view" />
-            </label>
-            <label class="cd-debate-field">
-              <span>Your reasoning</span>
-              <textarea name="summary" rows="3" placeholder="Share the evidence or experience behind your stance."></textarea>
-            </label>
-            <button type="submit">Share your view</button>
-          </form>
-          <script type="application/json" data-debate-initial>${serializedViews}</script>
-        </section>
-      </div>
-    </section>
-  `,
-    css: `
-    #${containerId} .cd-debate {
-      display: grid;
-      gap: clamp(1.2rem, 3vw, 1.8rem);
-      padding: clamp(1.2rem, 3vw, 1.8rem);
-      background: rgba(248, 250, 252, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      border-radius: 24px;
-    }
-    #${containerId} .cd-debate-header {
-      display: grid;
-      gap: 0.45rem;
-      background: #ffffff;
-      border-radius: 20px;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      padding: clamp(1rem, 2vw, 1.4rem);
-      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
-    }
-    #${containerId} .cd-debate-kicker {
-      margin: 0;
-      font-size: 0.75rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(79, 70, 229, 0.85);
-      font-weight: 600;
-    }
-    #${containerId} .cd-debate-title {
-      margin: 0;
-      font-size: clamp(1.25rem, 2.6vw, 1.6rem);
-      font-weight: 700;
-      color: #0f172a;
-    }
-    #${containerId} .cd-debate-context {
-      margin: 0;
-      color: rgba(15, 23, 42, 0.75);
-      line-height: 1.5;
-    }
-    #${containerId} .cd-debate-body {
-      display: grid;
-      gap: clamp(1.2rem, 3vw, 1.6rem);
-      align-items: start;
-    }
-    @media (min-width: 900px) {
-      #${containerId} .cd-debate-body {
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-      }
-    }
-    #${containerId} .cd-debate-teams,
-    #${containerId} .cd-debate-contributions {
-      display: grid;
-      gap: 1rem;
-      background: #ffffff;
-      border-radius: 20px;
-      border: 1px solid rgba(226, 232, 240, 0.8);
-      padding: clamp(1rem, 2vw, 1.4rem);
-      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
-    }
-    #${containerId} .cd-debate-subheading {
-      margin: 0;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: rgba(79, 70, 229, 0.9);
-      font-weight: 700;
-    }
-    #${containerId} .cd-debate-grid {
-      display: grid;
-      gap: 0.9rem;
-    }
-    @media (min-width: 600px) {
-      #${containerId} .cd-debate-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      }
-    }
-    #${containerId} .cd-debate-team {
-      display: grid;
-      gap: 0.55rem;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      border-radius: 16px;
-      padding: 0.9rem;
-      background: rgba(249, 250, 251, 0.85);
-    }
-    #${containerId} .cd-debate-team-name {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 700;
-      color: #1e1b4b;
-    }
-    #${containerId} .cd-debate-team-stance {
-      margin: 0;
-      color: rgba(67, 56, 202, 0.85);
-      font-weight: 600;
-    }
-    #${containerId} .cd-debate-opening,
-    #${containerId} .cd-debate-closing {
-      margin: 0;
-      color: rgba(15, 23, 42, 0.8);
-      line-height: 1.5;
-      font-size: 0.92rem;
-    }
-    #${containerId} .cd-debate-points {
-      margin: 0;
-      padding-left: 1.1rem;
-      display: grid;
-      gap: 0.4rem;
-      color: rgba(15, 23, 42, 0.78);
-    }
-    #${containerId} .cd-debate-point {
-      line-height: 1.5;
-    }
-    #${containerId} .cd-debate-audience {
-      margin: 0;
-      border-radius: 16px;
-      border: 1px dashed rgba(79, 70, 229, 0.3);
-      padding: 0.9rem;
-      background: rgba(238, 242, 255, 0.6);
-      color: rgba(30, 41, 59, 0.85);
-      display: grid;
-      gap: 0.4rem;
-    }
-    #${containerId} .cd-debate-audience p {
-      margin: 0;
-      line-height: 1.45;
-    }
-    #${containerId} .cd-debate-contributions-header {
-      display: grid;
-      gap: 0.35rem;
-    }
-    #${containerId} .cd-debate-contributions-header p {
-      margin: 0;
-      color: rgba(15, 23, 42, 0.7);
-      font-size: 0.92rem;
-      line-height: 1.45;
-    }
-    #${containerId} .cd-debate-views {
-      display: grid;
-      gap: 0.75rem;
-    }
-    #${containerId} .cd-debate-view {
-      display: grid;
-      gap: 0.55rem;
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 0.9rem;
-      background: rgba(249, 250, 251, 0.9);
-    }
-    #${containerId} .cd-debate-view--pro {
-      border-color: rgba(34, 197, 94, 0.35);
-      background: rgba(220, 252, 231, 0.65);
-    }
-    #${containerId} .cd-debate-view--con {
-      border-color: rgba(56, 189, 248, 0.35);
-      background: rgba(224, 242, 254, 0.65);
-    }
-    #${containerId} .cd-debate-view-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.8rem;
-      color: rgba(15, 23, 42, 0.65);
-    }
-    #${containerId} .cd-debate-view-tag {
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    #${containerId} .cd-debate-view-votes {
-      font-weight: 600;
-    }
-    #${containerId} .cd-debate-view-headline {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 600;
-      color: rgba(15, 23, 42, 0.9);
-    }
-    #${containerId} .cd-debate-view-summary {
-      margin: 0;
-      color: rgba(15, 23, 42, 0.75);
-      line-height: 1.5;
-      font-size: 0.95rem;
-    }
-    #${containerId} .cd-debate-view-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.82rem;
-      color: rgba(15, 23, 42, 0.6);
-    }
-    #${containerId} .cd-debate-vote {
-      border: 1px solid rgba(79, 70, 229, 0.4);
-      background: rgba(79, 70, 229, 0.08);
-      color: #4f46e5;
-      border-radius: 999px;
-      padding: 0.4rem 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 140ms ease, box-shadow 140ms ease;
-    }
-    #${containerId} .cd-debate-vote:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 18px rgba(79, 70, 229, 0.18);
-    }
-    #${containerId} .cd-debate-status {
-      margin: 0;
-      font-size: 0.85rem;
-      padding: 0.55rem 0.75rem;
-      border-radius: 12px;
-      background: rgba(59, 130, 246, 0.12);
-      color: rgba(30, 64, 175, 0.9);
-    }
-    #${containerId} .cd-debate-status[data-tone="error"] {
-      background: rgba(239, 68, 68, 0.12);
-      color: rgba(185, 28, 28, 0.9);
-    }
-    #${containerId} .cd-debate-status[data-tone="success"] {
-      background: rgba(34, 197, 94, 0.12);
-      color: rgba(22, 101, 52, 0.9);
-    }
-    #${containerId} .cd-debate-form {
-      display: grid;
-      gap: 0.75rem;
-    }
-    #${containerId} .cd-debate-field {
-      display: grid;
-      gap: 0.35rem;
-      font-size: 0.85rem;
-      color: rgba(15, 23, 42, 0.7);
-    }
-    #${containerId} .cd-debate-field input,
-    #${containerId} .cd-debate-field textarea {
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      border-radius: 12px;
-      padding: 0.6rem 0.75rem;
-      font-family: inherit;
-      font-size: 0.95rem;
-      color: rgba(15, 23, 42, 0.88);
-      background: rgba(255, 255, 255, 0.95);
-      transition: border-color 160ms ease, box-shadow 160ms ease;
-    }
-    #${containerId} .cd-debate-field input:focus,
-    #${containerId} .cd-debate-field textarea:focus {
-      border-color: rgba(79, 70, 229, 0.6);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-      outline: none;
-    }
-    #${containerId} .cd-debate-field--choices {
-      border: none;
-      padding: 0;
-      margin: 0;
-    }
-    #${containerId} .cd-debate-field--choices > label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.45rem 0.6rem;
-      border-radius: 10px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(249, 250, 251, 0.7);
-      cursor: pointer;
-      transition: border-color 160ms ease, background 160ms ease;
-    }
-    #${containerId} .cd-debate-field--choices > label + label {
-      margin-top: 0.4rem;
-    }
-    #${containerId} .cd-debate-field--choices input:checked + span {
-      font-weight: 600;
-      color: rgba(79, 70, 229, 0.95);
-    }
-    #${containerId} .cd-debate-field--choices input:focus-visible + span {
-      outline: 2px solid rgba(79, 70, 229, 0.4);
-      outline-offset: 2px;
-    }
-    #${containerId} .cd-debate-form button[type="submit"] {
-      border: none;
-      border-radius: 12px;
-      background: #4f46e5;
-      color: #fff;
-      font-weight: 600;
-      padding: 0.65rem 1rem;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
-    }
-    #${containerId} .cd-debate-form button[type="submit"]:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 20px rgba(79, 70, 229, 0.2);
-      background: #4338ca;
-    }
-  `,
-    js: `(() => {
-      const container = document.getElementById('${containerId}');
-      if (!container) return;
-      const list = container.querySelector('[data-debate-views]');
-      const form = container.querySelector('[data-debate-form]');
-      const status = container.querySelector('[data-debate-status]');
-      const dataNode = container.querySelector('[data-debate-initial]');
-
-      const clampText = (value, max) => {
-        if (typeof value !== 'string') return '';
-        const trimmed = value.trim();
-        return trimmed.length > max ? trimmed.slice(0, max) : trimmed;
-      };
-
-        const normalise = (view, index = 0) => {
-          const stance = view && view.stance === 'con' ? 'con' : 'pro';
-          const fallbackId = 'view-' + Date.now().toString(36) + '-' + index;
-          const baseId = typeof view?.id === 'string' && view.id.trim() ? view.id.trim() : fallbackId;
-        const headline = clampText(view?.headline ?? '', 120);
-        const summary = clampText(view?.summary ?? '', 320);
-        const author = clampText(view?.author ?? '', 80);
-        const parsedVotes = Number.parseInt(view?.votes, 10);
-        return {
-          id: baseId,
-          stance,
-          headline,
-          summary,
-          author,
-          votes: Number.isFinite(parsedVotes) && parsedVotes > 0 ? parsedVotes : 1
-        };
-      };
-
-      let views = [];
-      if (dataNode) {
-        try {
-          const parsed = JSON.parse(dataNode.textContent || '[]');
-          if (Array.isArray(parsed)) {
-            views = parsed.map((item, index) => normalise(item, index));
+      <section class="cd-debate-simple" aria-labelledby="${containerId}-question">
+        <header class="cd-debate-simple-header">
+          <h3 id="${containerId}-question" class="cd-debate-simple-question">${escapeHtml(working.question)}</h3>
+          ${
+            working.instructions
+              ? `<p class="cd-debate-simple-instructions">${escapeHtml(working.instructions)}</p>`
+              : ''
           }
-        } catch (error) {
-          console.warn('Unable to parse learner views', error);
-        }
-        dataNode.remove();
+        </header>
+        <div class="cd-debate-simple-columns">
+          ${sides
+            .map(
+              (side) => `
+            <article class="cd-debate-simple-side" data-side-id="${escapeHtml(side.id)}">
+              <h4 class="cd-debate-simple-title">${escapeHtml(side.name || 'Debate side')}</h4>
+              <p class="cd-debate-simple-statement">${escapeHtml(
+                side.statement || 'Clarify this stance in the authoring view.'
+              )}</p>
+              <div class="cd-debate-simple-arguments" data-arguments></div>
+              <button type="button" class="cd-debate-simple-add" data-add aria-label="Add argument for ${escapeHtml(
+                side.name || 'this side'
+              )}">＋</button>
+              <form class="cd-debate-simple-form" data-form novalidate hidden>
+                <label class="cd-debate-simple-label">
+                  <span>Add your argument</span>
+                  <textarea rows="3" maxlength="280" placeholder="Share a concise point." required></textarea>
+                </label>
+                <div class="cd-debate-simple-form-actions">
+                  <button type="submit">Post</button>
+                  <button type="button" data-cancel>Cancel</button>
+                </div>
+              </form>
+            </article>`
+            )
+            .join('')}
+        </div>
+        <script type="application/json" data-debate-initial>${serializeForScript(scriptData)}</script>
+      </section>
+    `,
+    css: `
+      #${containerId} .cd-debate-simple {
+        display: grid;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.08));
+        border: 1px solid rgba(99, 102, 241, 0.14);
       }
-
-      const setStatus = (message, tone = 'info') => {
-        if (!status) return;
-        if (message) {
-          status.hidden = false;
-          status.textContent = message;
-          status.dataset.tone = tone;
-        } else {
-          status.hidden = true;
-          status.textContent = '';
-          delete status.dataset.tone;
+      #${containerId} .cd-debate-simple-header {
+        display: grid;
+        gap: 0.6rem;
+      }
+      #${containerId} .cd-debate-simple-question {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #1e1b4b;
+      }
+      #${containerId} .cd-debate-simple-instructions {
+        margin: 0;
+        font-size: 0.95rem;
+        color: rgba(30, 41, 59, 0.75);
+      }
+      #${containerId} .cd-debate-simple-columns {
+        display: grid;
+        gap: 1.2rem;
+      }
+      @media (min-width: 720px) {
+        #${containerId} .cd-debate-simple-columns {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+      }
+      #${containerId} .cd-debate-simple-side {
+        display: grid;
+        gap: 0.8rem;
+        padding: 1.1rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+      }
+      #${containerId} .cd-debate-simple-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #312e81;
+      }
+      #${containerId} .cd-debate-simple-statement {
+        margin: 0;
+        font-size: 0.95rem;
+        color: rgba(30, 41, 59, 0.75);
+      }
+      #${containerId} .cd-debate-simple-arguments {
+        display: grid;
+        gap: 0.75rem;
+      }
+      #${containerId} .cd-debate-simple-empty {
+        margin: 0;
+        font-size: 0.9rem;
+        color: rgba(30, 41, 59, 0.6);
+        font-style: italic;
+      }
+      #${containerId} .cd-debate-simple-argument {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0.9rem;
+        border-radius: 12px;
+        background: rgba(79, 70, 229, 0.08);
+        border: 1px solid rgba(79, 70, 229, 0.18);
+      }
+      #${containerId} .cd-debate-simple-argument p {
+        margin: 0;
+        flex: 1;
+        font-size: 0.95rem;
+      }
+      #${containerId} .cd-debate-simple-vote {
+        border: none;
+        background: rgba(79, 70, 229, 0.9);
+        color: #fff;
+        border-radius: 999px;
+        font-weight: 600;
+        padding: 0.35rem 0.75rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+      #${containerId} .cd-debate-simple-vote:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 18px rgba(79, 70, 229, 0.25);
+      }
+      #${containerId} .cd-debate-simple-add {
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 999px;
+        border: none;
+        background: rgba(30, 64, 175, 0.85);
+        color: #fff;
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+      #${containerId} .cd-debate-simple-add:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 20px rgba(30, 64, 175, 0.25);
+      }
+      #${containerId} .cd-debate-simple-form {
+        display: grid;
+        gap: 0.65rem;
+        background: rgba(14, 165, 233, 0.08);
+        border: 1px dashed rgba(14, 165, 233, 0.4);
+        padding: 0.75rem;
+        border-radius: 12px;
+      }
+      #${containerId} .cd-debate-simple-label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.9rem;
+        color: rgba(15, 23, 42, 0.8);
+      }
+      #${containerId} .cd-debate-simple-label textarea {
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        padding: 0.6rem 0.75rem;
+        font-family: inherit;
+      }
+      #${containerId} .cd-debate-simple-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+      #${containerId} .cd-debate-simple-form-actions button {
+        border-radius: 999px;
+        border: none;
+        padding: 0.45rem 1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #${containerId} .cd-debate-simple-form-actions button[type='submit'] {
+        background: rgba(14, 165, 233, 0.95);
+        color: #fff;
+      }
+      #${containerId} .cd-debate-simple-form-actions button[data-cancel] {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        color: rgba(15, 23, 42, 0.75);
+      }
+    `,
+    js: `(() => {
+      const root = document.getElementById('${containerId}');
+      if (!root) return;
+      const dataNode = root.querySelector('[data-debate-initial]');
+      if (!dataNode) return;
+      let data = null;
+      try {
+        data = JSON.parse(dataNode.textContent || '{}');
+      } catch (error) {
+        console.warn('Unable to parse debate data', error);
+        return;
+      }
+      dataNode.remove();
+      if (!data || !Array.isArray(data.sides)) return;
+
+      const sides = new Map();
+      data.sides.forEach((side) => {
+        sides.set(side.id, {
+          id: side.id,
+          name: side.name,
+          statement: side.statement,
+          arguments: Array.isArray(side.arguments)
+            ? side.arguments.map((argument) => ({
+                id: argument.id,
+                text: argument.text,
+                votes: Number.isFinite(argument.votes) ? argument.votes : Number.parseInt(argument.votes, 10) || 0
+              }))
+            : []
+        });
+      });
+
+      const escapeAttribute = (value) => {
+        if (window.CSS && typeof window.CSS.escape === 'function') {
+          return window.CSS.escape(value);
+        }
+        return String(value).replace(/["\\]/g, '\\$&');
       };
 
-      const render = () => {
+      const renderSide = (side, column) => {
+        const list = column.querySelector('[data-arguments]');
         if (!list) return;
         list.innerHTML = '';
-        if (!views.length) {
+        const argumentsList = [...side.arguments].sort((a, b) => {
+          if (b.votes !== a.votes) {
+            return b.votes - a.votes;
+          }
+          return a.text.localeCompare(b.text, undefined, { sensitivity: 'base' });
+        });
+        if (!argumentsList.length) {
           const empty = document.createElement('p');
-          empty.className = 'cd-debate-empty';
-          empty.textContent = 'No views yet. Be the first to contribute.';
-          list.append(empty);
+          empty.className = 'cd-debate-simple-empty';
+          empty.textContent = 'No arguments yet. Add one to get started.';
+          list.appendChild(empty);
           return;
         }
-
-        const sorted = [...views].sort((a, b) => {
-          if (b.votes !== a.votes) return b.votes - a.votes;
-          return a.headline.localeCompare(b.headline, undefined, { sensitivity: 'base' });
-        });
-
-        sorted.forEach((view) => {
-          const card = document.createElement('article');
-          card.className = 'cd-debate-view cd-debate-view--' + (view.stance === 'con' ? 'con' : 'pro');
-
-          const headerRow = document.createElement('div');
-          headerRow.className = 'cd-debate-view-header';
-
-          const tag = document.createElement('span');
-          tag.className = 'cd-debate-view-tag';
-          tag.textContent = view.stance === 'pro' ? 'Supports' : 'Challenges';
-
-          const votes = document.createElement('span');
-          votes.className = 'cd-debate-view-votes';
-          votes.textContent = view.votes + ' vote' + (view.votes === 1 ? '' : 's');
-
-          headerRow.append(tag, votes);
-
-          const headline = document.createElement('h5');
-          headline.className = 'cd-debate-view-headline';
-          headline.textContent = view.headline || (view.stance === 'pro' ? 'Supports the motion' : 'Challenges the motion');
-
-          const summary = document.createElement('p');
-          summary.className = 'cd-debate-view-summary';
-          summary.textContent = view.summary || 'Learner is still thinking through their reasoning.';
-
-          const footerRow = document.createElement('div');
-          footerRow.className = 'cd-debate-view-footer';
-
-          const author = document.createElement('span');
-          author.textContent = 'Shared by ' + (view.author || 'Anonymous learner');
-
+        argumentsList.forEach((argument) => {
+          const item = document.createElement('div');
+          item.className = 'cd-debate-simple-argument';
+          const text = document.createElement('p');
+          text.textContent = argument.text;
           const voteBtn = document.createElement('button');
           voteBtn.type = 'button';
-          voteBtn.className = 'cd-debate-vote';
-          voteBtn.textContent = 'Upvote';
+          voteBtn.className = 'cd-debate-simple-vote';
+          voteBtn.setAttribute('aria-label', 'Upvote argument');
+          voteBtn.innerHTML = '<span aria-hidden="true">👍</span><span>' + argument.votes + '</span>';
           voteBtn.addEventListener('click', () => {
-            view.votes += 1;
-            render();
+            argument.votes += 1;
+            renderSide(side, column);
           });
-
-          footerRow.append(author, voteBtn);
-
-          card.append(headerRow, headline, summary, footerRow);
-          list.append(card);
+          item.appendChild(text);
+          item.appendChild(voteBtn);
+          list.appendChild(item);
         });
       };
 
-      render();
-
-      if (form) {
+      sides.forEach((side, sideId) => {
+        const column = root.querySelector('[data-side-id="' + escapeAttribute(sideId) + '"]');
+        if (!column) return;
+        const addBtn = column.querySelector('[data-add]');
+        const form = column.querySelector('[data-form]');
+        if (!addBtn || !form) return;
+        const textarea = form.querySelector('textarea');
+        const cancelBtn = form.querySelector('[data-cancel]');
+        addBtn.addEventListener('click', () => {
+          form.hidden = false;
+          textarea && textarea.focus();
+        });
+        cancelBtn?.addEventListener('click', () => {
+          form.hidden = true;
+          if (textarea) textarea.value = '';
+        });
         form.addEventListener('submit', (event) => {
           event.preventDefault();
-          setStatus('');
-          const formData = new FormData(form);
-          const name = clampText(formData.get('name') || '', 80);
-          const stanceValue = formData.get('stance');
-          const stance = stanceValue === 'con' ? 'con' : 'pro';
-          const headline = clampText(formData.get('headline') || '', 120);
-          const summary = clampText(formData.get('summary') || '', 320);
-
-          if (!name || !headline || !summary) {
-            setStatus('Add your name, a headline, and a short explanation to post.', 'error');
+          if (!textarea) return;
+          const value = textarea.value.trim();
+          if (!value) {
             return;
           }
-
-          const view = normalise(
-            {
-              id: 'view-' + Date.now().toString(36) + '-' + views.length,
-              author: name,
-              stance,
-              headline,
-              summary,
-              votes: 1
-            },
-            views.length
-          );
-
-          views.push(view);
-          render();
-          form.reset();
-          const defaultRadio = form.querySelector('input[name="stance"][value="pro"]');
-          if (defaultRadio) {
-            defaultRadio.checked = true;
-          }
-          setStatus('Thanks! Your view is now visible to the group.', 'success');
+          side.arguments.push({
+            id: 'arg-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2),
+            text: value,
+            votes: 0
+          });
+          textarea.value = '';
+          form.hidden = true;
+          renderSide(side, column);
         });
-      }
+        renderSide(side, column);
+      });
     })();`
   };
 };
@@ -1368,9 +874,9 @@ const learningTip = {
   intro: 'Structured debates surface contrasting claims so learners can analyse evidence, reasoning, and delivery moves.',
   when: 'Use them after research or inquiry cycles when learners are ready to argue from evidence and synthesise multiple sources.',
   considerations: [
-    'Model the structure: opening statements, alternating evidence, and concise closings keep the exchange focused.',
-    'Assign listening jobs or note catchers so the audience evaluates argument quality instead of picking a favourite speaker.',
-    'Invite teams to revise claims after the debate by citing the most persuasive counterarguments they heard.'
+    'Model how to connect claims to the most relevant data or anecdotes so arguments stay concise.',
+    'Invite listeners to record the most persuasive point from each column before voting.',
+    'Plan a synthesis round where teams revise or extend their arguments using feedback from the audience.'
   ],
   examples: [
     'History: Debate whether a revolution achieved its stated goals.',
