@@ -638,6 +638,21 @@ const embedTemplate = (data, containerId) => {
   return { html, css, js };
 };
 
+const learningTip = {
+  intro: 'Branching scenarios let learners practise complex judgement calls in a safe, feedback-rich sandbox.',
+  when: 'Use them for conversations, ethical dilemmas, or procedural decisions where the reasoning path matters as much as the final answer.',
+  considerations: [
+    'Anchor each scene in a realistic context with dialogue and cues your learners would actually encounter.',
+    'Sketch the decision tree first and keep it manageable—three to four key decision points usually provide enough depth without overwhelming authors or learners.',
+    'Deliver feedback or reflection prompts after every choice so learners connect their decision to its impact.'
+  ],
+  examples: [
+    'Customer service coaching: guide a representative through de-escalating an upset client.',
+    'Clinical reasoning drill: select assessments and interventions for a patient with evolving symptoms.',
+    'Academic integrity lesson: explore responses when a peer shares unauthorized materials and evaluate consequences.'
+  ]
+};
+
 export const branchingScenarios = {
   id: 'branchingScenarios',
   label: 'Branching scenarios',
@@ -645,5 +660,6 @@ export const branchingScenarios = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };

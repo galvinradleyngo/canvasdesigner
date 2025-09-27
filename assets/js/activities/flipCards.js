@@ -725,6 +725,21 @@ const embedTemplate = (data, containerId) => {
   };
 };
 
+const learningTip = {
+  intro: 'Flip cards create quick retrieval practice loops that strengthen recall through repetition.',
+  when: 'Use them for rapid-fire review of vocabulary, processes, or paired concepts where learners benefit from self-checking.',
+  considerations: [
+    'Keep prompts and answers concise so flipping feels quick and confidence-building.',
+    'Group related cards into focused sets (6–8 works well) to prevent cognitive overload.',
+    'Mix representations—text, icons, or simple images—to deepen retrieval cues.'
+  ],
+  examples: [
+    'Language learning: match academic vocabulary to plain-language definitions.',
+    'STEM refresher: pair formulas with everyday scenarios that require them.',
+    'Nursing prep: flip between patient symptoms and likely underlying conditions.'
+  ]
+};
+
 export const flipCards = {
   id: 'flipCards',
   label: 'Flip cards',
@@ -732,5 +747,6 @@ export const flipCards = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };

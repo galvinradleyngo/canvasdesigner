@@ -372,6 +372,21 @@ const embedTemplate = (data, containerId) => {
   };
 };
 
+const learningTip = {
+  intro: 'Accordions break dense information into digestible bites while letting learners control the pace.',
+  when: 'Use them to structure multi-step processes, FAQs, or concept comparisons where learners may explore sections in any order.',
+  considerations: [
+    'Write headings that read like summary statements so skim readers grasp the key idea before expanding.',
+    'Balance the amount of media and text in each pane so no single section feels overwhelming.',
+    'Layer in prompts, visuals, or follow-up questions inside panels to keep learners actively processing what they open.'
+  ],
+  examples: [
+    'Course orientation: present syllabus highlights, grading policies, and support resources as expandable sections.',
+    'Lab protocol: outline each experiment phase with embedded safety reminders in the relevant pane.',
+    'Case study debrief: reveal context, evidence, and instructor analysis one panel at a time.'
+  ]
+};
+
 export const accordion = {
   id: 'accordion',
   label: 'Accordion',
@@ -379,5 +394,6 @@ export const accordion = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };

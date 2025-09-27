@@ -946,6 +946,21 @@ const embedTemplate = (data, containerId) => {
   };
 };
 
+const learningTip = {
+  intro: 'Drag & drop matchers turn recall into an active puzzle so learners can test their understanding before high-stakes assessments.',
+  when: 'Use them when learners need to connect pairs, build sequences, or sort concepts and will benefit from immediate, low-risk feedback.',
+  considerations: [
+    'Keep instructions explicit and limit the total number of draggable items so the task stays focused.',
+    'Include plausible distractors, but avoid trick options that rely on tiny wording differences.',
+    'Confirm keyboard alternatives are clear and add a reflective prompt or explanation when learners check their work.'
+  ],
+  examples: [
+    'Vocabulary clinic: match academic terms to real-world scenarios they describe.',
+    'Anatomy lab: drag structure labels onto the correct location on a diagram.',
+    'Project management sprint: pair deliverables with the stakeholder accountable for each one.'
+  ]
+};
+
 export const dragDrop = {
   id: 'dragDrop',
   label: 'Drag & Drop',
@@ -953,6 +968,7 @@ export const dragDrop = {
   example,
   buildEditor,
   renderPreview,
-  embedTemplate
+  embedTemplate,
+  learningTip
 };
 
