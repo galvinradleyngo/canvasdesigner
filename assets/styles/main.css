@@ -1737,6 +1737,235 @@ textarea:focus {
   transform: scale(1.1);
 }
 
+.caption-this-preview {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.08));
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.1);
+}
+
+.caption-this-prompt {
+  margin: 0;
+  font-size: 0.98rem;
+  color: rgba(15, 23, 42, 0.8);
+}
+
+.caption-this-stage {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.caption-this-nav {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(79, 70, 229, 0.28);
+  background: rgba(79, 70, 229, 0.12);
+  color: #4338ca;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.caption-this-nav:hover,
+.caption-this-nav:focus-visible {
+  transform: translateY(-1px);
+  background: rgba(79, 70, 229, 0.2);
+  box-shadow: 0 14px 26px rgba(79, 70, 229, 0.25);
+}
+
+.caption-this-nav:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.caption-this-figure {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+
+.caption-this-image {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 18px;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.18);
+}
+
+.caption-this-placeholder {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  border-radius: 18px;
+  background: repeating-linear-gradient(45deg, rgba(148, 163, 184, 0.16), rgba(148, 163, 184, 0.16) 14px, rgba(203, 213, 225, 0.26) 14px, rgba(203, 213, 225, 0.26) 28px);
+  color: rgba(51, 65, 85, 0.72);
+  font-size: 0.95rem;
+}
+
+.caption-this-image-prompt {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.caption-this-indicator {
+  text-align: center;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.caption-this-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.caption-this-button {
+  border-radius: 999px;
+  border: 1px solid rgba(14, 165, 233, 0.38);
+  background: rgba(14, 165, 233, 0.12);
+  color: #0f172a;
+  font-weight: 600;
+  padding: 10px 22px;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.caption-this-button:hover,
+.caption-this-button:focus-visible {
+  transform: translateY(-1px);
+  background: rgba(14, 165, 233, 0.22);
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.2);
+}
+
+.caption-this-button:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.caption-this-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(14, 165, 233, 0.45);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.caption-this-form-label {
+  display: grid;
+  gap: 8px;
+  font-size: 0.92rem;
+  color: rgba(15, 23, 42, 0.8);
+}
+
+.caption-this-form textarea {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 10px 12px;
+  font-family: inherit;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.caption-this-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.caption-this-form-actions button {
+  border-radius: 999px;
+  border: none;
+  padding: 8px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.caption-this-form-actions button[type='submit'] {
+  background: rgba(59, 130, 246, 0.95);
+  color: #fff;
+}
+
+.caption-this-form-actions button[type='button'] {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: rgba(30, 41, 59, 0.78);
+}
+
+.caption-this-list {
+  display: grid;
+  gap: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 16px;
+}
+
+.caption-this-empty {
+  margin: 0;
+  font-size: 0.92rem;
+  color: rgba(71, 85, 105, 0.72);
+}
+
+.caption-this-captions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.caption-this-caption {
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  background: rgba(99, 102, 241, 0.06);
+  padding: 12px 14px;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+}
+
+.caption-this-caption p {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.caption-this-caption-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(71, 85, 105, 0.7);
+}
+
+@media (max-width: 640px) {
+  .caption-this-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .caption-this-nav {
+    justify-self: center;
+  }
+
+  .caption-this-figure {
+    order: -1;
+  }
+}
+
 @media (max-width: 768px) {
   .carousel-preview-slide img,
   .carousel-preview-placeholder {
@@ -2065,6 +2294,76 @@ textarea:focus {
   flex-direction: column;
   gap: 12px;
   position: relative;
+}
+
+.caption-editor-preview {
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.15);
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.caption-editor-preview img {
+  width: 100%;
+  display: block;
+  max-height: 220px;
+  object-fit: cover;
+}
+
+.caption-editor-placeholder {
+  padding: 20px 16px;
+  text-align: center;
+  color: rgba(15, 23, 42, 0.62);
+  font-size: 0.9rem;
+}
+
+.caption-editor-archive {
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.08);
+  padding: 12px 16px;
+}
+
+.caption-editor-archive-summary {
+  margin: 0;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.78);
+  cursor: pointer;
+  list-style: none;
+}
+
+.caption-editor-archive-summary::-webkit-details-marker {
+  display: none;
+}
+
+.caption-editor-archive-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.caption-editor-archive-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  gap: 8px;
+}
+
+.caption-editor-archive-item p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.caption-editor-archive-meta {
+  font-size: 0.78rem;
+  color: rgba(71, 85, 105, 0.7);
 }
 
 .immersive-editor-actions {
