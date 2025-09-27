@@ -128,6 +128,7 @@ const modalState = {
 
 let previewHidden = false;
 let tipsExpanded = true;
+let tipsExpandedPreference = true;
 
 const isElementVisible = (element) => {
   if (!element) return false;
@@ -167,8 +168,11 @@ const focusElement = (element) => {
 
 const normaliseText = (value) => (typeof value === 'string' ? value.trim() : '');
 
-const setTipsExpanded = (expanded) => {
+const setTipsExpanded = (expanded, { persistPreference = true } = {}) => {
   tipsExpanded = Boolean(expanded);
+  if (persistPreference) {
+    tipsExpandedPreference = tipsExpanded;
+  }
   if (elements.tipToggle) {
     elements.tipToggle.setAttribute('aria-expanded', tipsExpanded ? 'true' : 'false');
   }
@@ -221,7 +225,7 @@ const updateActivityTip = () => {
       elements.tipPanel.setAttribute('hidden', '');
       elements.tipPanel.removeAttribute('aria-label');
     }
-    setTipsExpanded(false);
+    setTipsExpanded(false, { persistPreference: false });
     return;
   }
 
@@ -253,8 +257,8 @@ const updateActivityTip = () => {
   const hasExamples = populateList(elements.tipExamples, tip.examples);
   updateSectionVisibility(elements.tipExamplesSection, hasExamples);
 
-  const shouldExpand = tipsExpanded && !elements.tipToggle.disabled;
-  setTipsExpanded(shouldExpand);
+  const shouldExpand = tipsExpandedPreference && !elements.tipToggle.disabled;
+  setTipsExpanded(shouldExpand, { persistPreference: false });
 };
 
 setTipsExpanded(true);
