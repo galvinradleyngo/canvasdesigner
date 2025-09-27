@@ -23,7 +23,7 @@ Follow these steps to secure Firestore access with a shared service password and
 2. Authenticate the CLI: `firebase login`.
 3. In your local project directory, deploy the included rules file: `firebase deploy --only firestore:rules`.
 
-The `firestore.rules` file restricts document writes in the `canvasDesignerActivities` collection to the service user email while keeping reads public.
+The `firestore.rules` file restricts document writes in the `canvasDesignerActivities` collection to the service user email while keeping reads public. It also opens the `wordCloudResponses` collection for public read/write access so learners can add words to shared clouds without signing in. Adjust these rules if your deployment requires stricter controls.
 
 ## 4. Optional: rotate the shared password later
 - Generate a strong password in the Firebase console and update the base64-encoded string in `assets/js/firebaseClient.js`.

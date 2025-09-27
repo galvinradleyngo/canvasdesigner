@@ -19,7 +19,8 @@ const lazyActivityLoaders = {
   timeline: async () => (await import('./activities/timeline.js')).timeline,
   branchingScenarios: async () => (await import('./activities/branchingScenarios.js')).branchingScenarios,
   imageCarousel: async () => (await import('./activities/imageCarousel.js')).imageCarousel,
-  immersiveText: async () => (await import('./activities/immersiveText.js')).immersiveText
+  immersiveText: async () => (await import('./activities/immersiveText.js')).immersiveText,
+  wordCloud: async () => (await import('./activities/wordCloud.js')).wordCloud
 };
 
 const pendingActivityLoads = new Map();

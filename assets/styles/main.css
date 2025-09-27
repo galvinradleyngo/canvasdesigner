@@ -876,6 +876,100 @@ textarea:focus {
   border: 1px solid rgba(99, 102, 241, 0.14);
 }
 
+.wordcloud-preview {
+  display: grid;
+  gap: 1rem;
+  padding: 24px;
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.wordcloud-preview-header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.wordcloud-preview-prompt {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.92);
+}
+
+.wordcloud-preview-instructions {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.65);
+  font-size: 0.95rem;
+}
+
+.wordcloud-preview-form {
+  display: grid;
+  gap: 0.5rem;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.wordcloud-preview-form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(79, 70, 229, 0.85);
+}
+
+.wordcloud-preview-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wordcloud-preview-input input {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  padding: 0.55rem 1rem;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.wordcloud-preview-input button {
+  border-radius: 999px;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  background: rgba(99, 102, 241, 0.9);
+  color: #fff;
+  font-weight: 600;
+}
+
+.wordcloud-preview-cloud {
+  min-height: 180px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px dashed rgba(99, 102, 241, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.wordcloud-preview-word {
+  font-weight: 600;
+  transition: transform 160ms ease;
+}
+
+.wordcloud-preview-word:hover {
+  transform: translateY(-2px);
+}
+
+.wordcloud-preview-empty {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.55);
+  font-style: italic;
+}
+
 .branching-intro h3 {
   margin: 0 0 8px;
   font-size: 1.1rem;
@@ -1483,6 +1577,51 @@ textarea:focus {
 .editor-item-actions {
   display: flex;
   gap: 8px;
+}
+
+.editor-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.editor-section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.editor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.color-palette-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.color-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.color-swatch input[type='color'] {
+  width: 100%;
+  height: 100%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
 }
 
 .dragdrop-editor-section {
