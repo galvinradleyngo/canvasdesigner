@@ -1,4 +1,4 @@
-import { clone, uid, escapeHtml } from '../utils.js';
+import { clone, compressImageFile, uid, escapeHtml } from '../utils.js';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -54,21 +54,22 @@ const buildEditor = (container, data, onUpdate) => {
     if (refresh) rerender();
   };
 
-  const handleImageUpload = (file) => {
+  const handleImageUpload = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
+    try {
+      const src = await compressImageFile(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
       const existingAlt = working.image && typeof working.image.alt === 'string' ? working.image.alt : '';
       const defaultAlt = file
         ? file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
         : '';
       working.image = {
-        src: reader.result,
+        src,
         alt: existingAlt || defaultAlt
       };
       emit();
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Unable to process uploaded image.', error);
+    }
   };
 
   const rerender = () => {
@@ -83,9 +84,10 @@ const buildEditor = (container, data, onUpdate) => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.addEventListener('change', (event) => {
-      const [file] = event.target.files;
-      handleImageUpload(file);
+    fileInput.addEventListener('change', async (event) => {
+      const [file] = event.target.files || [];
+      await handleImageUpload(file);
+      event.target.value = '';
     });
     uploadLabel.append(fileInput);
     imageSection.append(uploadLabel);
