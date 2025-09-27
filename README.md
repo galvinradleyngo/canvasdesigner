@@ -1,10 +1,10 @@
 # Canvas Designer Studio
 
-Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for nine activity types: flip cards, accordion reveals, timelines, drag & drop, hotspots, immersive text explorations, branching scenarios, image carousels, and collaborative word clouds.
+Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for ten activity types: flip cards, accordion reveals, timelines, drag & drop, hotspots, immersive text explorations, branching scenarios, image carousels, collaborative word clouds, and structured debates.
 
 ## Features
 
-- 🎯 **Activity builder** – Guided authoring panels for flip cards, accordions, timelines, drag & drop matchers, hotspot explorations, immersive text, branching scenarios, image carousels, and collaborative word clouds.
+- 🎯 **Activity builder** – Guided authoring panels for flip cards, accordions, timelines, drag & drop matchers, hotspot explorations, immersive text, branching scenarios, image carousels, collaborative word clouds, and structured debates.
 - 🌥️ **Collaborative word clouds** – Learners submit entries directly inside the embed while authors control per-participant contributions and the number of words displayed in the cloud.
 - ✨ **Live preview** – Interactions update in real time with accessible controls and animation toggles.
 - ☁️ **Cloud saving** – Store and retrieve activities securely in Firebase so they follow you across devices.

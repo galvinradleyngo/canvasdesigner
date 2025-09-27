@@ -7,6 +7,7 @@ import { branchingScenarios } from './branchingScenarios.js';
 import { imageCarousel } from './imageCarousel.js';
 import { immersiveText } from './immersiveText.js';
 import { wordCloud } from './wordCloud.js';
+import { debate } from './debate.js';
 
 export const activities = {
   [flipCards.id]: flipCards,
@@ -17,7 +18,8 @@ export const activities = {
   [branchingScenarios.id]: branchingScenarios,
   [imageCarousel.id]: imageCarousel,
   [immersiveText.id]: immersiveText,
-  [wordCloud.id]: wordCloud
+  [wordCloud.id]: wordCloud,
+  [debate.id]: debate
 };
 
 export const defaultActivityId = flipCards.id;
