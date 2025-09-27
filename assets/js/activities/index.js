@@ -8,6 +8,7 @@ import { imageCarousel } from './imageCarousel.js';
 import { immersiveText } from './immersiveText.js';
 import { wordCloud } from './wordCloud.js';
 import { debate } from './debate.js';
+import { captionThis } from './captionThis.js';
 
 export const activities = {
   [flipCards.id]: flipCards,
@@ -19,7 +20,8 @@ export const activities = {
   [imageCarousel.id]: imageCarousel,
   [immersiveText.id]: immersiveText,
   [wordCloud.id]: wordCloud,
-  [debate.id]: debate
+  [debate.id]: debate,
+  [captionThis.id]: captionThis
 };
 
 export const defaultActivityId = flipCards.id;

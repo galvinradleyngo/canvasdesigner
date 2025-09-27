@@ -6,6 +6,7 @@ import { timeline } from './timeline.js';
 import { branchingScenarios } from './branchingScenarios.js';
 import { imageCarousel } from './imageCarousel.js';
 import { debate } from './debate.js';
+import { captionThis } from './captionThis.js';
 
 export const activities = {
   [flipCards.id]: flipCards,
@@ -15,7 +16,8 @@ export const activities = {
   [timeline.id]: timeline,
   [branchingScenarios.id]: branchingScenarios,
   [imageCarousel.id]: imageCarousel,
-  [debate.id]: debate
+  [debate.id]: debate,
+  [captionThis.id]: captionThis
 };
 
 export const defaultActivityId = flipCards.id;

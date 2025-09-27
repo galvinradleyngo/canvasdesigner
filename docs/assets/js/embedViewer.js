@@ -240,7 +240,11 @@ const renderActivity = (root, payload) => {
 
   const content = payload.content && typeof payload.content === 'object' ? payload.content : {};
   const containerId = `cd-activity-${Date.now().toString(36)}`;
-  const parts = activity.embedTemplate(content, containerId);
+  const parts = activity.embedTemplate(content, containerId, {
+    payload,
+    projectId: typeof payload.id === 'string' ? payload.id : null,
+    type
+  });
 
   const fragment = document.createDocumentFragment();
 
