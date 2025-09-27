@@ -981,7 +981,8 @@ const embedTemplate = (data, containerId, context = {}) => {
         entry.captions.forEach((caption) => {
           if (!caption || typeof caption.text !== 'string') return;
           image.captions.push({
-            id: caption.id || `caption-${Math.random().toString(36).slice(2)}`,
+            id:
+              caption.id || 'caption-' + Math.random().toString(36).slice(2),
             text: caption.text,
             createdAt: caption.createdAt || new Date().toISOString(),
             source: 'learner'
@@ -1065,7 +1066,7 @@ const embedTemplate = (data, containerId, context = {}) => {
         indicator.textContent = 'No images configured yet.';
         return;
       }
-      indicator.textContent = `${state.index + 1} of ${images.length}`;
+      indicator.textContent = (state.index + 1) + ' of ' + images.length;
     };
 
     const renderImage = () => {
@@ -1123,7 +1124,7 @@ const embedTemplate = (data, containerId, context = {}) => {
           if (formatted) {
             const meta = document.createElement('p');
             meta.className = 'cd-caption-meta';
-            meta.textContent = `Saved ${formatted}`;
+            meta.textContent = 'Saved ' + formatted;
             item.append(meta);
           }
           list.append(item);
@@ -1203,7 +1204,13 @@ const embedTemplate = (data, containerId, context = {}) => {
       const active = getActive();
       if (!active) return;
       const entry = {
-        id: `caption-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        id:
+          'caption-' +
+          Date.now().toString(36) +
+          '-' +
+          Math.random()
+            .toString(36)
+            .slice(2, 6),
         text: value,
         createdAt: new Date().toISOString(),
         source: 'learner'
