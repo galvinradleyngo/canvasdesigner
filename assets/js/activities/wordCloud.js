@@ -405,6 +405,20 @@ const renderPreview = (container, data) => {
   container.innerHTML = '';
   const working = ensureWorkingState(data);
 
+  const state = (() => {
+    if (!container.__wordcloudPreviewState) {
+      container.__wordcloudPreviewState = {
+        entries: new Map(),
+        reveal: false
+      };
+    }
+    const existing = container.__wordcloudPreviewState;
+    if (!(existing.entries instanceof Map)) {
+      existing.entries = new Map();
+    }
+    return existing;
+  })();
+
   const wrapper = document.createElement('div');
   wrapper.className = 'wordcloud-preview';
 
@@ -421,68 +435,211 @@ const renderPreview = (container, data) => {
 
   header.append(prompt, instructions);
 
-  const entryForm = document.createElement('div');
+  const entryForm = document.createElement('form');
   entryForm.className = 'wordcloud-preview-form';
+  entryForm.setAttribute('novalidate', '');
 
   const entryLabel = document.createElement('span');
   entryLabel.className = 'wordcloud-preview-form-label';
-  entryLabel.textContent = 'Participants submit words in the embedded form:';
+  entryLabel.textContent = `Test up to ${working.maxEntriesPerParticipant} word${
+    working.maxEntriesPerParticipant === 1 ? '' : 's'
+  }:`;
 
   const entryControls = document.createElement('div');
   entryControls.className = 'wordcloud-preview-input';
 
-  const entryInput = document.createElement('input');
-  entryInput.type = 'text';
-  entryInput.disabled = true;
-  entryInput.placeholder = 'Add your word…';
+  const inputs = [];
+  for (let index = 0; index < working.maxEntriesPerParticipant; index += 1) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = `Word ${index + 1}`;
+    input.maxLength = 36;
+    inputs.push(input);
+    entryControls.append(input);
+  }
 
-  const entryButton = document.createElement('button');
-  entryButton.type = 'button';
-  entryButton.disabled = true;
-  entryButton.textContent = 'Submit';
+  const submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  submitButton.textContent = 'Add to preview';
+  entryControls.append(submitButton);
 
-  entryControls.append(entryInput, entryButton);
-  entryForm.append(entryLabel, entryControls);
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'wordcloud-preview-reset';
+  resetButton.textContent = 'Reset';
+
+  const status = document.createElement('p');
+  status.className = 'wordcloud-preview-status';
+  status.hidden = true;
+
+  entryForm.append(entryLabel, entryControls, status);
+
+  const actions = document.createElement('div');
+  actions.className = 'wordcloud-preview-actions';
+
+  const toggleButton = document.createElement('button');
+  toggleButton.type = 'button';
+  toggleButton.className = 'wordcloud-preview-toggle';
+  toggleButton.textContent = state.reveal ? 'Hide word cloud' : 'Show word cloud';
+
+  actions.append(toggleButton, resetButton);
 
   const cloud = document.createElement('div');
   cloud.className = 'wordcloud-preview-cloud';
 
-  const entries = working.starterWords
-    .filter((word) => typeof word.text === 'string' && word.text.trim().length)
-    .map((word) => ({
-      text: word.text.trim(),
-      weight: clampWeight(word.weight)
-    }));
+  const getStarterEntries = () =>
+    working.starterWords
+      .filter((word) => typeof word.text === 'string' && word.text.trim().length)
+      .map((word) => ({
+        key: slugify(word.text.trim()),
+        text: word.text.trim(),
+        count: clampWeight(word.weight)
+      }))
+      .filter((entry) => entry.key);
 
-  if (!entries.length) {
-    const empty = document.createElement('p');
-    empty.className = 'wordcloud-preview-empty';
-    empty.textContent = 'Starter words appear here until learners add their own.';
-    cloud.append(empty);
-  } else {
+  const applyStatus = (message, tone = 'info') => {
+    status.textContent = message;
+    status.dataset.tone = tone;
+    status.hidden = false;
+  };
+
+  const clearStatus = () => {
+    status.hidden = true;
+  };
+
+  const renderCloud = () => {
+    cloud.innerHTML = '';
+    if (!state.reveal) {
+      const hidden = document.createElement('p');
+      hidden.className = 'wordcloud-preview-empty';
+      hidden.textContent = 'Word cloud hidden. Select “Show word cloud” to reveal starter words and test submissions.';
+      cloud.append(hidden);
+      toggleButton.textContent = 'Show word cloud';
+      return;
+    }
+
+    const combined = new Map();
+
+    getStarterEntries().forEach((entry) => {
+      const existing = combined.get(entry.key);
+      if (!existing || entry.count > existing.count) {
+        combined.set(entry.key, { ...entry });
+      }
+    });
+
+    state.entries.forEach((entry) => {
+      if (!entry || !entry.key) {
+        return;
+      }
+      const current = combined.get(entry.key);
+      const nextCount = Number.isFinite(entry.count) ? entry.count : 1;
+      if (current) {
+        combined.set(entry.key, { ...current, count: current.count + nextCount });
+      } else {
+        combined.set(entry.key, { ...entry, count: nextCount });
+      }
+    });
+
+    const entries = Array.from(combined.values());
+
+    if (!entries.length) {
+      const empty = document.createElement('p');
+      empty.className = 'wordcloud-preview-empty';
+      empty.textContent = 'Add words above and reveal the cloud to see how they appear.';
+      cloud.append(empty);
+      toggleButton.textContent = 'Hide word cloud';
+      return;
+    }
+
     entries.sort((a, b) => {
-      if (b.weight !== a.weight) {
-        return b.weight - a.weight;
+      if (b.count !== a.count) {
+        return b.count - a.count;
       }
       return a.text.localeCompare(b.text, undefined, { sensitivity: 'base' });
     });
+
     const limitedEntries = entries.slice(0, clampDisplayCount(working.maxWordsDisplayed));
-    const maxWeight = limitedEntries[0]?.weight || 1;
+    const maxCount = limitedEntries[0]?.count || 1;
     limitedEntries.forEach((entry, index) => {
       const span = document.createElement('span');
       span.className = 'wordcloud-preview-word';
       span.textContent = entry.text;
-      const scale = entry.weight / maxWeight;
+      const scale = entry.count / maxCount;
       const size = 1 + scale * 1.4;
       span.style.fontSize = `${size.toFixed(2)}rem`;
       const color = working.palette[index % working.palette.length];
       span.style.color = color;
       cloud.append(span);
     });
-  }
+    toggleButton.textContent = 'Hide word cloud';
+  };
 
-  wrapper.append(header, entryForm, cloud);
+  const normalisePreviewWord = (value) => {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    const trimmed = value.trim().replace(/\s+/g, ' ');
+    if (!trimmed) {
+      return '';
+    }
+    const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
+    return cleaned.slice(0, 36);
+  };
+
+  entryForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    clearStatus();
+    let added = 0;
+    inputs.forEach((input) => {
+      const word = normalisePreviewWord(input.value);
+      if (!word) {
+        return;
+      }
+      const key = slugify(word);
+      if (!key) {
+        return;
+      }
+      const existing = state.entries.get(key);
+      if (existing) {
+        existing.count += 1;
+        existing.text = word;
+        state.entries.set(key, existing);
+      } else {
+        state.entries.set(key, { key, text: word, count: 1 });
+      }
+      added += 1;
+    });
+
+    if (added) {
+      applyStatus(`Added ${added} word${added === 1 ? '' : 's'} to the preview cloud.`);
+      inputs.forEach((input) => {
+        input.value = '';
+      });
+      renderCloud();
+    } else {
+      applyStatus('Enter at least one word to test the cloud.', 'error');
+    }
+  });
+
+  toggleButton.addEventListener('click', () => {
+    state.reveal = !state.reveal;
+    renderCloud();
+  });
+
+  resetButton.addEventListener('click', () => {
+    state.entries.clear();
+    state.reveal = false;
+    inputs.forEach((input) => {
+      input.value = '';
+    });
+    clearStatus();
+    renderCloud();
+  });
+
+  wrapper.append(header, entryForm, actions, cloud);
   container.append(wrapper);
+
+  renderCloud();
 };
 
 const serializeForScript = (value) => JSON.stringify(value).replace(/</g, '\\u003c');

@@ -641,7 +641,7 @@ const renderPreview = (container, data, { playAnimations = true } = {}) => {
   }
 
   const quizState = new Map();
-  let activeId = annotations[0].id;
+  let activeId = null;
 
   const updateMarkerState = () => {
     bodyContent.querySelectorAll('.cd-immersive-marker').forEach((marker) => {
@@ -775,12 +775,16 @@ const renderPreview = (container, data, { playAnimations = true } = {}) => {
     }
   };
 
+  const handleActivate = (id) => {
+    activeId = activeId === id ? null : id;
+    updateMarkerState();
+    renderDetail();
+  };
+
   bodyContent.addEventListener('click', (event) => {
     const marker = event.target.closest('.cd-immersive-marker');
     if (!marker) return;
-    activeId = marker.dataset.annotationId;
-    updateMarkerState();
-    renderDetail();
+    handleActivate(marker.dataset.annotationId);
   });
 
   updateMarkerState();
