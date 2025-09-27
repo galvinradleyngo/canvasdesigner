@@ -1262,6 +1262,51 @@ textarea:focus {
   position: relative;
 }
 
+.immersive-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.immersive-annotation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.immersive-annotation-item {
+  gap: 14px;
+}
+
+.immersive-annotation-summary {
+  margin: 0;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.75);
+}
+
+.immersive-annotation-range {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(15, 23, 42, 0.56);
+}
+
+.immersive-quiz-options-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.immersive-quiz-option-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.immersive-quiz-option-row input[type='text'] {
+  width: 100%;
+}
+
 .editor-item-header {
   display: flex;
   justify-content: space-between;
@@ -1506,6 +1551,213 @@ textarea:focus {
   margin: 0;
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.cd-immersive {
+  display: grid;
+  gap: 1.6rem;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr);
+  align-items: flex-start;
+}
+
+.cd-immersive-body {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  padding: 1.4rem 1.6rem;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 24px 42px rgba(15, 23, 42, 0.14);
+}
+
+.cd-immersive-body-content {
+  white-space: pre-wrap;
+  line-height: 1.65;
+  font-size: 1.05rem;
+  color: rgba(15, 23, 42, 0.92);
+}
+
+.cd-immersive-marker {
+  appearance: none;
+  border: none;
+  background: rgba(99, 102, 241, 0.18);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  margin: 0 -0.12rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  font: inherit;
+}
+
+.cd-immersive-marker-text {
+  display: inline;
+}
+
+.cd-immersive-marker-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.28);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #312e81;
+}
+
+.cd-immersive-marker--quiz {
+  background: rgba(14, 165, 233, 0.18);
+}
+
+.cd-immersive-marker--quiz .cd-immersive-marker-badge {
+  background: rgba(14, 165, 233, 0.28);
+  color: #0c4a6e;
+}
+
+.cd-immersive-marker--pin {
+  padding: 0.1rem;
+}
+
+.cd-immersive-marker:hover,
+.cd-immersive-marker:focus-visible,
+.cd-immersive-marker.is-active {
+  box-shadow: 0 14px 28px rgba(99, 102, 241, 0.28);
+  transform: translateY(-1px);
+}
+
+.cd-immersive-marker:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.7);
+  outline-offset: 2px;
+}
+
+.cd-immersive-panel {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px;
+  padding: 1.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 24px 40px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: 240px;
+}
+
+.cd-immersive-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.cd-immersive-detail-title {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.95);
+}
+
+.cd-immersive-snippet {
+  margin: 0;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+.cd-immersive-comment {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: rgba(15, 23, 42, 0.85);
+  white-space: pre-wrap;
+}
+
+.cd-immersive-comment--empty {
+  color: rgba(15, 23, 42, 0.5);
+}
+
+.cd-immersive-quiz-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cd-immersive-quiz-option {
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  background: rgba(14, 165, 233, 0.08);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  font-size: 0.98rem;
+}
+
+.cd-immersive-quiz-option.is-selected {
+  border-color: rgba(14, 165, 233, 0.55);
+  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.22);
+  transform: translateY(-1px);
+}
+
+.cd-immersive-quiz-option.is-correct {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.cd-immersive-quiz-option.is-incorrect {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.cd-immersive-feedback {
+  margin: 0;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.cd-immersive-feedback[data-tone='positive'] {
+  color: #047857;
+}
+
+.cd-immersive-feedback[data-tone='negative'] {
+  color: #b91c1c;
+}
+
+.cd-immersive-empty {
+  margin: 0;
+  color: rgba(15, 23, 42, 0.58);
+  font-size: 0.95rem;
+}
+
+.cd-immersive-animate .cd-immersive-marker {
+  animation: cd-immersive-pop 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.cd-immersive-animate .cd-immersive-marker:nth-of-type(odd) {
+  animation-delay: 80ms;
+}
+
+.cd-immersive-animate .cd-immersive-marker:nth-of-type(even) {
+  animation-delay: 160ms;
+}
+
+@keyframes cd-immersive-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .cd-immersive {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @keyframes pop {

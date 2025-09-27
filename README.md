@@ -1,14 +1,15 @@
 # Canvas Designer Studio
 
-Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for seven activity types: flip cards, accordion reveals, timelines, drag & drop, hotspots, branching scenarios, and image carousels.
+Canvas Designer Studio is a modern single-page web app for crafting interactive learning activities that can be embedded in Canvas LMS. It provides visual editors, live previews, and copy-ready embed code for eight activity types: flip cards, accordion reveals, timelines, drag & drop, hotspots, immersive text explorations, branching scenarios, and image carousels.
 
 ## Features
 
-- 🎯 **Activity builder** – Guided authoring panels for flip cards, accordions, timelines, drag & drop matchers, hotspot explorations, branching scenarios, and image carousels.
+- 🎯 **Activity builder** – Guided authoring panels for flip cards, accordions, timelines, drag & drop matchers, hotspot explorations, immersive text, branching scenarios, and image carousels.
 - ✨ **Live preview** – Interactions update in real time with accessible controls and animation toggles.
 - ☁️ **Cloud saving** – Store and retrieve activities securely in Firebase so they follow you across devices.
 - 🔗 **Canvas-ready embed code** – Generates an iframe snippet that loads a hosted viewer suitable for Canvas LMS (or any LMS that accepts iframe embeds).
 - 🖼️ **Image hotspots** – Upload a custom image, place hotspots visually, and describe each point of interest.
+- 📝 **Immersive text overlays** – Highlight passages, drop pins, and attach comments or quick quizzes directly to the reading.
 - 🌈 **Polished UI** – Responsive layout, rich styling, and subtle animations for an inspiring authoring experience.
 
 ## Getting started
@@ -41,6 +42,7 @@ assets/
       timeline.js     # Timeline editor + renderer
       dragDrop.js     # Drag & drop editor + renderer
       hotspots.js     # Hotspot editor + renderer
+      immersiveText.js # Immersive text editor + renderer
 docs/
   embed.html          # Read-only viewer published to GitHub Pages
 ```
