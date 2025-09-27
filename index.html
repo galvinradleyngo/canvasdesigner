@@ -41,41 +41,7 @@
       <main class="app-main">
         <aside class="control-panel" aria-label="Activity configuration">
           <section class="panel-block">
-            <div class="panel-header panel-header--tips">
-              <h2 class="panel-title">Choose an activity</h2>
-              <button
-                id="activityTipToggle"
-                class="tip-toggle"
-                type="button"
-                aria-expanded="false"
-                aria-controls="activityTipPanel"
-              >
-                <span class="tip-icon" aria-hidden="true">💡</span>
-                <span id="activityTipToggleLabel" class="tip-label">Show learning tips</span>
-              </button>
-            </div>
-            <div
-              id="activityTipPanel"
-              class="activity-tip"
-              hidden
-              role="region"
-              aria-live="polite"
-            >
-              <h3 id="activityTipTitle" class="activity-tip-title"></h3>
-              <p id="activityTipIntro" class="activity-tip-intro"></p>
-              <div id="activityTipWhenSection" class="activity-tip-section">
-                <h4 class="activity-tip-heading">When to use it</h4>
-                <p id="activityTipWhen" class="activity-tip-body"></p>
-              </div>
-              <div id="activityTipConsiderationsSection" class="activity-tip-section">
-                <h4 class="activity-tip-heading">Design considerations</h4>
-                <ul id="activityTipConsiderations" class="activity-tip-list"></ul>
-              </div>
-              <div id="activityTipExamplesSection" class="activity-tip-section">
-                <h4 class="activity-tip-heading">Quick examples</h4>
-                <ul id="activityTipExamples" class="activity-tip-list"></ul>
-              </div>
-            </div>
+            <h2 class="panel-title">Choose an activity</h2>
             <div class="activity-selector">
               <label class="activity-picker-label" for="activitySelect">Activity template</label>
               <div class="activity-picker">
@@ -92,6 +58,37 @@
                 <span class="activity-picker-icon" aria-hidden="true"></span>
               </div>
               <p id="activitySelectSummary" class="activity-picker-summary" aria-live="polite"></p>
+            </div>
+            <div class="learning-tips">
+              <div class="panel-header panel-header--tips">
+                <h3 class="panel-title">Learning tips</h3>
+                <button
+                  id="activityTipToggle"
+                  class="tip-toggle"
+                  type="button"
+                  aria-expanded="true"
+                  aria-controls="activityTipPanel"
+                >
+                  <span class="tip-icon" aria-hidden="true">💡</span>
+                  <span id="activityTipToggleLabel" class="tip-label">Hide learning tips</span>
+                </button>
+              </div>
+              <div id="activityTipPanel" class="activity-tip" role="region" aria-live="polite">
+                <h3 id="activityTipTitle" class="activity-tip-title"></h3>
+                <p id="activityTipIntro" class="activity-tip-intro"></p>
+                <div id="activityTipWhenSection" class="activity-tip-section">
+                  <h4 class="activity-tip-heading">When to use it</h4>
+                  <p id="activityTipWhen" class="activity-tip-body"></p>
+                </div>
+                <div id="activityTipConsiderationsSection" class="activity-tip-section">
+                  <h4 class="activity-tip-heading">Design considerations</h4>
+                  <ul id="activityTipConsiderations" class="activity-tip-list"></ul>
+                </div>
+                <div id="activityTipExamplesSection" class="activity-tip-section">
+                  <h4 class="activity-tip-heading">Quick examples</h4>
+                  <ul id="activityTipExamples" class="activity-tip-list"></ul>
+                </div>
+              </div>
             </div>
           </section>
           <section class="panel-block">

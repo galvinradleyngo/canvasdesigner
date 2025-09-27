@@ -124,7 +124,7 @@ const modalState = {
 };
 
 let previewHidden = false;
-let tipsExpanded = false;
+let tipsExpanded = true;
 
 const isElementVisible = (element) => {
   if (!element) return false;
@@ -254,7 +254,7 @@ const updateActivityTip = () => {
   setTipsExpanded(shouldExpand);
 };
 
-setTipsExpanded(false);
+setTipsExpanded(true);
 
 const getActiveActivity = () => {
   const activity = activities[state.type];
