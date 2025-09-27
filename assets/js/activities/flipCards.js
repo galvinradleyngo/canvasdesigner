@@ -586,6 +586,7 @@ const embedTemplate = (data, containerId) => {
       position: relative;
       width: 100%;
       transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
       transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
       min-height: 160px;
     }
@@ -604,6 +605,7 @@ const embedTemplate = (data, containerId) => {
       position: absolute;
       inset: 0;
       backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
       border-radius: 14px;
       padding: 1.2rem;
       display: flex;
