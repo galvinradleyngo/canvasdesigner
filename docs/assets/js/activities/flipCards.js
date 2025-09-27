@@ -564,6 +564,11 @@ const embedTemplate = (data, containerId) => {
       display: grid;
       gap: 1.2rem;
     }
+    @media (max-width: 640px) {
+      #${containerId} .cd-flipcard-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
     #${containerId} .cd-flipcard {
       perspective: 1000px;
       cursor: pointer;
