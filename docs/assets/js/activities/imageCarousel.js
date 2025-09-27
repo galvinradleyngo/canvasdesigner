@@ -1,4 +1,4 @@
-import { clone, escapeHtml, uid } from '../utils.js';
+import { clone, compressImageFile, escapeHtml, uid } from '../utils.js';
 
 const clampAutoplaySeconds = (value) => {
   const parsed = Number(value);
@@ -100,6 +100,19 @@ const buildEditor = (container, data, onUpdate) => {
     }
   };
 
+  const handleSlideUpload = async (index, file) => {
+    if (!file) {
+      return;
+    }
+    try {
+      const dataUrl = await compressImageFile(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+      working.slides[index].imageUrl = dataUrl;
+      emit();
+    } catch (error) {
+      console.error('Unable to process uploaded image.', error);
+    }
+  };
+
   const moveSlide = (from, to) => {
     if (to < 0 || to >= working.slides.length) {
       return;
@@ -150,7 +163,7 @@ const buildEditor = (container, data, onUpdate) => {
     if (!working.slides.length) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
-      empty.innerHTML = '<p>No slides yet. Add an image to start the carousel.</p>';
+      empty.innerHTML = '<p>No slides yet. Upload or add an image to start the carousel.</p>';
       container.append(empty);
     }
 
@@ -206,6 +219,20 @@ const buildEditor = (container, data, onUpdate) => {
       header.append(actions);
       item.append(header);
 
+      const uploadField = document.createElement('label');
+      uploadField.className = 'field';
+      uploadField.innerHTML = '<span class="field-label">Upload image</span>';
+      const uploadInput = document.createElement('input');
+      uploadInput.type = 'file';
+      uploadInput.accept = 'image/*';
+      uploadInput.addEventListener('change', async (event) => {
+        const [file] = event.target.files || [];
+        if (!file) return;
+        await handleSlideUpload(index, file);
+        event.target.value = '';
+      });
+      uploadField.append(uploadInput);
+
       const imageField = document.createElement('label');
       imageField.className = 'field';
       imageField.innerHTML = '<span class="field-label">Image URL</span>';
@@ -245,7 +272,7 @@ const buildEditor = (container, data, onUpdate) => {
       });
       captionField.append(captionInput);
 
-      item.append(imageField, altField, captionField);
+      item.append(uploadField, imageField, altField, captionField);
       container.append(item);
     });
 
@@ -305,7 +332,7 @@ const renderPreview = (container, data) => {
     } else {
       const placeholder = document.createElement('div');
       placeholder.className = 'carousel-preview-placeholder';
-      placeholder.textContent = 'Add an image URL to display here.';
+      placeholder.textContent = 'Add an image to display here.';
       slideEl.append(placeholder);
     }
 
@@ -415,7 +442,7 @@ const embedTemplate = (data, containerId) => {
           .map(
             (slide, index) => `
           <figure class="cd-carousel-slide${index === 0 ? ' is-active' : ''}" data-index="${index}">
-            ${slide.imageUrl ? `<img src="${escapeHtml(slide.imageUrl)}" alt="${escapeHtml(slide.altText)}" />` : `<div class="cd-carousel-placeholder">Add an image URL to display here.</div>`}
+            ${slide.imageUrl ? `<img src="${escapeHtml(slide.imageUrl)}" alt="${escapeHtml(slide.altText)}" />` : `<div class="cd-carousel-placeholder">Add an image to display here.</div>`}
             ${slide.caption ? `<figcaption>${escapeHtml(slide.caption)}</figcaption>` : ''}
           </figure>`
           )
