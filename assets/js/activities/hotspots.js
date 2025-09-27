@@ -1,5 +1,11 @@
 import { clone, compressImageFile, uid, escapeHtml } from '../utils.js';
 
+const HOTSPOT_IMAGE_COMPRESSION = {
+  maxWidth: 1400,
+  maxHeight: 1400,
+  quality: 0.8
+};
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const createSampleHotspots = () => [
@@ -57,7 +63,7 @@ const buildEditor = (container, data, onUpdate) => {
   const handleImageUpload = async (file) => {
     if (!file) return;
     try {
-      const src = await compressImageFile(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.82 });
+      const src = await compressImageFile(file, HOTSPOT_IMAGE_COMPRESSION);
       const existingAlt = working.image && typeof working.image.alt === 'string' ? working.image.alt : '';
       const defaultAlt = file
         ? file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
