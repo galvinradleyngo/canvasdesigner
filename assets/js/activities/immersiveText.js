@@ -818,7 +818,7 @@ const embedTemplate = (data, containerId) => {
       question: annotation.question,
       options: annotation.options
     })),
-    initialActiveId: annotations.length ? annotations[0].id : null
+    initialActiveId: null
   };
 
   return {
@@ -980,7 +980,7 @@ const embedTemplate = (data, containerId) => {
         }
         const annotations = new Map(data.annotations.map((item) => [item.id, item]));
         const quizState = new Map();
-        let activeId = data.initialActiveId || markers[0].dataset.annotationId;
+        let activeId = data.initialActiveId || null;
 
         const updateMarkers = () => {
           markers.forEach((marker) => {
@@ -988,9 +988,20 @@ const embedTemplate = (data, containerId) => {
           });
         };
 
+        const setActiveId = (nextId) => {
+          if (activeId === nextId) {
+            activeId = null;
+          } else {
+            activeId = nextId;
+          }
+          updateMarkers();
+          renderDetail();
+        };
+
         const renderComment = (annotation) => {
           const detail = document.createElement('div');
           detail.className = 'cd-immersive-detail';
+          detail.classList.add('cd-immersive-detail--enter');
           const title = document.createElement('h3');
           title.className = 'cd-immersive-detail-title';
           title.textContent = annotation.label ? 'Note ' + annotation.label : 'Note';
@@ -1009,12 +1020,14 @@ const embedTemplate = (data, containerId) => {
           }
           detail.appendChild(comment);
           panel.innerHTML = '';
+          panel.classList.add('cd-immersive-panel--active');
           panel.appendChild(detail);
         };
 
         const renderQuiz = (annotation) => {
           const detail = document.createElement('div');
           detail.className = 'cd-immersive-detail cd-immersive-detail--quiz';
+          detail.classList.add('cd-immersive-detail--enter');
           const title = document.createElement('h3');
           title.className = 'cd-immersive-detail-title';
           title.textContent = annotation.question || 'Add a quiz question in the editor to prompt a quick check.';
@@ -1026,10 +1039,11 @@ const embedTemplate = (data, containerId) => {
 
           if (!annotation.options || annotation.options.length < 2) {
             const empty = document.createElement('p');
-            empty.className = 'cd-immersive-empty';
+            empty.className = 'cd-immersive-empty cd-immersive-empty--enter';
             empty.textContent = 'Add at least two answer choices so learners can respond.';
             detail.appendChild(empty);
             panel.innerHTML = '';
+            panel.classList.add('cd-immersive-panel--active');
             panel.appendChild(detail);
             return;
           }
@@ -1088,16 +1102,18 @@ const embedTemplate = (data, containerId) => {
           detail.appendChild(optionsWrap);
           detail.appendChild(feedback);
           panel.innerHTML = '';
+          panel.classList.add('cd-immersive-panel--active');
           panel.appendChild(detail);
           updateFeedback();
         };
 
         const renderDetail = () => {
-          const annotation = annotations.get(activeId);
+          const annotation = activeId ? annotations.get(activeId) : null;
           if (!annotation) {
             panel.innerHTML = '';
+            panel.classList.remove('cd-immersive-panel--active');
             const empty = document.createElement('p');
-            empty.className = 'cd-immersive-empty';
+            empty.className = 'cd-immersive-empty cd-immersive-empty--enter';
             empty.textContent = 'Select a highlight to explore its prompt.';
             panel.appendChild(empty);
             return;
@@ -1111,16 +1127,12 @@ const embedTemplate = (data, containerId) => {
 
         markers.forEach((marker) => {
           marker.addEventListener('click', () => {
-            activeId = marker.dataset.annotationId;
-            updateMarkers();
-            renderDetail();
+            setActiveId(marker.dataset.annotationId);
           });
           marker.addEventListener('keypress', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              activeId = marker.dataset.annotationId;
-              updateMarkers();
-              renderDetail();
+              setActiveId(marker.dataset.annotationId);
             }
           });
         });
