@@ -840,6 +840,11 @@ textarea:focus {
 
 .flipcard-back {
   transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+}
+.flipcard-front {
+  transform: rotateY(0deg);
+  -webkit-transform: rotateY(0deg);
 }
 .flipcard-face.has-image {
   color: #f8fafc;

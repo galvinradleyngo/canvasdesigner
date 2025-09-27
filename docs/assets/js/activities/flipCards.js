@@ -650,8 +650,13 @@ const embedTemplate = (data, containerId) => {
       margin: 0;
       line-height: 1.4;
     }
+    #${containerId} .cd-flipcard-front {
+      transform: rotateY(0deg);
+      -webkit-transform: rotateY(0deg);
+    }
     #${containerId} .cd-flipcard-back {
       transform: rotateY(180deg);
+      -webkit-transform: rotateY(180deg);
     }
     @keyframes cd-flipcard-reveal {
       from {
