@@ -1544,6 +1544,114 @@ textarea:focus {
   }
 }
 
+@media (max-width: 640px) {
+  .flipcard-grid {
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+
+  .flipcard-inner {
+    min-height: 160px;
+  }
+
+  .flipcard-face {
+    padding: 1rem;
+    font-size: 0.95rem;
+  }
+
+  .branching-preview {
+    padding: 18px;
+    gap: 18px;
+  }
+
+  .branching-step {
+    padding: 16px;
+  }
+
+  .branching-step-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .branching-step-number {
+    width: 32px;
+    height: 32px;
+  }
+
+  .accordion-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .accordion-icon {
+    align-self: flex-end;
+  }
+
+  .accordion-content {
+    padding: 0 1rem 1rem;
+  }
+
+  .timeline {
+    padding-left: 1.2rem;
+    gap: 1.2rem;
+  }
+
+  .timeline::before,
+  .timeline-item::before {
+    left: 0.4rem;
+  }
+
+  .timeline-item {
+    gap: 0.9rem;
+  }
+
+  .timeline-trigger {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .timeline-trigger-icon {
+    margin-left: auto;
+  }
+
+  .timeline-details {
+    padding-top: 0.6rem;
+  }
+
+  .carousel-preview {
+    padding: 16px;
+  }
+
+  .carousel-preview-slide img,
+  .carousel-preview-placeholder {
+    height: 200px;
+  }
+
+  .branching-option summary {
+    padding-right: 44px;
+  }
+
+  .cd-dragdrop-board {
+    grid-template-columns: 1fr;
+  }
+
+  .cd-dragdrop-zone-body {
+    min-height: 100px;
+  }
+
+  .cd-dragdrop-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hotspot-popover {
+    width: min(320px, calc(100vw - 32px));
+    min-width: auto;
+  }
+}
+
 @media (max-width: 720px) {
   body {
     padding: 16px;
