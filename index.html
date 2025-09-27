@@ -76,16 +76,23 @@
                 <ul id="activityTipExamples" class="activity-tip-list"></ul>
               </div>
             </div>
-            <div class="activity-selector" role="tablist">
-            <button class="activity-tab" data-activity="flipCards" role="tab">Flip cards</button>
-            <button class="activity-tab" data-activity="accordion" role="tab">Accordion</button>
-            <button class="activity-tab" data-activity="timeline" role="tab">Timeline</button>
-            <button class="activity-tab" data-activity="dragDrop" role="tab">Drag &amp; Drop</button>
-            <button class="activity-tab" data-activity="hotspots" role="tab">Hotspots</button>
-            <button class="activity-tab" data-activity="immersiveText" role="tab">Immersive text</button>
-            <button class="activity-tab" data-activity="branchingScenarios" role="tab">Branching scenarios</button>
-            <button class="activity-tab" data-activity="imageCarousel" role="tab">Image carousel</button>
-          </div>
+            <div class="activity-selector">
+              <label class="activity-picker-label" for="activitySelect">Activity template</label>
+              <div class="activity-picker">
+                <select id="activitySelect" class="activity-picker-select" aria-label="Choose an activity template">
+                  <option value="flipCards">Flip cards</option>
+                  <option value="accordion">Accordion</option>
+                  <option value="timeline">Timeline</option>
+                  <option value="dragDrop">Drag &amp; Drop</option>
+                  <option value="hotspots">Hotspots</option>
+                  <option value="immersiveText">Immersive text</option>
+                  <option value="branchingScenarios">Branching scenarios</option>
+                  <option value="imageCarousel">Image carousel</option>
+                </select>
+                <span class="activity-picker-icon" aria-hidden="true"></span>
+              </div>
+              <p id="activitySelectSummary" class="activity-picker-summary" aria-live="polite"></p>
+            </div>
           </section>
           <section class="panel-block">
             <h2 class="panel-title">General settings</h2>

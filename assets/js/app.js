@@ -74,7 +74,8 @@ const ensureActivityRegistered = async (type) => {
 };
 
 const elements = {
-  tabs: Array.from(document.querySelectorAll('.activity-tab')),
+  activitySelect: document.getElementById('activitySelect'),
+  activitySummary: document.getElementById('activitySelectSummary'),
   titleInput: document.getElementById('titleInput'),
   descriptionInput: document.getElementById('descriptionInput'),
   editorContent: document.getElementById('editorContent'),
@@ -277,13 +278,19 @@ const showStatus = (message, tone = 'info') => {
   }, 2600);
 };
 
-const updateActivityTabs = () => {
-  elements.tabs.forEach((tab) => {
-    const isActive = tab.dataset.activity === state.type;
-    tab.classList.toggle('active', isActive);
-    tab.setAttribute('aria-selected', String(isActive));
-    tab.setAttribute('tabindex', isActive ? '0' : '-1');
-  });
+const updateActivityPicker = () => {
+  if (elements.activitySelect) {
+    const desired = state.type;
+    if (elements.activitySelect.value !== desired) {
+      elements.activitySelect.value = desired;
+    }
+  }
+
+  if (elements.activitySummary) {
+    const activity = getActiveActivity();
+    const label = activity && activity.label ? activity.label : 'activity';
+    elements.activitySummary.textContent = `Currently editing the ${label} template.`;
+  }
 };
 
 const refreshEmbed = () => {
@@ -354,7 +361,7 @@ const rebuildEditor = () => {
 };
 
 const refreshActivityView = () => {
-  updateActivityTabs();
+  updateActivityPicker();
   updateActivityTip();
   rebuildEditor();
   refreshPreview();
@@ -704,12 +711,17 @@ const closeEmbedModal = () => {
 };
 
 const bindEvents = () => {
-  elements.tabs.forEach((tab) => {
-    tab.addEventListener('click', async () => {
-      const newType = tab.dataset.activity;
-      if (!newType || state.type === newType) return;
-      tab.disabled = true;
-      tab.dataset.loading = 'true';
+  if (elements.activitySelect) {
+    elements.activitySelect.addEventListener('change', async (event) => {
+      const newType = event.target.value;
+      if (!newType || state.type === newType) {
+        updateActivityPicker();
+        return;
+      }
+
+      const select = elements.activitySelect;
+      select.disabled = true;
+      select.setAttribute('aria-busy', 'true');
       try {
         const activity = await ensureActivityRegistered(newType);
         if (!activity) {
@@ -731,11 +743,12 @@ const bindEvents = () => {
         console.error(error);
         showStatus('Something went wrong while switching activities.', 'warning');
       } finally {
-        tab.disabled = false;
-        delete tab.dataset.loading;
+        select.disabled = false;
+        select.removeAttribute('aria-busy');
+        updateActivityPicker();
       }
     });
-  });
+  }
 
   elements.titleInput.addEventListener('input', (event) => {
     state.title = event.target.value;
