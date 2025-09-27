@@ -667,9 +667,9 @@ const learningTip = {
     'Provide descriptive alt text or a companion transcript so every learner can access the full narrative.'
   ],
   examples: [
-    'Art history spotlight: contrast interpretations of the same theme with curator commentary per slide.',
-    'Science lab prep: illustrate stages of an experiment alongside safety reminders and setup tips.',
-    'Design critique: show before-and-after iterations of a prototype with notes on design decisions.'
+    'Architecture critique: walk through design iterations with instructor annotations on each slide.',
+    'Chemistry lab briefing: depict each stage of a synthesis with reminders about hazards and PPE.',
+    'Service-learning reflection: showcase community partner sites with faculty commentary on impact.'
   ]
 };
 

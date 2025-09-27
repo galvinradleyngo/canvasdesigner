@@ -381,9 +381,9 @@ const learningTip = {
     'Layer in prompts, visuals, or follow-up questions inside panels to keep learners actively processing what they open.'
   ],
   examples: [
-    'Course orientation: present syllabus highlights, grading policies, and support resources as expandable sections.',
-    'Lab protocol: outline each experiment phase with embedded safety reminders in the relevant pane.',
-    'Case study debrief: reveal context, evidence, and instructor analysis one panel at a time.'
+    'Online syllabus tour: let students expand academic integrity expectations, grading policies, and campus support resources.',
+    'Research methods lab: break down the IRB submission process with checklists and template links in each panel.',
+    'Capstone seminar: organise case background, data exhibits, and debrief questions so teams can prep independently.'
   ]
 };
 

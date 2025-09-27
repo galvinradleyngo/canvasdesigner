@@ -597,9 +597,9 @@ const learningTip = {
     'Provide a guiding question or suggested sequence if you need learners to follow a particular narrative through the hotspots.'
   ],
   examples: [
-    'Geography module: annotate a regional map with climate impacts and local data stories.',
-    'Studio art critique: highlight composition choices directly on a student artwork.',
-    'STEM safety briefing: point out critical instruments and protective gear on a lab bench.'
+    'Fieldwork preparation: annotate a study-site map with logistical notes and cultural considerations.',
+    'Art history lecture: spotlight compositional choices directly on a high-resolution image of the artwork.',
+    'Engineering lab orientation: call out essential instruments and safety zones on the fabrication studio floor plan.'
   ]
 };
 

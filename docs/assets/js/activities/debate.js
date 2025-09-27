@@ -639,9 +639,9 @@ const learningTip = {
     'Invite teams to revise claims after the debate by citing the most persuasive counterarguments they heard.'
   ],
   examples: [
-    'History: Debate whether a revolution achieved its stated goals.',
-    'Science: Argue for the energy source that best fits a community\'s needs.',
-    'English: Present competing interpretations of a character\'s pivotal decision.'
+    'Political science seminar: debate whether compulsory voting would strengthen democratic participation.',
+    'Environmental engineering course: argue for the most feasible decarbonisation strategy for the campus microgrid.',
+    'Literary theory class: present competing interpretations of a protagonist\'s pivotal decision using scholarly sources.'
   ]
 };
 

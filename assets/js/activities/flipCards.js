@@ -734,9 +734,9 @@ const learningTip = {
     'Mix representations—text, icons, or simple images—to deepen retrieval cues.'
   ],
   examples: [
-    'Language learning: match academic vocabulary to plain-language definitions.',
-    'STEM refresher: pair formulas with everyday scenarios that require them.',
-    'Nursing prep: flip between patient symptoms and likely underlying conditions.'
+    'Graduate writing studio: flip between discipline-specific jargon and student-friendly explanations.',
+    'Physics review session: connect core equations to the real-world phenomena students analyse in lab.',
+    'Nursing exam prep: reveal priority interventions for common clinical presentations.'
   ]
 };
 

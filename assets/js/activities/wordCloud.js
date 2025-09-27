@@ -1099,9 +1099,9 @@ const learningTip = {
     'Address duplicates by weaving them into the synthesis—shared language signals shared understanding.'
   ],
   examples: [
-    'Before a debate: ask learners for words that describe a compelling argument.',
-    'During a lab reflection: collect adjectives that summarise experimental results.',
-    'After a field trip: gather emotional reactions to highlight takeaways and surprises.'
+    'Before a seminar discussion: ask students for words that capture their current understanding of a theory.',
+    'Mid-semester check-in: gather emotions about group projects to surface support needs.',
+    'Post-lecture debrief: collect key terms students plan to investigate further for the research assignment.'
   ]
 };
 

@@ -746,9 +746,9 @@ const learningTip = {
     'Deliver feedback or reflection prompts after every choice so learners connect their decision to its impact.'
   ],
   examples: [
-    'Customer service coaching: guide a representative through de-escalating an upset client.',
-    'Clinical reasoning drill: select assessments and interventions for a patient with evolving symptoms.',
-    'Academic integrity lesson: explore responses when a peer shares unauthorized materials and evaluate consequences.'
+    'Academic advising simulation: help an advisee balance credit load, financial aid requirements, and graduation timing.',
+    'Clinical decision lab: choose assessments and interventions for a patient whose symptoms evolve over a rotation.',
+    'Research ethics workshop: decide how to respond when a collaborator pressures the team to omit conflicting data.'
   ]
 };
 
