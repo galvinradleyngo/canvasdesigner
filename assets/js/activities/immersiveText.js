@@ -1184,9 +1184,9 @@ const learningTip = {
     'Mix interaction types (comments, guiding questions, quick quizzes) to keep engagement active and varied.'
   ],
   examples: [
-    'Literature seminar: annotate a poem with historical context and reflection prompts.',
-    'Business case study: surface decision checkpoints with data callouts and “what would you do?” questions.',
-    'STEM reading: insert micro-quizzes beside procedural steps to confirm understanding before moving on.'
+    'Literature seminar: layer historical context and scholarly commentary onto a primary text excerpt.',
+    'MBA case prep: surface decision checkpoints with data prompts learners must analyse before class.',
+    'Biology reading: insert quick concept checks beside complex processes to confirm comprehension.'
   ]
 };
 

@@ -650,9 +650,9 @@ const learningTip = {
     'Call out pivotal transitions with brief annotations, icons, or media so turning points stand out.'
   ],
   examples: [
-    'History seminar: trace the key milestones that led to a social movement or policy shift.',
-    'Health sciences: map a patient case from triage to discharge with decision points highlighted.',
-    'Business course: chart a product release roadmap alongside major customer insights.'
+    'History colloquium: trace pivotal moments in a social movement alongside required readings.',
+    'Nursing program: map a patient\'s hospital stay from intake to discharge with critical decision points.',
+    'Entrepreneurship course: chart a startup\'s funding milestones with links to pitch materials.'
   ]
 };
 

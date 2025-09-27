@@ -955,9 +955,9 @@ const learningTip = {
     'Confirm keyboard alternatives are clear and add a reflective prompt or explanation when learners check their work.'
   ],
   examples: [
-    'Vocabulary clinic: match academic terms to real-world scenarios they describe.',
-    'Anatomy lab: drag structure labels onto the correct location on a diagram.',
-    'Project management sprint: pair deliverables with the stakeholder accountable for each one.'
+    'Sociology methods class: match research designs to campus-based studies they best support.',
+    'Pathophysiology lab: drag symptom descriptions onto the correct underlying conditions.',
+    'Teaching practicum: pair student support scenarios with the campus office best equipped to help.'
   ]
 };
 
