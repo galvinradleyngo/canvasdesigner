@@ -249,6 +249,12 @@ body.modal-open {
   flex: 1 1 auto;
 }
 
+.learning-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .tip-toggle {
   display: inline-flex;
   align-items: center;
