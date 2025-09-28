@@ -271,12 +271,13 @@ const applyFrameHeight = (height, { embedId } = {}) => {
   if (doc) {
     doc.style.height = `${targetHeight}px`;
     doc.style.minHeight = `${targetHeight}px`;
+    doc.style.overflow = 'hidden';
   }
 
   if (document.body) {
     document.body.style.height = `${targetHeight}px`;
     document.body.style.minHeight = `${targetHeight}px`;
-    document.body.style.overflowX = 'hidden';
+    document.body.style.overflow = 'hidden';
   }
 
   try {
