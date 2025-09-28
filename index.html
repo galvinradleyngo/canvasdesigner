@@ -69,14 +69,20 @@
                   id="activityTipToggle"
                   class="tip-toggle"
                   type="button"
-                  aria-expanded="true"
+                  aria-expanded="false"
                   aria-controls="activityTipPanel"
                 >
                   <span class="tip-icon" aria-hidden="true">💡</span>
-                  <span id="activityTipToggleLabel" class="tip-label">Hide learning tips</span>
+                  <span id="activityTipToggleLabel" class="tip-label">Show learning tips</span>
                 </button>
               </div>
-              <div id="activityTipPanel" class="activity-tip" role="region" aria-live="polite">
+              <div
+                id="activityTipPanel"
+                class="activity-tip"
+                role="region"
+                aria-live="polite"
+                hidden
+              >
                 <h3 id="activityTipTitle" class="activity-tip-title"></h3>
                 <p id="activityTipIntro" class="activity-tip-intro"></p>
                 <div id="activityTipWhenSection" class="activity-tip-section">
@@ -99,10 +105,6 @@
             <label class="field">
               <span class="field-label">Activity title</span>
               <input id="titleInput" class="text-input" type="text" placeholder="e.g. Intro to Plate Tectonics" />
-            </label>
-            <label class="field">
-              <span class="field-label">Short description (optional)</span>
-              <textarea id="descriptionInput" rows="2" placeholder="Summarize the learner task or goal"></textarea>
             </label>
             <div class="field field--inline">
               <label for="savedProjects" class="field-label">Saved activities</label>
