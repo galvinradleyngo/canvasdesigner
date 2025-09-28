@@ -871,17 +871,17 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Structured debates surface contrasting claims so learners can analyse evidence, reasoning, and delivery moves.',
-  when: 'Use them after research or inquiry cycles when learners are ready to argue from evidence and synthesise multiple sources.',
+  intro: 'Structured debates surface contrasting claims so self-paced learners can analyse evidence, reasoning, and delivery moves before coming together live.',
+  when: 'Use them after research or inquiry cycles when learners are ready to argue from evidence and synthesise multiple sources asynchronously.',
   considerations: [
-    'Model how to connect claims to the most relevant data or anecdotes so arguments stay concise.',
-    'Invite listeners to record the most persuasive point from each column before voting.',
-    'Plan a synthesis round where teams revise or extend their arguments using feedback from the audience.'
+    'Model how to connect claims to the most relevant data or anecdotes so arguments stay concise without facilitator intervention.',
+    'Ask listeners to record the most persuasive point from each column and explain how they should post or submit that analysis.',
+    'Plan a synthesis round—discussion board, video response, or wrap-up announcement—where teams revise arguments using peer feedback gathered over time.'
   ],
   examples: [
-    'Political science seminar: debate whether compulsory voting would strengthen democratic participation.',
-    'Environmental engineering course: argue for the most feasible decarbonisation strategy for the campus microgrid.',
-    'Literary theory class: present competing interpretations of a protagonist\'s pivotal decision using scholarly sources.'
+    'Political science seminar: debate whether compulsory voting would strengthen democratic participation through staged discussion board posts.',
+    'Environmental engineering course: argue for the most feasible decarbonisation strategy for the campus microgrid, then summarise the decision in a shared memo.',
+    'Literary theory class: present competing interpretations of a protagonist\'s pivotal decision using scholarly sources before a synchronous salon.'
   ]
 };
 

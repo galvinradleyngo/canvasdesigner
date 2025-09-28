@@ -1091,17 +1091,17 @@ const embedTemplate = (data, containerId, context = {}) => {
 };
 
 const learningTip = {
-  intro: 'Word clouds surface collective thinking in seconds and make emerging themes visible for discussion.',
-  when: 'Use them to prime background knowledge, capture emotional reactions, or revisit a topic mid-lesson to check how understanding has shifted.',
+  intro: 'Word clouds surface collective thinking quickly and make emerging themes visible even when learners contribute at different times.',
+  when: 'Use them to prime background knowledge, capture emotional reactions, or revisit a topic mid-module to check how understanding has shifted across the cohort.',
   considerations: [
-    'Offer a specific prompt so responses cluster around a meaningful theme.',
-    'Let participants add a few words each, then pause to interpret patterns together.',
-    'Address duplicates by weaving them into the synthesis—shared language signals shared understanding.'
+    'Offer a specific prompt and deadline so asynchronous responses cluster around a meaningful theme.',
+    'Explain when you will summarise patterns or post a debrief so learners know how their contributions will be used.',
+    'Address duplicates in the follow-up analysis—shared language signals shared understanding worth highlighting back to the group.'
   ],
   examples: [
-    'Before a seminar discussion: ask students for words that capture their current understanding of a theory.',
-    'Mid-semester check-in: gather emotions about group projects to surface support needs.',
-    'Post-lecture debrief: collect key terms students plan to investigate further for the research assignment.'
+    'Pre-seminar warm-up: ask students for words that capture their current understanding of a theory before a live discussion.',
+    'Mid-semester pulse check: gather emotions about group projects to surface support needs in a follow-up announcement.',
+    'Post-module debrief: collect key terms students plan to investigate further, then curate resources in the next unit overview.'
   ]
 };
 

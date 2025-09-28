@@ -947,17 +947,17 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Drag & drop matchers turn recall into an active puzzle so learners can test their understanding before high-stakes assessments.',
-  when: 'Use them when learners need to connect pairs, build sequences, or sort concepts and will benefit from immediate, low-risk feedback.',
+  intro: 'Drag & drop matchers turn recall into an active puzzle so self-paced learners can test understanding before high-stakes assessments.',
+  when: 'Use them when learners need to connect pairs, build sequences, or sort concepts and will benefit from immediate, low-risk feedback while studying independently.',
   considerations: [
-    'Keep instructions explicit and limit the total number of draggable items so the task stays focused.',
-    'Include plausible distractors, but avoid trick options that rely on tiny wording differences.',
-    'Confirm keyboard alternatives are clear and add a reflective prompt or explanation when learners check their work.'
+    'Keep instructions explicit, note how many matches to expect, and limit the total number of draggable items so the task stays focused.',
+    'Include plausible distractors, but avoid trick options—solo learners should feel challenged without needing an instructor to clarify wording.',
+    'Confirm keyboard alternatives are clear and add a reflective prompt or explanation when learners check their work so they know what to do next.'
   ],
   examples: [
-    'Sociology methods class: match research designs to campus-based studies they best support.',
-    'Pathophysiology lab: drag symptom descriptions onto the correct underlying conditions.',
-    'Teaching practicum: pair student support scenarios with the campus office best equipped to help.'
+    'Sociology methods module: match research designs to campus-based studies they best support before drafting proposals.',
+    'Pathophysiology review: drag symptom descriptions onto the correct underlying conditions as pre-lab practice.',
+    'Teaching practicum preparation: pair student support scenarios with the campus office best equipped to help before field placements.'
   ]
 };
 

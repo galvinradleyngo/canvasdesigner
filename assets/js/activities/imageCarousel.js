@@ -659,17 +659,17 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Image carousels curate a guided gallery so learners can focus on one visual story beat at a time.',
-  when: 'Use them to compare variations, walk through a visual process, or showcase exemplars when the imagery carries the main insight.',
+  intro: 'Image carousels curate a guided gallery so self-paced learners can focus on one visual story beat at a time.',
+  when: 'Use them to compare variations, walk through a visual process, or showcase exemplars when the imagery carries the main insight and you want learners to progress independently.',
   considerations: [
-    'Sequence slides intentionally and write concise captions that spotlight what to notice in each frame.',
-    'Limit the deck to a manageable set—around four to six images keeps learners oriented and avoids fatigue.',
-    'Provide descriptive alt text or a companion transcript so every learner can access the full narrative.'
+    'Sequence slides intentionally and write concise captions that spotlight what to notice in each frame, including what to record or reflect on.',
+    'Limit the deck to a manageable set—around four to six images keeps learners oriented without a facilitator present.',
+    'Provide descriptive alt text or a companion transcript and note where learners should share takeaways or lingering questions.'
   ],
   examples: [
-    'Architecture critique: walk through design iterations with instructor annotations on each slide.',
-    'Chemistry lab briefing: depict each stage of a synthesis with reminders about hazards and PPE.',
-    'Service-learning reflection: showcase community partner sites with faculty commentary on impact.'
+    'Architecture critique pre-work: walk through design iterations with instructor annotations before studio.',
+    'Chemistry lab briefing: depict each stage of a synthesis with reminders about hazards and PPE for students reviewing on their own.',
+    'Service-learning reflection module: showcase community partner sites with faculty commentary on impact before students submit journals.'
   ]
 };
 
