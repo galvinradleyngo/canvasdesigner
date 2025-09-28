@@ -420,6 +420,7 @@ const renderPreview = (container, data) => {
 
   const indicator = document.createElement('div');
   indicator.className = 'caption-this-indicator';
+  indicator.hidden = !images.length;
   wrapper.append(indicator);
 
   const actions = document.createElement('div');
@@ -503,9 +504,11 @@ const renderPreview = (container, data) => {
 
   const renderIndicator = () => {
     if (!state.images.length) {
-      indicator.textContent = 'No images configured yet.';
+      indicator.hidden = true;
+      indicator.textContent = '';
       return;
     }
+    indicator.hidden = false;
     indicator.textContent = `${state.index + 1} of ${state.images.length}`;
   };
 
@@ -699,9 +702,9 @@ const embedTemplate = (data, containerId, context = {}) => {
         </figure>
         <button type="button" class="cd-caption-nav cd-caption-next" aria-label="Next image">${RIGHT_ARROW_ICON}</button>
       </div>
-      <div class="cd-caption-indicator" data-indicator>${
-        images.length ? `1 of ${images.length}` : 'Loading activity…'
-      }</div>
+      <div class="cd-caption-indicator" data-indicator ${
+        images.length ? '' : 'hidden'
+      }>${images.length ? `1 of ${images.length}` : ''}</div>
       <div class="cd-caption-actions">
         <button type="button" class="cd-caption-button" data-add>Add a caption</button>
         <button type="button" class="cd-caption-button" data-toggle aria-expanded="false">View captions</button>
@@ -1062,9 +1065,11 @@ const embedTemplate = (data, containerId, context = {}) => {
 
     const renderIndicator = () => {
       if (!images.length) {
-        indicator.textContent = 'No images configured yet.';
+        indicator.hidden = true;
+        indicator.textContent = '';
         return;
       }
+      indicator.hidden = false;
       indicator.textContent = (state.index + 1) + ' of ' + images.length;
     };
 
