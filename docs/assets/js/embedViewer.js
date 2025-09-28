@@ -271,12 +271,14 @@ const applyFrameHeight = (height, { embedId } = {}) => {
   if (doc) {
     doc.style.height = `${targetHeight}px`;
     doc.style.minHeight = `${targetHeight}px`;
+    doc.style.maxHeight = 'none';
     doc.style.overflow = 'hidden';
   }
 
   if (document.body) {
     document.body.style.height = `${targetHeight}px`;
     document.body.style.minHeight = `${targetHeight}px`;
+    document.body.style.maxHeight = 'none';
     document.body.style.overflow = 'hidden';
   }
 
@@ -313,18 +315,24 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
     return;
   }
 
+  const containerEl = container instanceof Element ? container : null;
   let lastHeight = 0;
 
   const measure = () => {
     const body = document.body;
     const doc = document.documentElement;
-    const containerRect = container?.getBoundingClientRect();
+    const containerRect = containerEl ? containerEl.getBoundingClientRect() : null;
 
     const measured = Math.max(
       containerRect ? containerRect.height : 0,
+      containerEl?.scrollHeight || 0,
+      containerEl?.offsetHeight || 0,
       root.scrollHeight || 0,
+      root.offsetHeight || 0,
       body?.scrollHeight || 0,
-      doc?.scrollHeight || 0
+      body?.offsetHeight || 0,
+      doc?.scrollHeight || 0,
+      doc?.offsetHeight || 0
     );
 
     if (!Number.isFinite(measured)) {
@@ -343,12 +351,15 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
 
   measure();
 
+  const cleanupFns = [];
+
   if (typeof ResizeObserver === 'function') {
     const observer = new ResizeObserver(() => measure());
     observer.observe(root);
-    if (container && container !== root) {
-      observer.observe(container);
+    if (containerEl && containerEl !== root) {
+      observer.observe(containerEl);
     }
+    cleanupFns.push(() => observer.disconnect());
   } else {
     let rafId = null;
     const poll = () => {
@@ -357,16 +368,66 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
     };
     poll();
 
-    window.addEventListener('pagehide', () => {
+    cleanupFns.push(() => {
       if (rafId) {
         window.cancelAnimationFrame(rafId);
+        rafId = null;
       }
     });
   }
 
-  window.addEventListener('load', measure);
-  window.addEventListener('resize', measure);
-  setTimeout(measure, 250);
+  if (typeof MutationObserver === 'function') {
+    const mutationObserver = new MutationObserver(() => measure());
+    mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
+    if (containerEl && containerEl !== root) {
+      mutationObserver.observe(containerEl, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+      });
+    }
+    cleanupFns.push(() => mutationObserver.disconnect());
+  }
+
+  const handleLoad = () => measure();
+  const handleResize = () => measure();
+  window.addEventListener('load', handleLoad);
+  window.addEventListener('resize', handleResize);
+  cleanupFns.push(() => {
+    window.removeEventListener('load', handleLoad);
+    window.removeEventListener('resize', handleResize);
+  });
+
+  if (document.fonts) {
+    const handleFontLoad = () => measure();
+    if (typeof document.fonts.addEventListener === 'function') {
+      document.fonts.addEventListener('loadingdone', handleFontLoad);
+      cleanupFns.push(() => document.fonts.removeEventListener('loadingdone', handleFontLoad));
+    } else if (typeof document.fonts.ready?.then === 'function') {
+      document.fonts.ready.then(() => measure()).catch(() => {});
+    }
+  }
+
+  const settleTimers = [
+    window.setTimeout(measure, 250),
+    window.setTimeout(measure, 1000),
+    window.setTimeout(measure, 2500)
+  ];
+  cleanupFns.push(() => settleTimers.forEach((timer) => window.clearTimeout(timer)));
+
+  const cleanup = () => {
+    while (cleanupFns.length) {
+      const fn = cleanupFns.shift();
+      try {
+        fn();
+      } catch (error) {
+        // Ignore cleanup failures.
+      }
+    }
+  };
+
+  window.addEventListener('pagehide', cleanup, { once: true });
 };
 
 const renderActivity = (root, payload, { embedId } = {}) => {
