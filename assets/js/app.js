@@ -322,10 +322,48 @@ const refreshEmbed = () => {
 
 const refreshPreview = () => {
   const activity = getActiveActivity();
-  if (!activity) return;
+  if (!activity || !elements.previewArea) return;
+
   const shouldPlayAnimations = elements.animationToggle ? elements.animationToggle.checked : true;
-  activity.renderPreview(elements.previewArea, state.data, {
-    playAnimations: shouldPlayAnimations
+  const title = typeof state.title === 'string' ? state.title.trim() : '';
+  const description = typeof state.description === 'string' ? state.description.trim() : '';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'preview-activity-wrapper';
+
+  if (title || description) {
+    const meta = document.createElement('header');
+    meta.className = 'preview-activity-meta';
+
+    if (title) {
+      const heading = document.createElement('h3');
+      heading.className = 'preview-activity-title';
+      heading.textContent = title;
+      meta.append(heading);
+    }
+
+    if (description) {
+      const summary = document.createElement('p');
+      summary.className = 'preview-activity-description';
+      summary.textContent = description;
+      meta.append(summary);
+    }
+
+    wrapper.append(meta);
+  }
+
+  const activityContainer = document.createElement('div');
+  activityContainer.className = 'preview-activity-content';
+  wrapper.append(activityContainer);
+
+  elements.previewArea.innerHTML = '';
+  elements.previewArea.append(wrapper);
+
+  activity.renderPreview(activityContainer, state.data, {
+    playAnimations: shouldPlayAnimations,
+    title,
+    description,
+    stateHost: elements.previewArea
   });
 };
 
@@ -778,12 +816,18 @@ const bindEvents = () => {
   elements.titleInput.addEventListener('input', (event) => {
     state.title = event.target.value;
     refreshEmbed();
+    if (!previewHidden) {
+      refreshPreview();
+    }
   });
 
   if (elements.descriptionInput) {
     elements.descriptionInput.addEventListener('input', (event) => {
       state.description = event.target.value;
       refreshEmbed();
+      if (!previewHidden) {
+        refreshPreview();
+      }
     });
   }
 

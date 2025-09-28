@@ -3,7 +3,9 @@ import { activities } from './activities/index.js';
 const VIEW_ROOT_ID = 'cd-embed-viewer-root';
 const REQUEST_MESSAGE_TYPE = 'canvas-designer:request-payload';
 const DELIVER_MESSAGE_TYPE = 'canvas-designer:deliver-payload';
+const RESIZE_MESSAGE_TYPE = 'canvas-designer:embed-resize';
 const PARENT_RESPONSE_TIMEOUT = 8000;
+const DEFAULT_MIN_HEIGHT = 420;
 
 const FIRESTORE_PROJECT_ID = 'tdt-sandbox';
 const FIRESTORE_COLLECTION = 'canvasDesignerActivities';
@@ -95,7 +97,7 @@ const parseInlinePayload = () => {
     }
     return payload;
   } catch (error) {
-    console.warn('Unable to parse embed payload', error);
+    console.warn('Unable to parse inline embed payload', error);
     return null;
   }
 };
@@ -258,7 +260,177 @@ const showMessage = (root, message) => {
   root.append(notice);
 };
 
-const renderActivity = (root, payload) => {
+const applyFrameHeight = (height, { embedId } = {}) => {
+  if (!Number.isFinite(height)) {
+    return;
+  }
+
+  const targetHeight = Math.max(Math.ceil(height), DEFAULT_MIN_HEIGHT);
+
+  const doc = document.documentElement;
+  if (doc) {
+    doc.style.height = `${targetHeight}px`;
+    doc.style.minHeight = `${targetHeight}px`;
+    doc.style.maxHeight = 'none';
+    doc.style.overflow = 'hidden';
+  }
+
+  if (document.body) {
+    document.body.style.height = `${targetHeight}px`;
+    document.body.style.minHeight = `${targetHeight}px`;
+    document.body.style.maxHeight = 'none';
+    document.body.style.overflow = 'hidden';
+  }
+
+  try {
+    const frame = window.frameElement;
+    if (frame && frame.style) {
+      frame.style.height = `${targetHeight}px`;
+      frame.style.minHeight = `${targetHeight}px`;
+      frame.style.maxHeight = 'none';
+      frame.style.overflow = 'hidden';
+    }
+  } catch (error) {
+    // Ignore cross-origin restrictions when we can't reach the frame element.
+  }
+
+  if (embedId && window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage(
+        {
+          type: RESIZE_MESSAGE_TYPE,
+          id: embedId,
+          height: targetHeight
+        },
+        '*'
+      );
+    } catch (error) {
+      // Ignore postMessage failures in restrictive parent contexts.
+    }
+  }
+};
+
+const setupAutoResize = (root, container, { embedId } = {}) => {
+  if (!root) {
+    return;
+  }
+
+  const containerEl = container instanceof Element ? container : null;
+  let lastHeight = 0;
+
+  const measure = () => {
+    const body = document.body;
+    const doc = document.documentElement;
+    const containerRect = containerEl ? containerEl.getBoundingClientRect() : null;
+
+    const measured = Math.max(
+      containerRect ? containerRect.height : 0,
+      containerEl?.scrollHeight || 0,
+      containerEl?.offsetHeight || 0,
+      root.scrollHeight || 0,
+      root.offsetHeight || 0,
+      body?.scrollHeight || 0,
+      body?.offsetHeight || 0,
+      doc?.scrollHeight || 0,
+      doc?.offsetHeight || 0
+    );
+
+    if (!Number.isFinite(measured)) {
+      return;
+    }
+
+    const nextHeight = Math.max(Math.ceil(measured + 16), DEFAULT_MIN_HEIGHT);
+
+    if (Math.abs(nextHeight - lastHeight) <= 1) {
+      return;
+    }
+
+    lastHeight = nextHeight;
+    applyFrameHeight(nextHeight, { embedId });
+  };
+
+  measure();
+
+  const cleanupFns = [];
+
+  if (typeof ResizeObserver === 'function') {
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(root);
+    if (containerEl && containerEl !== root) {
+      observer.observe(containerEl);
+    }
+    cleanupFns.push(() => observer.disconnect());
+  } else {
+    let rafId = null;
+    const poll = () => {
+      measure();
+      rafId = window.requestAnimationFrame(poll);
+    };
+    poll();
+
+    cleanupFns.push(() => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    });
+  }
+
+  if (typeof MutationObserver === 'function') {
+    const mutationObserver = new MutationObserver(() => measure());
+    mutationObserver.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
+    if (containerEl && containerEl !== root) {
+      mutationObserver.observe(containerEl, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+      });
+    }
+    cleanupFns.push(() => mutationObserver.disconnect());
+  }
+
+  const handleLoad = () => measure();
+  const handleResize = () => measure();
+  window.addEventListener('load', handleLoad);
+  window.addEventListener('resize', handleResize);
+  cleanupFns.push(() => {
+    window.removeEventListener('load', handleLoad);
+    window.removeEventListener('resize', handleResize);
+  });
+
+  if (document.fonts) {
+    const handleFontLoad = () => measure();
+    if (typeof document.fonts.addEventListener === 'function') {
+      document.fonts.addEventListener('loadingdone', handleFontLoad);
+      cleanupFns.push(() => document.fonts.removeEventListener('loadingdone', handleFontLoad));
+    } else if (typeof document.fonts.ready?.then === 'function') {
+      document.fonts.ready.then(() => measure()).catch(() => {});
+    }
+  }
+
+  const settleTimers = [
+    window.setTimeout(measure, 250),
+    window.setTimeout(measure, 1000),
+    window.setTimeout(measure, 2500)
+  ];
+  cleanupFns.push(() => settleTimers.forEach((timer) => window.clearTimeout(timer)));
+
+  const cleanup = () => {
+    while (cleanupFns.length) {
+      const fn = cleanupFns.shift();
+      try {
+        fn();
+      } catch (error) {
+        // Ignore cleanup failures.
+      }
+    }
+  };
+
+  window.addEventListener('pagehide', cleanup, { once: true });
+};
+
+const renderActivity = (root, payload, { embedId } = {}) => {
   const type = typeof payload.type === 'string' ? payload.type.trim() : '';
   const activity = activities[type];
 
@@ -313,6 +485,8 @@ const renderActivity = (root, payload) => {
     script.textContent = parts.js;
     document.body.append(script);
   }
+
+  setupAutoResize(root, container, { embedId });
 };
 
 const bootstrap = async () => {
@@ -321,6 +495,9 @@ const bootstrap = async () => {
     console.warn('Viewer root element missing');
     return;
   }
+
+  const params = new URLSearchParams(window.location.search);
+  const embedId = params.get('embedId');
 
   const basePayload = await resolvePayload();
   if (!basePayload) {
@@ -334,7 +511,7 @@ const bootstrap = async () => {
     return;
   }
 
-  renderActivity(root, hydrated);
+  renderActivity(root, hydrated, { embedId });
 };
 
 if (document.readyState === 'loading') {
