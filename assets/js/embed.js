@@ -105,7 +105,7 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   const safeTitle = sanitizeText(title);
   const safeDescription = sanitizeText(description, { maxLength: 1200 });
   const hasPersistentId = typeof id === 'string' && id.trim() !== '';
-  const includeInlineContent = !hasPersistentId;
+  const includeInlineContent = data && typeof data === 'object';
 
   const payload = {
     v: 1,
@@ -120,7 +120,9 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   if (includeInlineContent) {
     const encoded = encodePayload(payload);
     viewerUrl.hash = encoded;
-  } else if (hasPersistentId) {
+  }
+
+  if (hasPersistentId) {
     viewerUrl.searchParams.set('projectId', id);
   }
 
