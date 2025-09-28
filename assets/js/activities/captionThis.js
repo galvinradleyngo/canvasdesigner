@@ -694,13 +694,13 @@ const embedTemplate = (data, containerId, context = {}) => {
         <button type="button" class="cd-caption-nav cd-caption-prev" aria-label="Previous image">${LEFT_ARROW_ICON}</button>
         <figure class="cd-caption-figure" data-figure>
           <img data-image alt="" hidden />
-          <div class="cd-caption-placeholder" data-placeholder>No images configured yet.</div>
+          <div class="cd-caption-placeholder" data-placeholder>Loading image…</div>
           <figcaption class="cd-caption-image-prompt" data-image-prompt hidden></figcaption>
         </figure>
         <button type="button" class="cd-caption-nav cd-caption-next" aria-label="Next image">${RIGHT_ARROW_ICON}</button>
       </div>
       <div class="cd-caption-indicator" data-indicator>${
-        images.length ? `1 of ${images.length}` : 'No images configured yet.'
+        images.length ? `1 of ${images.length}` : 'Loading activity…'
       }</div>
       <div class="cd-caption-actions">
         <button type="button" class="cd-caption-button" data-add>Add a caption</button>

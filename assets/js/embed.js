@@ -134,7 +134,7 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   name="${embedId}"
   loading="lazy"
   referrerpolicy="no-referrer"
-  sandbox="allow-scripts allow-same-origin"
+  sandbox="allow-scripts allow-same-origin allow-forms"
   style="width: 100%; min-height: 420px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
   src="${viewerUrl.toString()}"
 ></iframe>`;
