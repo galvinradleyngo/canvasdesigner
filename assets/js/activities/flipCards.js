@@ -731,16 +731,16 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Flip cards create quick retrieval practice loops that strengthen recall during independent study.',
-  when: 'Use them for rapid-fire review of vocabulary, processes, or paired concepts where learners benefit from self-checking between modules.',
+  intro: 'Flip cards create quick retrieval practice loops and light-touch information reveals that help learners acquire and organise new knowledge during independent study.',
+  when: 'Use them for rapid-fire review of vocabulary, processes, or paired concepts, or to scaffold progressive exploration where learners benefit from self-checking between modules.',
   considerations: [
     'Keep prompts and answers concise so flipping feels quick and confidence-building for solo learners.',
     'Group related cards into focused sets of six to eight and label the collection so learners can pace themselves.',
-    'Mix representations—text, icons, audio, or simple images—and suggest how learners might revisit tricky cards.'
+    'Mix representations—text, icons, audio, or simple images—and cue learners to note unfamiliar ideas they want to explore further.'
   ],
   examples: [
     'Graduate writing studio: flip between discipline-specific jargon and student-friendly explanations in a self-paced glossary.',
-    'Physics review module: connect core equations to the real-world phenomena students analyse in lab prep.',
+    'Fieldwork orientation: reveal short scenario snippets on the front and unpack safety protocols and deeper reading links on the back to guide just-in-time information exploration.',
     'Nursing exam prep hub: reveal priority interventions for common clinical presentations before a proctored assessment.'
   ]
 };
