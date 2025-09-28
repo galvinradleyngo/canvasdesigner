@@ -401,7 +401,7 @@ const renderPreview = (container, data) => {
 
   const placeholder = document.createElement('div');
   placeholder.className = 'caption-this-placeholder';
-  placeholder.textContent = 'Add images in the editor to preview them here.';
+  placeholder.textContent = 'Add image URLs in the editor to see them in the preview.';
 
   const imagePrompt = document.createElement('figcaption');
   imagePrompt.className = 'caption-this-image-prompt';
@@ -516,8 +516,8 @@ const renderPreview = (container, data) => {
       imageEl.src = '';
       placeholder.hidden = false;
       placeholder.textContent = state.images.length
-        ? 'Add an image URL in the editor to display it here.'
-        : 'Add images in the editor to preview them here.';
+        ? 'Add an image URL in the editor to see it in the preview.'
+        : 'Add image URLs in the editor to see them in the preview.';
     } else {
       imageEl.hidden = false;
       imageEl.src = active.imageUrl;
@@ -1076,8 +1076,8 @@ const embedTemplate = (data, containerId, context = {}) => {
         imageEl.removeAttribute('src');
         placeholder.hidden = false;
         placeholder.textContent = images.length
-          ? 'Add an image URL in the authoring view to display it here.'
-          : 'No images available yet.';
+          ? 'Add an image URL in the authoring view to see it in the preview.'
+          : 'Add image URLs in the authoring view to see them in the preview.';
       } else {
         imageEl.hidden = false;
         imageEl.src = active.imageUrl;
