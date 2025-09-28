@@ -697,7 +697,7 @@ const embedTemplate = (data, containerId, context = {}) => {
         <button type="button" class="cd-caption-nav cd-caption-prev" aria-label="Previous image">${LEFT_ARROW_ICON}</button>
         <figure class="cd-caption-figure" data-figure>
           <img data-image alt="" hidden />
-          <div class="cd-caption-placeholder" data-placeholder>Loading image…</div>
+          <div class="cd-caption-placeholder" data-placeholder hidden>Loading image…</div>
           <figcaption class="cd-caption-image-prompt" data-image-prompt hidden></figcaption>
         </figure>
         <button type="button" class="cd-caption-nav cd-caption-next" aria-label="Next image">${RIGHT_ARROW_ICON}</button>
@@ -728,14 +728,12 @@ const embedTemplate = (data, containerId, context = {}) => {
   `;
 
   const css = `
+    #${containerId} [hidden] {
+      display: none !important;
+    }
     #${containerId} .cd-caption-this {
       display: grid;
-      gap: 1rem;
-      padding: 1.4rem;
-      border-radius: 18px;
-      background: linear-gradient(145deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.1));
-      border: 1px solid rgba(59, 130, 246, 0.18);
-      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+      gap: 1.25rem;
     }
     #${containerId} .cd-caption-intro {
       margin: 0;
@@ -783,17 +781,17 @@ const embedTemplate = (data, containerId, context = {}) => {
       max-height: 360px;
       object-fit: cover;
       border-radius: 16px;
-      box-shadow: 0 18px 28px rgba(15, 23, 42, 0.16);
     }
     #${containerId} .cd-caption-placeholder {
-      min-height: 280px;
+      min-height: 200px;
       display: grid;
       place-items: center;
       padding: 1.5rem;
       border-radius: 16px;
-      background: repeating-linear-gradient(45deg, rgba(148, 163, 184, 0.16), rgba(148, 163, 184, 0.16) 12px, rgba(203, 213, 225, 0.24) 12px, rgba(203, 213, 225, 0.24) 24px);
+      border: 1px dashed rgba(148, 163, 184, 0.6);
       color: rgba(30, 41, 59, 0.7);
       font-size: 0.95rem;
+      background: rgba(241, 245, 249, 0.7);
     }
     #${containerId} .cd-caption-image-prompt {
       margin: 0;
