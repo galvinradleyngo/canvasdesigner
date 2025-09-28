@@ -127,8 +127,8 @@ const modalState = {
 };
 
 let previewHidden = false;
-let tipsExpanded = true;
-let tipsExpandedPreference = true;
+let tipsExpanded = false;
+let tipsExpandedPreference = false;
 
 const isElementVisible = (element) => {
   if (!element) return false;
@@ -261,7 +261,7 @@ const updateActivityTip = () => {
   setTipsExpanded(shouldExpand, { persistPreference: false });
 };
 
-setTipsExpanded(true);
+setTipsExpanded(false, { persistPreference: false });
 
 const getActiveActivity = () => {
   const activity = activities[state.type];
@@ -397,9 +397,19 @@ const refreshSavedProjects = async (selectedId = state.id) => {
     const projects = await listProjects();
     elements.savedProjects.innerHTML = '';
 
-    if (!projects.length) {
+    const relevantProjects = projects.filter((project) => {
+      if (!project || typeof project !== 'object') {
+        return false;
+      }
+      if (!project.type) {
+        return true;
+      }
+      return project.type === state.type;
+    });
+
+    if (!relevantProjects.length) {
       const option = document.createElement('option');
-      option.textContent = 'No saved activities yet';
+      option.textContent = 'No saved activities for this template yet';
       option.value = '';
       option.disabled = true;
       option.selected = true;
@@ -407,7 +417,7 @@ const refreshSavedProjects = async (selectedId = state.id) => {
       return;
     }
 
-    projects.forEach((project) => {
+    relevantProjects.forEach((project) => {
       const option = document.createElement('option');
       option.value = project.id;
       const updated = project.updatedAt ? new Date(project.updatedAt) : null;
@@ -416,7 +426,7 @@ const refreshSavedProjects = async (selectedId = state.id) => {
       elements.savedProjects.append(option);
     });
 
-    if (selectedId && projects.some((project) => project.id === selectedId)) {
+    if (selectedId && relevantProjects.some((project) => project.id === selectedId)) {
       elements.savedProjects.value = selectedId;
     } else {
       elements.savedProjects.selectedIndex = 0;
@@ -467,7 +477,9 @@ const resetProject = async ({ refreshList = false, silent = false } = {}) => {
   state.description = '';
   state.data = clone((activity || getActiveActivity()).template());
   elements.titleInput.value = '';
-  elements.descriptionInput.value = '';
+  if (elements.descriptionInput) {
+    elements.descriptionInput.value = '';
+  }
   refreshActivityView();
   if (refreshList) {
     await refreshSavedProjects();
@@ -550,8 +562,11 @@ const handleLoadProject = async () => {
     state.title = project.title || '';
     state.description = project.description || '';
     elements.titleInput.value = state.title;
-    elements.descriptionInput.value = state.description;
+    if (elements.descriptionInput) {
+      elements.descriptionInput.value = state.description;
+    }
     refreshActivityView();
+    await refreshSavedProjects(project.id);
     showStatus('Activity loaded');
   } catch (error) {
     console.error('Unable to load activity', error);
@@ -742,8 +757,11 @@ const bindEvents = () => {
         state.description = '';
         state.data = clone(activity.template());
         elements.titleInput.value = '';
-        elements.descriptionInput.value = '';
+        if (elements.descriptionInput) {
+          elements.descriptionInput.value = '';
+        }
         refreshActivityView();
+        await refreshSavedProjects();
         elements.titleInput.focus();
         showStatus(`${activity.label} template loaded`);
       } catch (error) {
@@ -762,10 +780,12 @@ const bindEvents = () => {
     refreshEmbed();
   });
 
-  elements.descriptionInput.addEventListener('input', (event) => {
-    state.description = event.target.value;
-    refreshEmbed();
-  });
+  if (elements.descriptionInput) {
+    elements.descriptionInput.addEventListener('input', (event) => {
+      state.description = event.target.value;
+      refreshEmbed();
+    });
+  }
 
   elements.loadTemplateBtn.addEventListener('click', () => {
     loadTemplate().catch((error) => {
@@ -857,7 +877,9 @@ const init = async () => {
   await ensureActivityRegistered(state.type);
   refreshActivityView();
   elements.titleInput.value = state.title;
-  elements.descriptionInput.value = state.description;
+  if (elements.descriptionInput) {
+    elements.descriptionInput.value = state.description;
+  }
   bindEvents();
   setEmbedModalOpen(false);
   await refreshSavedProjects();
