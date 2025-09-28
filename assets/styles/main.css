@@ -698,8 +698,6 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: calc(100vh - 56px);
-  max-height: calc(100vh - 56px);
 }
 
 .app-main.preview-hidden {
@@ -719,12 +717,12 @@ textarea:focus {
 
 .preview-area {
   position: relative;
-  flex: 1;
+  flex: initial;
   background: white;
   border-radius: calc(var(--radius) + 8px);
   border: 1px solid rgba(15, 23, 42, 0.05);
   padding: 32px;
-  overflow: auto;
+  overflow: visible;
   box-shadow: inset 0 6px 20px rgba(15, 23, 42, 0.04);
   min-height: 0;
 }
