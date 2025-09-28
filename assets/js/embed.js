@@ -86,13 +86,6 @@ const encodePayload = (payload) => {
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 };
 
-const serializeForScript = (value) => {
-  const json = JSON.stringify(value);
-  return json.replace(/</g, '\\u003c');
-};
-
-const EMBED_REGISTRY_KEY = '__CANVAS_DESIGNER_EMBEDS__';
-
 const createViewerUrlWithEmbedId = () => {
   const url = new URL(VIEWER_URL);
   // The embedId query parameter is how the viewer pairs postMessage payload
@@ -111,61 +104,38 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
 
   const safeTitle = sanitizeText(title);
   const safeDescription = sanitizeText(description, { maxLength: 1200 });
+  const hasPersistentId = typeof id === 'string' && id.trim() !== '';
+  const includeInlineContent = !hasPersistentId;
+
   const payload = {
     v: 1,
     ...(id ? { id } : {}),
     type,
     title: safeTitle,
     description: safeDescription,
-    content: data
+    ...(includeInlineContent ? { content: data } : {})
   };
 
-  const encoded = encodePayload(payload);
   const { url: viewerUrl, embedId } = createViewerUrlWithEmbedId();
-  viewerUrl.hash = encoded;
+  if (includeInlineContent) {
+    const encoded = encodePayload(payload);
+    viewerUrl.hash = encoded;
+  } else if (hasPersistentId) {
+    viewerUrl.searchParams.set('projectId', id);
+  }
 
   const iframeTitle = escapeHtml(safeTitle || activity.label);
-  const serializedPayload = serializeForScript(payload);
-  const scriptContent = `(() => {
-    const registryKey = '${EMBED_REGISTRY_KEY}';
-    const store = (window[registryKey] = window[registryKey] || { items: {}, listener: null });
-    store.items['${embedId}'] = ${serializedPayload};
-    if (!store.listener) {
-      store.listener = (event) => {
-        const message = event?.data;
-        if (!message || message.type !== 'canvas-designer:request-payload') {
-          return;
-        }
-        const item = store.items[message.id];
-        if (!item) {
-          return;
-        }
-        const frame = document.getElementById(message.id);
-        if (!frame || frame.contentWindow !== event.source) {
-          return;
-        }
-        event.source?.postMessage({
-          type: 'canvas-designer:deliver-payload',
-          id: message.id,
-          payload: item
-        }, '*');
-      };
-      window.addEventListener('message', store.listener);
-    }
-  })();`;
 
   return `<!-- Canvas Designer Studio embed: ${iframeTitle} -->
 <iframe
   class="cd-embed-frame"
   title="${iframeTitle}"
   id="${embedId}"
+  name="${embedId}"
   loading="lazy"
   referrerpolicy="no-referrer"
   sandbox="allow-scripts allow-same-origin"
   style="width: 100%; min-height: 420px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
   src="${viewerUrl.toString()}"
-></iframe>
-<script type="text/javascript">
-${scriptContent}
-</script>`;
+></iframe>`;
 };

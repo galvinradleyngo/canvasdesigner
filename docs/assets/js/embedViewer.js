@@ -161,6 +161,7 @@ const fetchProjectDocument = async (projectId) => {
       return null;
     }
     return {
+      v: 1,
       id: projectId,
       title: decodeFirestoreValue(fields.title),
       description: decodeFirestoreValue(fields.description),
@@ -181,6 +182,13 @@ const resolvePayload = async () => {
   }
 
   const params = new URLSearchParams(window.location.search);
+  const projectId = params.get('projectId');
+  if (projectId) {
+    const project = await fetchProjectDocument(projectId);
+    if (project) {
+      return project;
+    }
+  }
   const embedId = params.get('embedId');
 
   if (embedId) {
