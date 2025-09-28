@@ -12,26 +12,42 @@ const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIRES
 
 const baseStyles = (containerId) => `
   #${containerId} {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #0f172a;
+    --cd-font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --cd-font-size-base: 14px;
+    --cd-text-color: #1f2937;
+    --cd-text-muted: #4b5563;
+    font-family: var(--cd-font-family);
+    font-size: var(--cd-font-size-base);
+    color: var(--cd-text-color);
     line-height: 1.5;
     display: grid;
-    gap: 1rem;
+    gap: 1.25rem;
     background: transparent;
   }
   #${containerId} *,
   #${containerId} *::before,
   #${containerId} *::after {
     box-sizing: border-box;
+    font-family: inherit;
   }
   #${containerId} .cd-embed-title {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
     font-weight: 600;
     margin: 0;
+    color: #111827;
   }
   #${containerId} .cd-embed-description {
     margin: 0;
-    color: rgba(15, 23, 42, 0.7);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--cd-text-muted);
+  }
+  #${containerId} .cd-embed-description + .cd-embed,
+  #${containerId} .cd-embed-title + .cd-embed {
+    margin-top: 0.5rem;
+  }
+  #${containerId} .cd-embed {
+    background: transparent;
   }
 `;
 
