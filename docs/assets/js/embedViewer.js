@@ -175,6 +175,11 @@ const fetchProjectDocument = async (projectId) => {
 };
 
 const resolvePayload = async () => {
+  const inline = parseInlinePayload();
+  if (inline && typeof inline === 'object') {
+    return inline;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const embedId = params.get('embedId');
 
@@ -189,7 +194,7 @@ const resolvePayload = async () => {
     }
   }
 
-  return parseInlinePayload();
+  return null;
 };
 
 const hydratePayload = async (payload) => {
