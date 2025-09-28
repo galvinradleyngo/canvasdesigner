@@ -1176,17 +1176,17 @@ const buildAnnotatedFragmentHtml = (body, annotations) => {
 };
 
 const learningTip = {
-  intro: 'Immersive text overlays slow readers down in the best way—pairing a passage with prompts, annotations, and micro-checks.',
-  when: 'Use them for close reading, walkthroughs of complex explanations, or primary sources where you want to model expert thinking in context.',
+  intro: 'Immersive text overlays slow self-paced readers down in the best way—pairing a passage with prompts, annotations, and micro-checks.',
+  when: 'Use them for close reading, walkthroughs of complex explanations, or primary sources where you want to model expert thinking in context without being there live.',
   considerations: [
-    'Highlight only the most essential excerpts so the page does not feel crowded with markers.',
-    'Sequence annotations to scaffold thinking—from noticing, to interpreting, to applying the idea elsewhere.',
-    'Mix interaction types (comments, guiding questions, quick quizzes) to keep engagement active and varied.'
+    'Highlight only the most essential excerpts so the page does not feel crowded with markers or distract from independent reading.',
+    'Sequence annotations to scaffold thinking—from noticing, to interpreting, to applying the idea elsewhere—and note when to pause and reflect.',
+    'Mix interaction types (comments, guiding questions, quick quizzes) and clarify how learners should capture their responses for later discussion.'
   ],
   examples: [
-    'Literature seminar: layer historical context and scholarly commentary onto a primary text excerpt.',
-    'MBA case prep: surface decision checkpoints with data prompts learners must analyse before class.',
-    'Biology reading: insert quick concept checks beside complex processes to confirm comprehension.'
+    'Literature seminar pre-work: layer historical context and scholarly commentary onto a primary text excerpt with journaling prompts.',
+    'MBA case prep module: surface decision checkpoints with data prompts learners must analyse before submitting recommendations.',
+    'Biology reading assignment: insert quick concept checks beside complex processes so learners confirm comprehension before lab.'
   ]
 };
 

@@ -642,17 +642,17 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Timelines help learners visualise sequences, dependencies, and momentum across a story or process.',
-  when: 'Use them when chronology or progression matters—showing how milestones build on one another or how parallel events connect.',
+  intro: 'Timelines help self-paced learners visualise sequences, dependencies, and momentum across a story or process.',
+  when: 'Use them when chronology or progression matters—showing how milestones build on one another or how parallel events connect in an asynchronous module.',
   considerations: [
-    'Keep event titles concise and descriptive so the flow of the story is easy to scan.',
-    'Choose a consistent level of date granularity and trim any timestamps that do not advance the narrative.',
-    'Call out pivotal transitions with brief annotations, icons, or media so turning points stand out.'
+    'Keep event titles concise and descriptive so learners can quickly grasp the flow before choosing items to expand.',
+    'Choose a consistent level of date granularity and provide estimated durations if pacing guidance helps independent learners plan.',
+    'Call out pivotal transitions with brief annotations, icons, or media so turning points stand out without instructor narration.'
   ],
   examples: [
-    'History colloquium: trace pivotal moments in a social movement alongside required readings.',
-    'Nursing program: map a patient\'s hospital stay from intake to discharge with critical decision points.',
-    'Entrepreneurship course: chart a startup\'s funding milestones with links to pitch materials.'
+    'History colloquium pre-work: trace pivotal moments in a social movement alongside linked readings and curator notes.',
+    'Nursing program module: map a patient\'s hospital stay from intake to discharge with asynchronous debrief prompts.',
+    'Entrepreneurship course hub: chart a startup\'s funding milestones with self-paced analysis questions for each round.'
   ]
 };
 

@@ -1232,17 +1232,17 @@ const embedTemplate = (data, containerId, context = {}) => {
 };
 
 const learningTip = {
-  intro: 'Learners decode imagery and surface key ideas by composing captions that connect visuals to course concepts.',
-  when: 'Use Caption This after demonstrations, lab walkthroughs, or field observations so students articulate what matters most in each moment.',
+  intro: 'Learners decode imagery and surface key ideas by composing captions that connect visuals to course concepts during self-paced review.',
+  when: 'Use Caption This after demonstrations, lab walkthroughs, or field observations so students articulate what matters most before class meets again.',
   considerations: [
-    'Model a caption that names the technique or principle you want learners to highlight.',
-    'Encourage pairs to compare captions and note which ideas or vocabulary surfaced.',
-    'Invite a quick share-out where the class chooses a caption that best explains the scene for future students.'
+    'Model a caption that names the technique or principle you want learners to highlight and explain where to post their responses.',
+    'Prompt learners to compare captions asynchronously—through comments, peer review, or a follow-up reflection—to notice shared vocabulary.',
+    'Curate a highlight reel or ask learners to vote on captions so the strongest explanations are easy to revisit later.'
   ],
   examples: [
-    'Science lab: caption each step of a titration to reinforce safety and measurement precision.',
-    'History seminar: write captions that frame primary source photos with the relevant context or point of view.',
-    'Clinical simulations: describe the critical patient cue or care decision visible in the still image.'
+    'Science lab module: caption each step of a titration to reinforce safety and measurement precision before entering the lab.',
+    'History seminar pre-work: frame primary source photos with the relevant context or point of view ahead of discussion.',
+    'Clinical simulation debrief: describe the critical patient cue or care decision visible in the still image before writing a chart note.'
   ]
 };
 

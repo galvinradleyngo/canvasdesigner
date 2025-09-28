@@ -738,17 +738,17 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Branching scenarios let learners practise complex judgement calls in a safe, feedback-rich sandbox.',
-  when: 'Use them for conversations, ethical dilemmas, or procedural decisions where the reasoning path matters as much as the final answer.',
+  intro: 'Branching scenarios let self-paced learners practise complex judgement calls in a safe, feedback-rich sandbox.',
+  when: 'Use them for conversations, ethical dilemmas, or procedural decisions where independent learners need to see how reasoning shapes outcomes.',
   considerations: [
-    'Anchor each scene in a realistic context with dialogue and cues your learners would actually encounter.',
-    'Sketch the decision tree first and keep it manageable—three to four key decision points usually provide enough depth without overwhelming authors or learners.',
-    'Deliver feedback or reflection prompts after every choice so learners connect their decision to its impact.'
+    'Open with a brief mission briefing so learners know their role, objective, and how to restart if they want to explore alternate paths.',
+    'Sketch the decision tree first and keep it manageable—three to four key decision points sustain focus without live facilitation.',
+    'Deliver immediate feedback or reflection prompts after every choice and close with a debrief summary that reinforces takeaways.'
   ],
   examples: [
-    'Academic advising simulation: help an advisee balance credit load, financial aid requirements, and graduation timing.',
-    'Clinical decision lab: choose assessments and interventions for a patient whose symptoms evolve over a rotation.',
-    'Research ethics workshop: decide how to respond when a collaborator pressures the team to omit conflicting data.'
+    'Academic advising simulation: guide students through pre-registration choices before they meet with a live advisor.',
+    'Clinical decision lab: select assessments and interventions for a patient whose symptoms evolve over a self-paced rotation.',
+    'Research ethics workshop: explore how to respond when a collaborator pressures the team to omit conflicting data, then journal about the implications.'
   ]
 };
 

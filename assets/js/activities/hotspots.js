@@ -589,17 +589,17 @@ const embedTemplate = (data, containerId) => ({
 });
 
 const learningTip = {
-  intro: 'Hotspots invite learners to explore an image and reveal layered context right where it appears.',
-  when: 'Use them when spatial relationships or visual cues matter—maps, lab setups, artworks, equipment layouts, or complex diagrams.',
+  intro: 'Hotspots invite self-paced learners to explore an image and reveal layered context right where it appears.',
+  when: 'Use them when spatial relationships or visual cues matter—maps, lab setups, artworks, equipment layouts, or complex diagrams learners will navigate on their own.',
   considerations: [
     'Select a high-resolution image and crop thoughtfully so every marker area stays clear on different screens.',
-    'Write concise titles and offer descriptive text or transcripts so screen reader users can access the same insights.',
-    'Provide a guiding question or suggested sequence if you need learners to follow a particular narrative through the hotspots.'
+    'Write concise titles and offer descriptive text or transcripts so screen reader users can access the same insights without needing a facilitator.',
+    'Offer a guiding question, suggested sequence, or progress indicator so learners know when they have explored everything important.'
   ],
   examples: [
-    'Fieldwork preparation: annotate a study-site map with logistical notes and cultural considerations.',
-    'Art history lecture: spotlight compositional choices directly on a high-resolution image of the artwork.',
-    'Engineering lab orientation: call out essential instruments and safety zones on the fabrication studio floor plan.'
+    'Fieldwork preparation hub: annotate a study-site map with logistical notes and cultural considerations learners review before travel.',
+    'Art history module: spotlight compositional choices directly on a high-resolution image with curator commentary.',
+    'Engineering lab orientation: call out essential instruments and safety zones on the fabrication studio floor plan before students arrive on-site.'
   ]
 };
 

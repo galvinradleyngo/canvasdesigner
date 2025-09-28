@@ -373,17 +373,17 @@ const embedTemplate = (data, containerId) => {
 };
 
 const learningTip = {
-  intro: 'Accordions break dense information into digestible bites while letting learners control the pace.',
-  when: 'Use them to structure multi-step processes, FAQs, or concept comparisons where learners may explore sections in any order.',
+  intro: 'Accordions break dense information into digestible bites so self-paced learners decide when to dive deeper.',
+  when: 'Use them to structure multi-step guides, asynchronous FAQs, or comparisons where learners can jump straight to what they need.',
   considerations: [
-    'Write headings that read like summary statements so skim readers grasp the key idea before expanding.',
-    'Balance the amount of media and text in each pane so no single section feels overwhelming.',
-    'Layer in prompts, visuals, or follow-up questions inside panels to keep learners actively processing what they open.'
+    'Start each panel with an orienting sentence or estimated time so independent learners know the value of opening it.',
+    'Write headings as summary statements and front-load key actions for readers who skim before expanding.',
+    'Link to next steps or reflective prompts inside panels so learners can immediately apply or document what they learned.'
   ],
   examples: [
-    'Online syllabus tour: let students expand academic integrity expectations, grading policies, and campus support resources.',
-    'Research methods lab: break down the IRB submission process with checklists and template links in each panel.',
-    'Capstone seminar: organise case background, data exhibits, and debrief questions so teams can prep independently.'
+    'Online orientation module: let students open panels on academic integrity, technology setup, and campus resources when ready.',
+    'Research methods micro-course: break down the IRB submission workflow with downloadable templates in each step.',
+    'Capstone preparation hub: organise case background, data sources, and debrief questions so teams can prep asynchronously.'
   ]
 };
 
