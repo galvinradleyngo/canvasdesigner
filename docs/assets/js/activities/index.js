@@ -5,6 +5,8 @@ import { accordion } from './accordion.js';
 import { timeline } from './timeline.js';
 import { branchingScenarios } from './branchingScenarios.js';
 import { imageCarousel } from './imageCarousel.js';
+import { immersiveText } from './immersiveText.js';
+import { wordCloud } from './wordCloud.js';
 import { debate } from './debate.js';
 import { captionThis } from './captionThis.js';
 
@@ -16,6 +18,8 @@ export const activities = {
   [timeline.id]: timeline,
   [branchingScenarios.id]: branchingScenarios,
   [imageCarousel.id]: imageCarousel,
+  [immersiveText.id]: immersiveText,
+  [wordCloud.id]: wordCloud,
   [debate.id]: debate,
   [captionThis.id]: captionThis
 };
