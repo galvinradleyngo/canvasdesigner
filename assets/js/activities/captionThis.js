@@ -1203,9 +1203,13 @@ const embedTemplate = (data, containerId, context = {}) => {
       const active = getActive();
       if (!active) return;
       const entry = {
-        id: `caption-${Date.now().toString(36)}-${Math.random()
-          .toString(36)
-          .slice(2, 6)}`,
+        id:
+          'caption-' +
+          Date.now().toString(36) +
+          '-' +
+          Math.random()
+            .toString(36)
+            .slice(2, 6),
         text: value,
         createdAt: new Date().toISOString(),
         source: 'learner'
