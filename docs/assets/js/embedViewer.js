@@ -4,6 +4,7 @@ const VIEW_ROOT_ID = 'cd-embed-viewer-root';
 const REQUEST_MESSAGE_TYPE = 'canvas-designer:request-payload';
 const DELIVER_MESSAGE_TYPE = 'canvas-designer:deliver-payload';
 const RESIZE_MESSAGE_TYPE = 'canvas-designer:embed-resize';
+const REQUEST_RESIZE_MESSAGE_TYPE = 'canvas-designer:request-embed-resize';
 const PARENT_RESPONSE_TIMEOUT = 8000;
 const DEFAULT_MIN_HEIGHT = 420;
 
@@ -381,6 +382,20 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
   measure();
 
   const cleanupFns = [];
+
+  const handleResizeRequest = (event) => {
+    const message = event?.data;
+    if (!message || message.type !== REQUEST_RESIZE_MESSAGE_TYPE) {
+      return;
+    }
+    if (message.id && embedId && message.id !== embedId) {
+      return;
+    }
+    measure();
+  };
+
+  window.addEventListener('message', handleResizeRequest);
+  cleanupFns.push(() => window.removeEventListener('message', handleResizeRequest));
 
   if (typeof ResizeObserver === 'function') {
     const observer = new ResizeObserver(() => measure());
