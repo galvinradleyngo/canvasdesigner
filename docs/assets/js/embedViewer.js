@@ -319,6 +319,9 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
   const containerEl = container instanceof Element ? container : null;
   let lastHeight = 0;
 
+  const globalKey = '__canvasDesignerEmbed__';
+  const globalApi = (window[globalKey] = window[globalKey] || {});
+
   const getBottomMargin = (element) => {
     if (!(element instanceof Element)) {
       return 0;
@@ -377,6 +380,15 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
 
     lastHeight = nextHeight;
     applyFrameHeight(nextHeight, { embedId });
+  };
+
+  globalApi.requestResize = (options = {}) => {
+    const immediate = options.immediate !== false;
+    if (immediate) {
+      measure();
+    } else {
+      window.setTimeout(() => measure(), 0);
+    }
   };
 
   measure();
@@ -467,6 +479,17 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
         fn();
       } catch (error) {
         // Ignore cleanup failures.
+      }
+    }
+
+    if (window[globalKey] === globalApi) {
+      delete globalApi.requestResize;
+      if (Object.keys(globalApi).length === 0) {
+        try {
+          delete window[globalKey];
+        } catch (error) {
+          window[globalKey] = {};
+        }
       }
     }
   };
