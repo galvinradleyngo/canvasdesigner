@@ -64,8 +64,9 @@ const getConfiguredViewerBase = () => {
   );
 };
 
-const VIEWER_URL = new URL('docs/embed.html', getConfiguredViewerBase()).toString();
-const RESIZE_MESSAGE_TYPE = 'canvas-designer:embed-resize';
+const VIEWER_BASE = getConfiguredViewerBase();
+const VIEWER_URL = new URL('docs/embed.html', VIEWER_BASE).toString();
+const HOST_SCRIPT_URL = new URL('docs/assets/js/embedHost.js', VIEWER_BASE).toString();
 const DEFAULT_MIN_HEIGHT = 420;
 
 const sanitizeText = (value, { maxLength = 500 } = {}) => {
@@ -131,46 +132,6 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   const iframeTitle = escapeHtml(safeTitle || activity.label);
   const viewerOrigin = viewerUrl.origin;
 
-  const resizeScript = `
-(function() {
-  var iframeId = '${embedId}';
-  var minHeight = ${DEFAULT_MIN_HEIGHT};
-  var expectedOrigin = '${viewerOrigin}';
-
-  function applyHeight(value) {
-    var frame = document.getElementById(iframeId);
-    if (!frame) {
-      return;
-    }
-    var numeric = Number(value);
-    if (!(typeof numeric === 'number' && isFinite(numeric))) {
-      numeric = minHeight;
-    }
-    var next = Math.max(Math.ceil(numeric), minHeight);
-    frame.style.height = next + 'px';
-    frame.style.minHeight = next + 'px';
-    frame.style.maxHeight = 'none';
-    frame.style.overflow = 'hidden';
-  }
-
-  applyHeight(minHeight);
-
-  function handleResize(event) {
-    if (!event || !event.data || event.data.type !== '${RESIZE_MESSAGE_TYPE}' || event.data.id !== iframeId) {
-      return;
-    }
-    if (expectedOrigin && event.origin && event.origin !== expectedOrigin) {
-      return;
-    }
-    applyHeight(event.data.height);
-  }
-
-  if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener('message', handleResize, false);
-  }
-})();
-`.replace(/<\//g, '<\\/');
-
   return `<!-- Canvas Designer Studio embed: ${iframeTitle} -->
 <iframe
   class="cd-embed-frame"
@@ -180,8 +141,11 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   loading="lazy"
   referrerpolicy="no-referrer"
   sandbox="allow-scripts allow-same-origin allow-forms"
-  style="width: 100%; min-height: ${DEFAULT_MIN_HEIGHT}px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
+  data-cd-embed-id="${embedId}"
+  data-cd-embed-origin="${viewerOrigin}"
+  data-cd-embed-min-height="${DEFAULT_MIN_HEIGHT}"
+  style="width: 100%; min-height: ${DEFAULT_MIN_HEIGHT}px; height: ${DEFAULT_MIN_HEIGHT}px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
   src="${viewerUrl.toString()}"
-></iframe>
-<script>${resizeScript}</script>`;
+</iframe>
+<script async src="${HOST_SCRIPT_URL}" data-canvas-designer-embed="true"></script>`;
 };
