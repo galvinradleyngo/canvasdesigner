@@ -3,6 +3,9 @@ import { clone, formatDate, uid } from './utils.js';
 import { listProjects, saveProject, deleteProject, getProject } from './storage.js';
 import { generateEmbed } from './embed.js';
 
+const DEFAULT_EMBED_HEIGHT = 420;
+let lastEstimatedEmbedHeight = DEFAULT_EMBED_HEIGHT;
+
 const state = {
   id: null,
   type: defaultActivityId,
@@ -129,6 +132,55 @@ const modalState = {
 let previewHidden = false;
 let tipsExpanded = false;
 let tipsExpandedPreference = false;
+
+const parseSizeValue = (value) => {
+  const numeric = Number.parseFloat(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const computeVerticalMargins = (element) => {
+  if (!element || typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') {
+    return 0;
+  }
+  try {
+    const styles = window.getComputedStyle(element);
+    return parseSizeValue(styles.marginTop) + parseSizeValue(styles.marginBottom);
+  } catch (error) {
+    return 0;
+  }
+};
+
+const estimatePreviewHeight = () => {
+  if (!elements.previewArea) {
+    return lastEstimatedEmbedHeight;
+  }
+
+  if (previewHidden) {
+    return lastEstimatedEmbedHeight;
+  }
+
+  const wrapper = elements.previewArea.querySelector('.preview-activity-wrapper');
+  if (!wrapper) {
+    return lastEstimatedEmbedHeight;
+  }
+
+  const rect = typeof wrapper.getBoundingClientRect === 'function' ? wrapper.getBoundingClientRect() : null;
+  let measured = rect ? rect.height : 0;
+  if (!Number.isFinite(measured) || measured <= 0) {
+    measured = wrapper.scrollHeight || wrapper.offsetHeight || 0;
+  }
+
+  if (!Number.isFinite(measured) || measured <= 0) {
+    return lastEstimatedEmbedHeight;
+  }
+
+  const marginAdjustments =
+    computeVerticalMargins(wrapper) + computeVerticalMargins(wrapper.parentElement || null);
+
+  const estimated = Math.max(Math.ceil(measured + marginAdjustments + 24), DEFAULT_EMBED_HEIGHT);
+  lastEstimatedEmbedHeight = estimated;
+  return estimated;
+};
 
 const isElementVisible = (element) => {
   if (!element) return false;
@@ -302,12 +354,14 @@ const updateActivityPicker = () => {
 
 const refreshEmbed = () => {
   try {
+    const estimatedHeight = estimatePreviewHeight();
     const embed = generateEmbed({
       id: state.id,
       type: state.type,
       title: state.title,
       description: state.description,
-      data: state.data
+      data: state.data,
+      minHeight: estimatedHeight
     });
     if (elements.embedSnippet) {
       elements.embedSnippet.value = embed;
@@ -389,6 +443,7 @@ const setPreviewHidden = (hidden) => {
   updatePreviewToggleButtons();
   if (!previewHidden) {
     refreshPreview();
+    refreshEmbed();
   }
 };
 
