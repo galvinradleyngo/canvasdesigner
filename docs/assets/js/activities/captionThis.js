@@ -934,14 +934,152 @@ const embedTemplate = (data, containerId, context = {}) => {
     const dataNode = root.querySelector('[data-caption-this]');
     if (!dataNode) return;
 
-    const requestResize = () => {
+    const DEFAULT_MIN_HEIGHT = 420;
+    const MAX_RESIZE_RETRIES = 24;
+    const RESIZE_RETRY_DELAY = 180;
+
+    let resizeRetriesRemaining = MAX_RESIZE_RETRIES;
+    let resizeRetryHandle = null;
+    let manualResizeHandle = null;
+    let manualOverflowApplied = false;
+
+    const getBottomMargin = (element) => {
+      if (!(element instanceof Element)) {
+        return 0;
+      }
+      try {
+        const style = window.getComputedStyle(element);
+        if (!style) {
+          return 0;
+        }
+        const margin = parseFloat(style.marginBottom);
+        return Number.isFinite(margin) ? margin : 0;
+      } catch (error) {
+        return 0;
+      }
+    };
+
+    const computeManualHeight = () => {
+      const body = document.body;
+      const doc = document.documentElement;
+      const container = root;
+      const containerRect = container?.getBoundingClientRect?.();
+
+      const measured = Math.max(
+        containerRect ? containerRect.height : 0,
+        container?.scrollHeight || 0,
+        container?.offsetHeight || 0,
+        body?.scrollHeight || 0,
+        body?.offsetHeight || 0,
+        doc?.scrollHeight || 0,
+        doc?.offsetHeight || 0
+      );
+
+      if (!Number.isFinite(measured)) {
+        return null;
+      }
+
+      const marginAdjustments = Math.max(
+        getBottomMargin(container),
+        getBottomMargin(container?.lastElementChild || null),
+        getBottomMargin(body),
+        getBottomMargin(doc)
+      );
+
+      const adjustedHeight = measured + marginAdjustments;
+      if (!Number.isFinite(adjustedHeight)) {
+        return null;
+      }
+
+      return Math.max(Math.ceil(adjustedHeight + 16), DEFAULT_MIN_HEIGHT);
+    };
+
+    const applyManualResize = () => {
+      const targetHeight = computeManualHeight();
+      if (!Number.isFinite(targetHeight)) {
+        return;
+      }
+
+      const body = document.body;
+      if (body && body.style) {
+        body.style.height = `${targetHeight}px`;
+        body.style.minHeight = `${targetHeight}px`;
+        body.style.maxHeight = 'none';
+        body.style.overflowY = 'auto';
+        manualOverflowApplied = true;
+      }
+
+      try {
+        const frame = window.frameElement;
+        if (frame && frame.style) {
+          frame.style.height = `${targetHeight}px`;
+          frame.style.minHeight = `${DEFAULT_MIN_HEIGHT}px`;
+          frame.style.maxHeight = 'none';
+          frame.style.overflow = 'auto';
+        }
+      } catch (error) {
+        // Ignore frame access errors in restrictive contexts.
+      }
+    };
+
+    const scheduleManualResize = () => {
+      if (manualResizeHandle) {
+        clearTimeout(manualResizeHandle);
+      }
+      manualResizeHandle = setTimeout(() => {
+        manualResizeHandle = null;
+        applyManualResize();
+      }, 90);
+    };
+
+    const restoreManualOverflow = () => {
+      if (!manualOverflowApplied) {
+        return;
+      }
+      manualOverflowApplied = false;
+      const body = document.body;
+      if (body && body.style) {
+        body.style.overflowY = '';
+      }
+    };
+
+    const requestResize = ({ allowRetry = true, fallback = true } = {}) => {
+      let invokedApi = false;
       try {
         const api = window.__canvasDesignerEmbed__;
         if (api && typeof api.requestResize === 'function') {
+          if (resizeRetryHandle) {
+            clearTimeout(resizeRetryHandle);
+            resizeRetryHandle = null;
+          }
+          resizeRetriesRemaining = MAX_RESIZE_RETRIES;
           api.requestResize({ immediate: true });
+          invokedApi = true;
         }
       } catch (error) {
         // Ignore resize errors in restrictive contexts.
+      }
+
+      if (invokedApi) {
+        if (fallback) {
+          restoreManualOverflow();
+        }
+        return;
+      }
+
+      if (fallback) {
+        scheduleManualResize();
+      }
+
+      if (allowRetry && resizeRetriesRemaining > 0) {
+        if (resizeRetryHandle) {
+          clearTimeout(resizeRetryHandle);
+        }
+        resizeRetriesRemaining -= 1;
+        resizeRetryHandle = setTimeout(() => {
+          resizeRetryHandle = null;
+          requestResize({ allowRetry: true, fallback });
+        }, RESIZE_RETRY_DELAY);
       }
     };
     let data;
@@ -1245,7 +1383,7 @@ const embedTemplate = (data, containerId, context = {}) => {
     });
 
     render();
-    requestResize();
+    requestResize({ allowRetry: true });
   })();`;
 
   return { html, css, js };
