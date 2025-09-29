@@ -288,23 +288,41 @@ const embedTemplate = (data, containerId) => {
     html: `
     <div class="cd-timeline" style="--timeline-accent: ${escapeHtml(accent)};">
       ${events
-        .map(
-          (event, index) => `
+        .map((event, index) => {
+          const hasDetails = Boolean(event.description);
+          const triggerTag = hasDetails ? 'button' : 'div';
+          const triggerAttributes = hasDetails
+            ? 'type="button" class="cd-timeline-trigger" aria-expanded="false"'
+            : 'class="cd-timeline-trigger cd-timeline-trigger--static" aria-disabled="true"';
+          const dateMarkup = event.date
+            ? `<span class="cd-timeline-date">${escapeHtml(event.date)}</span>`
+            : '';
+          const titleMarkup = `<span class="cd-timeline-title">${
+            typeof event.title === 'string' ? escapeHtml(event.title) : ''
+          }</span>`;
+          const iconMarkup = hasDetails
+            ? '<span class="cd-timeline-trigger-icon" aria-hidden="true">▾</span>'
+            : '';
+          const detailsMarkup = hasDetails
+            ? `<div class="cd-timeline-details" aria-hidden="true"><p class="cd-timeline-description">${escapeHtml(
+                event.description
+              )}</p></div>`
+            : '';
+          return `
         <div class="cd-timeline-item animate" style="--item-index: ${index};">
           <div class="cd-timeline-marker"></div>
           <div class="cd-timeline-content">
-            ${event.date ? `<span class="cd-timeline-date">${escapeHtml(event.date)}</span>` : ''}
-            <h3 class="cd-timeline-title">${
-              typeof event.title === 'string' ? escapeHtml(event.title) : ''
-            }</h3>
-            ${
-              event.description
-                ? `<p class="cd-timeline-description">${escapeHtml(event.description)}</p>`
-                : ''
-            }
+            <${triggerTag} ${triggerAttributes}>
+              <span class="cd-timeline-trigger-text">
+                ${dateMarkup}
+                ${titleMarkup}
+              </span>
+              ${iconMarkup}
+            </${triggerTag}>
+            ${detailsMarkup}
           </div>
-        </div>`
-        )
+        </div>`;
+        })
         .join('')}
     </div>
   `,
@@ -355,6 +373,11 @@ const embedTemplate = (data, containerId) => {
       border: 3px solid var(--timeline-accent);
       box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
       margin-top: 0.4rem;
+      transition: transform 220ms ease, box-shadow 220ms ease;
+    }
+    #${containerId} .cd-timeline-item.is-active .cd-timeline-marker {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.18);
     }
     #${containerId} .cd-timeline-content {
       background: rgba(255, 255, 255, 0.95);
@@ -362,6 +385,44 @@ const embedTemplate = (data, containerId) => {
       padding: 1rem 1.3rem;
       border: 1px solid rgba(148, 163, 184, 0.25);
       box-shadow: 0 16px 32px rgba(15, 23, 42, 0.14);
+      display: grid;
+      gap: 0.75rem;
+      transition: border-color 240ms ease, box-shadow 240ms ease;
+    }
+    #${containerId} .cd-timeline-item.is-active .cd-timeline-content {
+      border-color: rgba(99, 102, 241, 0.35);
+      box-shadow: 0 20px 36px rgba(15, 23, 42, 0.18);
+    }
+    #${containerId} .cd-timeline-trigger {
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+    #${containerId} .cd-timeline-trigger:focus-visible {
+      outline: 2px solid var(--timeline-accent);
+      outline-offset: 4px;
+      border-radius: 12px;
+    }
+    #${containerId} .cd-timeline-trigger--static {
+      cursor: default;
+    }
+    #${containerId} .cd-timeline-trigger--static:focus-visible {
+      outline: none;
+    }
+    #${containerId} .cd-timeline-trigger-text {
+      display: grid;
+      gap: 0.3rem;
+      flex: 1;
     }
     #${containerId} .cd-timeline-date {
       display: inline-block;
@@ -370,15 +431,46 @@ const embedTemplate = (data, containerId) => {
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--timeline-accent);
-      margin-bottom: 0.35rem;
+      margin: 0;
     }
     #${containerId} .cd-timeline-title {
       margin: 0;
       font-size: 1.05rem;
       color: #0f172a;
+      font-weight: 600;
+    }
+    #${containerId} .cd-timeline-trigger-icon {
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--timeline-accent);
+      transition: transform 240ms ease, background-color 240ms ease, color 240ms ease;
+    }
+    #${containerId} .cd-timeline-item.is-active .cd-timeline-trigger-icon {
+      transform: rotate(180deg);
+      background: var(--timeline-accent);
+      color: #ffffff;
+    }
+    #${containerId} .cd-timeline-details {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-6px);
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      padding-top: 0.75rem;
+      transition: max-height 320ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 220ms ease, transform 220ms ease;
+    }
+    #${containerId} .cd-timeline-item.is-active .cd-timeline-details {
+      opacity: 1;
+      transform: translateY(0);
     }
     #${containerId} .cd-timeline-description {
-      margin: 0.45rem 0 0;
+      margin: 0;
       color: rgba(15, 23, 42, 0.78);
       line-height: 1.6;
       white-space: pre-wrap;
@@ -394,7 +486,82 @@ const embedTemplate = (data, containerId) => {
       }
     }
   `,
-    js: ''
+    js: `
+    (function(){
+      const root = document.getElementById('${containerId}');
+      if (!root) return;
+      const items = Array.from(root.querySelectorAll('.cd-timeline-item'));
+      let activeIndex = -1;
+
+      const requestResize = () => {
+        try {
+          const api = window.__canvasDesignerEmbed__;
+          if (api && typeof api.requestResize === 'function') {
+            api.requestResize({ immediate: true });
+          }
+        } catch (error) {
+          // Ignore resize errors in restrictive contexts.
+        }
+      };
+
+      const setActive = (index) => {
+        items.forEach((item, itemIndex) => {
+          const trigger = item.querySelector('button.cd-timeline-trigger');
+          const details = item.querySelector('.cd-timeline-details');
+          const expanded = typeof index === 'number' && index === itemIndex && trigger && details;
+          item.classList.toggle('is-active', expanded);
+          if (trigger) {
+            trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          }
+          if (details) {
+            if (expanded) {
+              details.style.maxHeight = details.scrollHeight + 'px';
+              details.setAttribute('aria-hidden', 'false');
+            } else {
+              details.style.maxHeight = '0px';
+              details.setAttribute('aria-hidden', 'true');
+            }
+          }
+        });
+        activeIndex = typeof index === 'number' ? index : -1;
+        requestResize();
+      };
+
+      items.forEach((item, index) => {
+        const trigger = item.querySelector('button.cd-timeline-trigger');
+        const details = item.querySelector('.cd-timeline-details');
+        if (details) {
+          details.style.maxHeight = '0px';
+          details.setAttribute('aria-hidden', 'true');
+        }
+        if (!trigger || !details) {
+          return;
+        }
+        trigger.addEventListener('click', () => {
+          setActive(activeIndex === index ? -1 : index);
+        });
+      });
+
+      const handleResize = () => {
+        if (activeIndex < 0) {
+          return;
+        }
+        const activeItem = items[activeIndex];
+        if (!activeItem) {
+          return;
+        }
+        const details = activeItem.querySelector('.cd-timeline-details');
+        if (details) {
+          details.style.maxHeight = details.scrollHeight + 'px';
+        }
+        requestResize();
+      };
+
+      window.addEventListener('resize', handleResize);
+      setActive(-1);
+      requestResize();
+    })();
+  `
   };
 };
 
