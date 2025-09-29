@@ -318,6 +318,22 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
   const containerEl = container instanceof Element ? container : null;
   let lastHeight = 0;
 
+  const getBottomMargin = (element) => {
+    if (!(element instanceof Element)) {
+      return 0;
+    }
+    try {
+      const style = window.getComputedStyle(element);
+      if (!style) {
+        return 0;
+      }
+      const margin = parseFloat(style.marginBottom);
+      return Number.isFinite(margin) ? margin : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
   const measure = () => {
     const body = document.body;
     const doc = document.documentElement;
@@ -339,7 +355,20 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
       return;
     }
 
-    const nextHeight = Math.max(Math.ceil(measured + 16), DEFAULT_MIN_HEIGHT);
+    const marginAdjustments = Math.max(
+      getBottomMargin(root),
+      getBottomMargin(containerEl),
+      getBottomMargin(root?.lastElementChild || null),
+      getBottomMargin(containerEl?.lastElementChild || null)
+    );
+
+    const adjustedHeight = measured + marginAdjustments;
+
+    if (!Number.isFinite(adjustedHeight)) {
+      return;
+    }
+
+    const nextHeight = Math.max(Math.ceil(adjustedHeight + 16), DEFAULT_MIN_HEIGHT);
 
     if (Math.abs(nextHeight - lastHeight) <= 1) {
       return;
