@@ -934,11 +934,35 @@ const embedTemplate = (data, containerId, context = {}) => {
     const dataNode = root.querySelector('[data-caption-this]');
     if (!dataNode) return;
 
-    const requestResize = () => {
+    const MAX_RESIZE_RETRIES = 12;
+    let resizeRetriesRemaining = MAX_RESIZE_RETRIES;
+    let resizeRetryHandle = null;
+
+    const requestResize = ({ allowRetry = true } = {}) => {
       try {
         const api = window.__canvasDesignerEmbed__;
         if (api && typeof api.requestResize === 'function') {
+          if (resizeRetryHandle) {
+            clearTimeout(resizeRetryHandle);
+            resizeRetryHandle = null;
+          }
+          resizeRetriesRemaining = MAX_RESIZE_RETRIES;
           api.requestResize({ immediate: true });
+        } else if (allowRetry && resizeRetriesRemaining > 0) {
+          const scheduleRetry = () => {
+            resizeRetryHandle = setTimeout(() => {
+              resizeRetryHandle = null;
+              requestResize({ allowRetry: true });
+            }, 120);
+          };
+
+          if (resizeRetryHandle) {
+            clearTimeout(resizeRetryHandle);
+            scheduleRetry();
+          } else {
+            resizeRetriesRemaining -= 1;
+            scheduleRetry();
+          }
         }
       } catch (error) {
         // Ignore resize errors in restrictive contexts.
@@ -1245,7 +1269,7 @@ const embedTemplate = (data, containerId, context = {}) => {
     });
 
     render();
-    requestResize();
+    requestResize({ allowRetry: true });
   })();`;
 
   return { html, css, js };
