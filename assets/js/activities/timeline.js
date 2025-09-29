@@ -583,6 +583,17 @@ const embedTemplate = (data, containerId) => {
       const items = Array.from(root.querySelectorAll('.cd-timeline-item'));
       let activeIndex = -1;
 
+      const requestResize = () => {
+        try {
+          const api = window.__canvasDesignerEmbed__;
+          if (api && typeof api.requestResize === 'function') {
+            api.requestResize({ immediate: true });
+          }
+        } catch (error) {
+          // Ignore resize errors in restrictive contexts.
+        }
+      };
+
       const setActive = (index) => {
         items.forEach((item, itemIndex) => {
           const trigger = item.querySelector('button.cd-timeline-trigger');
@@ -603,6 +614,7 @@ const embedTemplate = (data, containerId) => {
           }
         });
         activeIndex = typeof index === 'number' ? index : -1;
+        requestResize();
       };
 
       items.forEach((item, index) => {
@@ -632,10 +644,12 @@ const embedTemplate = (data, containerId) => {
         if (details) {
           details.style.maxHeight = details.scrollHeight + 'px';
         }
+        requestResize();
       };
 
       window.addEventListener('resize', handleResize);
       setActive(-1);
+      requestResize();
     })();
   `
   };
