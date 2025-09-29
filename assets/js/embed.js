@@ -69,6 +69,14 @@ const VIEWER_URL = new URL('docs/embed.html', VIEWER_BASE).toString();
 const HOST_SCRIPT_URL = new URL('docs/assets/js/embedHost.js', VIEWER_BASE).toString();
 const DEFAULT_MIN_HEIGHT = 420;
 
+const normaliseHeight = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return DEFAULT_MIN_HEIGHT;
+  }
+  return Math.max(Math.ceil(numeric), DEFAULT_MIN_HEIGHT);
+};
+
 const sanitizeText = (value, { maxLength = 500 } = {}) => {
   if (typeof value !== 'string') {
     return '';
@@ -99,7 +107,7 @@ const createViewerUrlWithEmbedId = () => {
   return { url, embedId };
 };
 
-export const generateEmbed = ({ id, type, title, description, data }) => {
+export const generateEmbed = ({ id, type, title, description, data, minHeight }) => {
   const activity = activities[type];
   if (!activity) {
     throw new Error('Unknown activity type');
@@ -131,6 +139,7 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
 
   const iframeTitle = escapeHtml(safeTitle || activity.label);
   const viewerOrigin = viewerUrl.origin;
+  const initialHeight = normaliseHeight(minHeight);
 
   return `<!-- Canvas Designer Studio embed: ${iframeTitle} -->
 <iframe
@@ -143,8 +152,8 @@ export const generateEmbed = ({ id, type, title, description, data }) => {
   sandbox="allow-scripts allow-same-origin allow-forms"
   data-cd-embed-id="${embedId}"
   data-cd-embed-origin="${viewerOrigin}"
-  data-cd-embed-min-height="${DEFAULT_MIN_HEIGHT}"
-  style="width: 100%; min-height: ${DEFAULT_MIN_HEIGHT}px; height: ${DEFAULT_MIN_HEIGHT}px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
+  data-cd-embed-min-height="${initialHeight}"
+  style="width: 100%; min-height: ${initialHeight}px; height: ${initialHeight}px; border: 0; border-radius: 12px; overflow: hidden; background-color: transparent;"
   src="${viewerUrl.toString()}"
 </iframe>
 <script async src="${HOST_SCRIPT_URL}" data-canvas-designer-embed="true"></script>`;

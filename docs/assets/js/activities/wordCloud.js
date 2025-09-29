@@ -487,11 +487,15 @@ const renderPreview = (container, data, options = {}) => {
 
   controls.append(input, submitButton);
 
+  const progress = document.createElement('div');
+  progress.className = 'cd-wordcloud-progress';
+  progress.setAttribute('aria-hidden', 'true');
+
   const status = document.createElement('p');
   status.className = 'cd-wordcloud-status';
   status.hidden = true;
 
-  form.append(label, controls, status);
+  form.append(label, controls, progress, status);
 
   const resetButton = document.createElement('button');
   resetButton.type = 'button';
@@ -550,6 +554,26 @@ const renderPreview = (container, data, options = {}) => {
     }
     const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
     return cleaned.slice(0, 36);
+  };
+
+  const renderProgress = (used) => {
+    const desired = maxEntries;
+    if (progress.children.length !== desired) {
+      progress.innerHTML = '';
+      for (let index = 0; index < desired; index += 1) {
+        const slot = document.createElement('span');
+        slot.className = 'cd-wordcloud-progress-slot';
+        slot.dataset.state = 'empty';
+        progress.append(slot);
+      }
+    }
+    const safeUsed = Math.max(0, Math.min(used || 0, desired));
+    Array.from(progress.children).forEach((child, index) => {
+      if (!(child instanceof HTMLElement)) {
+        return;
+      }
+      child.dataset.state = index < safeUsed ? 'filled' : 'empty';
+    });
   };
 
   const renderCloud = () => {
@@ -612,6 +636,10 @@ const renderPreview = (container, data, options = {}) => {
     const disabled = remaining <= 0;
     input.disabled = disabled;
     submitButton.disabled = disabled;
+    renderProgress(maxEntries - remaining);
+    if (!disabled && status.dataset.tone === 'limit') {
+      clearStatus();
+    }
     return remaining;
   };
 
@@ -737,6 +765,7 @@ const embedTemplate = (data, containerId, context = {}) => {
           <input id="${containerId}-input" type="text" maxlength="36" autocomplete="off" placeholder="e.g. Curious" required />
           <button type="submit">Submit</button>
         </div>
+        <div class="cd-wordcloud-progress" data-wordcloud-progress aria-hidden="true"></div>
       </form>
       <div class="cd-wordcloud-status" data-wordcloud-status role="status" aria-live="polite" hidden></div>
       <div class="cd-wordcloud-cloud" data-wordcloud-entries aria-live="polite"></div>
@@ -820,6 +849,23 @@ const embedTemplate = (data, containerId, context = {}) => {
       transform: translateY(-1px);
       box-shadow: 0 12px 22px rgba(79, 70, 229, 0.25);
     }
+    .cd-wordcloud-progress {
+      display: inline-flex;
+      gap: 0.35rem;
+      align-items: center;
+      padding: 0.1rem 0;
+    }
+    .cd-wordcloud-progress-slot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.22);
+      transition: background 160ms ease, transform 160ms ease;
+    }
+    .cd-wordcloud-progress-slot[data-state="filled"] {
+      background: rgba(79, 70, 229, 0.9);
+      transform: scale(1.05);
+    }
     .cd-wordcloud-status {
       font-size: 0.9rem;
       padding: 0.5rem 0.75rem;
@@ -883,6 +929,7 @@ const embedTemplate = (data, containerId, context = {}) => {
       const entriesEl = container.querySelector('[data-wordcloud-entries]');
       if (!form || !input || !statusEl || !entriesEl) return;
       const submitButton = form.querySelector('button[type="submit"]');
+      const progressEl = form.querySelector('[data-wordcloud-progress]');
 
       const maxEntries = Math.max(1, Math.min(config.maxEntries || 3, 6));
       const maxWordsDisplayed = Math.max(10, Math.min(config.maxWordsDisplayed || 60, 150));
@@ -920,6 +967,7 @@ const embedTemplate = (data, containerId, context = {}) => {
 
       const clearStatus = () => {
         statusEl.hidden = true;
+        delete statusEl.dataset.tone;
       };
 
       const normaliseWord = (value) => {
@@ -953,15 +1001,56 @@ const embedTemplate = (data, containerId, context = {}) => {
         return palette[index];
       };
 
-      const renderWords = (wordsMap) => {
+      const syncProgress = (used) => {
+        if (!progressEl) return;
+        const desiredSlots = maxEntries;
+        if (progressEl.children.length !== desiredSlots) {
+          progressEl.innerHTML = '';
+          for (let index = 0; index < desiredSlots; index += 1) {
+            const slot = document.createElement('span');
+            slot.className = 'cd-wordcloud-progress-slot';
+            slot.dataset.state = 'empty';
+            progressEl.append(slot);
+          }
+        }
+        const safeUsed = Math.max(0, Math.min(used || 0, desiredSlots));
+        Array.from(progressEl.children).forEach((child, index) => {
+          if (!(child instanceof HTMLElement)) return;
+          child.dataset.state = index < safeUsed ? 'filled' : 'empty';
+        });
+      };
+
+      const renderWords = (wordsMap, pendingWords) => {
         entriesEl.innerHTML = '';
-        const entries = Object.entries(wordsMap || {})
-          .map(([key, value]) => ({
-            key,
-            text: typeof value?.text === 'string' ? value.text : key,
-            count: Number.isFinite(value?.count) ? value.count : 0
-          }))
-          .filter((item) => item.count > 0 && item.text.trim().length);
+        const combined = new Map();
+
+        Object.entries(wordsMap || {}).forEach(([key, value]) => {
+          if (!key) return;
+          const text = typeof value?.text === 'string' && value.text ? value.text : key;
+          const count = Number.isFinite(value?.count) ? value.count : 0;
+          if (count > 0 && text.trim().length) {
+            combined.set(key, { key, text, count });
+          }
+        });
+
+        if (pendingWords instanceof Map) {
+          pendingWords.forEach((entry) => {
+            if (!entry || !entry.key) {
+              return;
+            }
+            const existing = combined.get(entry.key) || { key: entry.key, text: entry.text || entry.key, count: 0 };
+            const increment = Number.isFinite(entry.count) ? entry.count : 0;
+            const nextCount = existing.count + Math.max(0, increment);
+            if (nextCount <= 0) {
+              combined.delete(entry.key);
+              return;
+            }
+            const nextText = typeof entry.text === 'string' && entry.text ? entry.text : existing.text || entry.key;
+            combined.set(entry.key, { key: entry.key, text: nextText, count: nextCount });
+          });
+        }
+
+        const entries = Array.from(combined.values()).filter((item) => item.count > 0 && item.text.trim().length);
 
         if (!entries.length) {
           const empty = document.createElement('p');
@@ -992,9 +1081,43 @@ const embedTemplate = (data, containerId, context = {}) => {
         });
       };
 
+      const pendingWords = new Map();
+      let remoteWords = {};
+      let offlineMode = false;
+
+      const addPendingWord = (key, text) => {
+        if (!key) {
+          return () => {};
+        }
+        const existing = pendingWords.get(key) || { key, text: text || key, count: 0 };
+        const next = {
+          key,
+          text: typeof text === 'string' && text ? text : existing.text || key,
+          count: (existing.count || 0) + 1
+        };
+        pendingWords.set(key, next);
+        return () => {
+          const current = pendingWords.get(key);
+          if (!current) {
+            return;
+          }
+          const updated = { ...current, count: (current.count || 0) - 1 };
+          if (updated.count <= 0) {
+            pendingWords.delete(key);
+          } else {
+            pendingWords.set(key, updated);
+          }
+        };
+      };
+
+      const refreshWords = () => {
+        renderWords(remoteWords, pendingWords);
+      };
+
       const applySeedWords = () => {
         if (!Array.isArray(config.seedWords) || !config.seedWords.length) {
-          renderWords({});
+          remoteWords = {};
+          refreshWords();
           return;
         }
         const seedEntries = {};
@@ -1007,7 +1130,8 @@ const embedTemplate = (data, containerId, context = {}) => {
           const count = Number.isFinite(word.count) ? word.count : 1;
           seedEntries[key] = { text, count };
         });
-        renderWords(seedEntries);
+        remoteWords = seedEntries;
+        refreshWords();
       };
 
       applySeedWords();
@@ -1039,9 +1163,11 @@ const embedTemplate = (data, containerId, context = {}) => {
 
           onSnapshot(docRef, (docSnap) => {
             const data = docSnap.data();
-            if (data && data.words) {
-              renderWords(data.words);
+            remoteWords = data && data.words ? data.words : {};
+            if (!docSnap.metadata?.hasPendingWrites) {
+              pendingWords.clear();
             }
+            refreshWords();
           });
 
           addWord = async ({ key, text }) => {
@@ -1054,10 +1180,12 @@ const embedTemplate = (data, containerId, context = {}) => {
           };
 
           firestoreReady = true;
+          offlineMode = false;
           return true;
         } catch (error) {
           console.warn('Word cloud realtime updates unavailable', error);
           firestoreReady = false;
+          offlineMode = true;
           showStatus('Live word cloud updates are unavailable right now.', 'error');
           return false;
         }
@@ -1066,15 +1194,23 @@ const embedTemplate = (data, containerId, context = {}) => {
       let initPromise = initFirestore();
 
       const maybeDisableForm = () => {
-        const count = getContributionCount();
+        let count = getContributionCount();
+        if (!Number.isFinite(count) || count < 0) {
+          count = 0;
+        }
+        if (count > maxEntries) {
+          count = maxEntries;
+          setContributionCount(count);
+        }
         const remaining = Math.max(0, maxEntries - count);
-        if (remaining <= 0) {
-          input.disabled = true;
-          if (submitButton) submitButton.disabled = true;
+        const disabled = remaining <= 0;
+        input.disabled = disabled;
+        if (submitButton) submitButton.disabled = disabled;
+        syncProgress(count);
+        if (disabled) {
           showStatus('Thanks! You\'ve used all your contributions on this device.', 'limit');
-        } else {
-          input.disabled = false;
-          if (submitButton) submitButton.disabled = false;
+        } else if (!statusEl.hidden && statusEl.dataset.tone === 'limit') {
+          clearStatus();
         }
         return remaining;
       };
@@ -1099,26 +1235,51 @@ const embedTemplate = (data, containerId, context = {}) => {
           showStatus('Please choose letters and numbers only.', 'error');
           return;
         }
+        const rollbackPending = addPendingWord(key, cleaned);
+        refreshWords();
+
+        let syncedToCloud = false;
+        let usedOfflineFallback = false;
+
         try {
-          await initPromise;
-          if (!firestoreReady || typeof addWord !== 'function') {
-            throw new Error('Firestore unavailable');
-          }
-          await addWord({ key, text: cleaned });
-          const count = getContributionCount() + 1;
-          setContributionCount(count);
-          const remainingAfter = maybeDisableForm();
-          input.value = '';
-          if (remainingAfter > 0) {
-            const message =
-              remainingAfter === 1
-                ? 'Added to the cloud! You can submit one more word from this device.'
-                : 'Added to the cloud! ' + remainingAfter + ' more submissions left on this device.';
-            showStatus(message, 'info');
+          const initResult = await initPromise;
+          if (!initResult || !firestoreReady || typeof addWord !== 'function') {
+            offlineMode = true;
+            usedOfflineFallback = true;
+          } else {
+            await addWord({ key, text: cleaned });
+            syncedToCloud = true;
           }
         } catch (error) {
-          console.warn('Unable to submit word cloud entry', error);
+          console.warn('Unable to prepare word cloud submission', error);
+          offlineMode = true;
+          usedOfflineFallback = true;
+        }
+
+        if (!offlineMode && !syncedToCloud) {
+          rollbackPending();
+          refreshWords();
           showStatus('Unable to submit right now. Please try again.', 'error');
+          return;
+        }
+
+        const count = Math.min(maxEntries, getContributionCount() + 1);
+        setContributionCount(count);
+        const remainingAfter = maybeDisableForm();
+        input.value = '';
+
+        if (offlineMode && usedOfflineFallback) {
+          const message =
+            remainingAfter > 0
+              ? 'Added here while offline. The shared cloud will update when connectivity returns.'
+              : 'Saved on this device. The shared cloud will update when connectivity returns.';
+          showStatus(message, remainingAfter > 0 ? 'info' : 'limit');
+        } else if (remainingAfter > 0) {
+          const message =
+            remainingAfter === 1
+              ? 'Added to the cloud! You can submit one more word from this device.'
+              : 'Added to the cloud! ' + remainingAfter + ' more submissions left on this device.';
+          showStatus(message, 'info');
         }
       });
     })();
