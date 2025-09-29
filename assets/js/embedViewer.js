@@ -310,7 +310,7 @@ const applyFrameHeight = (height, { embedId } = {}) => {
   }
 };
 
-const setupAutoResize = (root, container, { embedId } = {}) => {
+const setupAutoResize = (root, container, { embedId, applyHeight = applyFrameHeight } = {}) => {
   if (!root) {
     return;
   }
@@ -375,7 +375,7 @@ const setupAutoResize = (root, container, { embedId } = {}) => {
     }
 
     lastHeight = nextHeight;
-    applyFrameHeight(nextHeight, { embedId });
+    applyHeight(nextHeight, { embedId });
   };
 
   measure();
@@ -543,14 +543,21 @@ const bootstrap = async () => {
   renderActivity(root, hydrated, { embedId });
 };
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+const isBootstrapDisabled = () =>
+  typeof globalThis !== 'undefined' && globalThis.__CANVAS_DESIGNER_DISABLE_BOOTSTRAP__ === true;
+
+if (!isBootstrapDisabled() && typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      bootstrap().catch((error) => {
+        console.error('Failed to bootstrap Canvas Designer embed viewer', error);
+      });
+    });
+  } else {
     bootstrap().catch((error) => {
       console.error('Failed to bootstrap Canvas Designer embed viewer', error);
     });
-  });
-} else {
-  bootstrap().catch((error) => {
-    console.error('Failed to bootstrap Canvas Designer embed viewer', error);
-  });
+  }
 }
+
+export { applyFrameHeight, setupAutoResize };
