@@ -933,6 +933,17 @@ const embedTemplate = (data, containerId, context = {}) => {
     if (!root) return;
     const dataNode = root.querySelector('[data-caption-this]');
     if (!dataNode) return;
+
+    const requestResize = () => {
+      try {
+        const api = window.__canvasDesignerEmbed__;
+        if (api && typeof api.requestResize === 'function') {
+          api.requestResize({ immediate: true });
+        }
+      } catch (error) {
+        // Ignore resize errors in restrictive contexts.
+      }
+    };
     let data;
     try {
       data = JSON.parse(dataNode.textContent || '{}');
@@ -1154,6 +1165,7 @@ const embedTemplate = (data, containerId, context = {}) => {
       renderImage();
       renderCaptions();
       updateForm();
+      requestResize();
     };
 
     if (prevButton) {
@@ -1176,6 +1188,12 @@ const embedTemplate = (data, containerId, context = {}) => {
           render();
         }
       });
+    }
+
+    if (imageEl) {
+      const handleImageSettled = () => requestResize();
+      imageEl.addEventListener('load', handleImageSettled);
+      imageEl.addEventListener('error', handleImageSettled);
     }
 
     addButton.addEventListener('click', () => {
@@ -1227,6 +1245,7 @@ const embedTemplate = (data, containerId, context = {}) => {
     });
 
     render();
+    requestResize();
   })();`;
 
   return { html, css, js };
