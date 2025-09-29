@@ -1,4 +1,5 @@
 const RESIZE_MESSAGE_TYPE = 'canvas-designer:embed-resize';
+const REQUEST_RESIZE_MESSAGE_TYPE = 'canvas-designer:request-embed-resize';
 const DEFAULT_MIN_HEIGHT = 420;
 const GLOBAL_KEY = '__canvasDesignerEmbedHost__';
 
@@ -36,6 +37,32 @@ const GLOBAL_KEY = '__canvasDesignerEmbedHost__';
     frame.style.overflow = 'hidden';
   };
 
+  const requestResize = (id) => {
+    const entry = frames.get(id);
+    if (!entry) {
+      return;
+    }
+
+    const { frame, origin } = entry;
+    const target = frame?.contentWindow;
+    if (!target) {
+      return;
+    }
+
+    const targetOrigin = origin || '*';
+    try {
+      target.postMessage({ type: REQUEST_RESIZE_MESSAGE_TYPE, id }, targetOrigin);
+    } catch (error) {
+      // Ignore postMessage failures caused by restrictive parent contexts.
+    }
+  };
+
+  const scheduleResizeRequests = (id) => {
+    requestResize(id);
+    window.setTimeout(() => requestResize(id), 250);
+    window.setTimeout(() => requestResize(id), 1000);
+  };
+
   const registerFrame = (frame) => {
     if (!(frame instanceof HTMLIFrameElement)) {
       return;
@@ -59,6 +86,7 @@ const GLOBAL_KEY = '__canvasDesignerEmbedHost__';
     frames.set(id, { frame, origin, minHeight });
     frame.dataset.cdEmbedRegistered = 'true';
     applyHeight(frame, minHeight, minHeight);
+    scheduleResizeRequests(id);
   };
 
   const scan = () => {
