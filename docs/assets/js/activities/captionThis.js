@@ -935,10 +935,20 @@ const embedTemplate = (data, containerId, context = {}) => {
     if (!dataNode) return;
 
     const MAX_RESIZE_RETRIES = 12;
+    const RESIZE_RETRY_DELAY = 120;
     let resizeRetriesRemaining = MAX_RESIZE_RETRIES;
     let resizeRetryHandle = null;
+    let hasRequestedImmediateResize = false;
 
-    const requestResize = ({ allowRetry = true } = {}) => {
+    const requestResize = ({ allowRetry = true, reset = false } = {}) => {
+      if (reset) {
+        resizeRetriesRemaining = MAX_RESIZE_RETRIES;
+        hasRequestedImmediateResize = false;
+        if (resizeRetryHandle) {
+          clearTimeout(resizeRetryHandle);
+          resizeRetryHandle = null;
+        }
+      }
       try {
         const api = window.__canvasDesignerEmbed__;
         if (api && typeof api.requestResize === 'function') {
@@ -947,13 +957,18 @@ const embedTemplate = (data, containerId, context = {}) => {
             resizeRetryHandle = null;
           }
           resizeRetriesRemaining = MAX_RESIZE_RETRIES;
-          api.requestResize({ immediate: true });
+          if (!hasRequestedImmediateResize) {
+            hasRequestedImmediateResize = true;
+            api.requestResize({ immediate: true });
+          } else {
+            api.requestResize();
+          }
         } else if (allowRetry && resizeRetriesRemaining > 0) {
           const scheduleRetry = () => {
             resizeRetryHandle = setTimeout(() => {
               resizeRetryHandle = null;
               requestResize({ allowRetry: true });
-            }, 120);
+            }, RESIZE_RETRY_DELAY);
           };
 
           if (resizeRetryHandle) {
@@ -1189,7 +1204,7 @@ const embedTemplate = (data, containerId, context = {}) => {
       renderImage();
       renderCaptions();
       updateForm();
-      requestResize();
+      requestResize({ allowRetry: true });
     };
 
     if (prevButton) {
@@ -1215,7 +1230,7 @@ const embedTemplate = (data, containerId, context = {}) => {
     }
 
     if (imageEl) {
-      const handleImageSettled = () => requestResize();
+      const handleImageSettled = () => requestResize({ allowRetry: true });
       imageEl.addEventListener('load', handleImageSettled);
       imageEl.addEventListener('error', handleImageSettled);
     }
@@ -1269,7 +1284,7 @@ const embedTemplate = (data, containerId, context = {}) => {
     });
 
     render();
-    requestResize({ allowRetry: true });
+    requestResize({ allowRetry: true, reset: true });
   })();`;
 
   return { html, css, js };
