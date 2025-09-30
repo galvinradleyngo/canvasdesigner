@@ -487,11 +487,15 @@ const renderPreview = (container, data, options = {}) => {
 
   controls.append(input, submitButton);
 
+  const progress = document.createElement('div');
+  progress.className = 'cd-wordcloud-progress';
+  progress.setAttribute('aria-hidden', 'true');
+
   const status = document.createElement('p');
   status.className = 'cd-wordcloud-status';
   status.hidden = true;
 
-  form.append(label, controls, status);
+  form.append(label, controls, progress, status);
 
   const resetButton = document.createElement('button');
   resetButton.type = 'button';
@@ -550,6 +554,26 @@ const renderPreview = (container, data, options = {}) => {
     }
     const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
     return cleaned.slice(0, 36);
+  };
+
+  const renderProgress = (used) => {
+    const desired = maxEntries;
+    if (progress.children.length !== desired) {
+      progress.innerHTML = '';
+      for (let index = 0; index < desired; index += 1) {
+        const slot = document.createElement('span');
+        slot.className = 'cd-wordcloud-progress-slot';
+        slot.dataset.state = 'empty';
+        progress.append(slot);
+      }
+    }
+    const safeUsed = Math.max(0, Math.min(used || 0, desired));
+    Array.from(progress.children).forEach((child, index) => {
+      if (!(child instanceof HTMLElement)) {
+        return;
+      }
+      child.dataset.state = index < safeUsed ? 'filled' : 'empty';
+    });
   };
 
   const renderCloud = () => {
@@ -612,6 +636,10 @@ const renderPreview = (container, data, options = {}) => {
     const disabled = remaining <= 0;
     input.disabled = disabled;
     submitButton.disabled = disabled;
+    renderProgress(maxEntries - remaining);
+    if (!disabled && status.dataset.tone === 'limit') {
+      clearStatus();
+    }
     return remaining;
   };
 
@@ -737,6 +765,7 @@ const embedTemplate = (data, containerId, context = {}) => {
           <input id="${containerId}-input" type="text" maxlength="36" autocomplete="off" placeholder="e.g. Curious" required />
           <button type="submit">Submit</button>
         </div>
+        <div class="cd-wordcloud-progress" data-wordcloud-progress aria-hidden="true"></div>
       </form>
       <div class="cd-wordcloud-status" data-wordcloud-status role="status" aria-live="polite" hidden></div>
       <div class="cd-wordcloud-cloud" data-wordcloud-entries aria-live="polite"></div>
@@ -820,6 +849,25 @@ const embedTemplate = (data, containerId, context = {}) => {
       transform: translateY(-1px);
       box-shadow: 0 12px 22px rgba(79, 70, 229, 0.25);
     }
+    .cd-wordcloud-progress {
+      display: inline-flex;
+      gap: 0.35rem;
+      align-items: center;
+      padding: 0.15rem 0;
+    }
+    .cd-wordcloud-progress-slot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.25);
+      transition: background 160ms ease, transform 160ms ease, opacity 160ms ease;
+      opacity: 0.65;
+    }
+    .cd-wordcloud-progress-slot[data-state="filled"] {
+      background: rgba(79, 70, 229, 0.92);
+      opacity: 1;
+      transform: scale(1.05);
+    }
     .cd-wordcloud-status {
       font-size: 0.9rem;
       padding: 0.5rem 0.75rem;
@@ -883,6 +931,7 @@ const embedTemplate = (data, containerId, context = {}) => {
       const entriesEl = container.querySelector('[data-wordcloud-entries]');
       if (!form || !input || !statusEl || !entriesEl) return;
       const submitButton = form.querySelector('button[type="submit"]');
+      const progressEl = form.querySelector('[data-wordcloud-progress]');
 
       const maxEntries = Math.max(1, Math.min(config.maxEntries || 3, 6));
       const maxWordsDisplayed = Math.max(10, Math.min(config.maxWordsDisplayed || 60, 150));
@@ -920,6 +969,7 @@ const embedTemplate = (data, containerId, context = {}) => {
 
       const clearStatus = () => {
         statusEl.hidden = true;
+        delete statusEl.dataset.tone;
       };
 
       const normaliseWord = (value) => {
@@ -951,6 +1001,25 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
         const index = Math.abs(hash) % palette.length;
         return palette[index];
+      };
+
+      const syncProgress = (used) => {
+        if (!progressEl) return;
+        const desiredSlots = maxEntries;
+        if (progressEl.children.length !== desiredSlots) {
+          progressEl.innerHTML = '';
+          for (let index = 0; index < desiredSlots; index += 1) {
+            const slot = document.createElement('span');
+            slot.className = 'cd-wordcloud-progress-slot';
+            slot.dataset.state = 'empty';
+            progressEl.append(slot);
+          }
+        }
+        const safeUsed = Math.max(0, Math.min(used || 0, desiredSlots));
+        Array.from(progressEl.children).forEach((child, index) => {
+          if (!(child instanceof HTMLElement)) return;
+          child.dataset.state = index < safeUsed ? 'filled' : 'empty';
+        });
       };
 
       const renderWords = (wordsMap) => {
@@ -1066,15 +1135,23 @@ const embedTemplate = (data, containerId, context = {}) => {
       let initPromise = initFirestore();
 
       const maybeDisableForm = () => {
-        const count = getContributionCount();
+        let count = getContributionCount();
+        if (!Number.isFinite(count) || count < 0) {
+          count = 0;
+        }
+        if (count > maxEntries) {
+          count = maxEntries;
+          setContributionCount(count);
+        }
         const remaining = Math.max(0, maxEntries - count);
-        if (remaining <= 0) {
-          input.disabled = true;
-          if (submitButton) submitButton.disabled = true;
+        const disabled = remaining <= 0;
+        input.disabled = disabled;
+        if (submitButton) submitButton.disabled = disabled;
+        syncProgress(count);
+        if (disabled) {
           showStatus('Thanks! You\'ve used all your contributions on this device.', 'limit');
-        } else {
-          input.disabled = false;
-          if (submitButton) submitButton.disabled = false;
+        } else if (!statusEl.hidden && statusEl.dataset.tone === 'limit') {
+          clearStatus();
         }
         return remaining;
       };
@@ -1107,6 +1184,7 @@ const embedTemplate = (data, containerId, context = {}) => {
           await addWord({ key, text: cleaned });
           const count = getContributionCount() + 1;
           setContributionCount(count);
+          syncProgress(count);
           const remainingAfter = maybeDisableForm();
           input.value = '';
           if (remainingAfter > 0) {
