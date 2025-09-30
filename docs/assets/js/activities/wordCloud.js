@@ -418,7 +418,8 @@ const renderPreview = (container, data, options = {}) => {
     if (!stateHost.__wordcloudPreviewState) {
       stateHost.__wordcloudPreviewState = {
         entries: new Map(),
-        contributions: 0
+        contributions: 0,
+        history: []
       };
     }
     const existing = stateHost.__wordcloudPreviewState;
@@ -428,9 +429,15 @@ const renderPreview = (container, data, options = {}) => {
     if (!Number.isFinite(existing.contributions)) {
       existing.contributions = 0;
     }
+    if (!Array.isArray(existing.history)) {
+      existing.history = [];
+    }
     existing.maxEntries = maxEntries;
     if (existing.contributions > maxEntries) {
       existing.contributions = maxEntries;
+    }
+    if (existing.history.length > maxEntries) {
+      existing.history.length = maxEntries;
     }
     return existing;
   })();
@@ -468,34 +475,26 @@ const renderPreview = (container, data, options = {}) => {
 
   const label = document.createElement('label');
   label.className = 'cd-wordcloud-label';
-  label.setAttribute('for', `${sectionId}-input`);
+  label.dataset.wordcloudLabel = '';
   label.textContent = 'Add your word';
 
-  const controls = document.createElement('div');
-  controls.className = 'cd-wordcloud-input';
-
-  const input = document.createElement('input');
-  input.id = `${sectionId}-input`;
-  input.type = 'text';
-  input.placeholder = 'e.g. Curious';
-  input.maxLength = 36;
-  input.autocomplete = 'off';
+  const slots = document.createElement('div');
+  slots.className = 'cd-wordcloud-slots';
+  slots.dataset.wordcloudSlots = '';
 
   const submitButton = document.createElement('button');
   submitButton.type = 'submit';
   submitButton.textContent = 'Submit';
 
-  controls.append(input, submitButton);
-
-  const progress = document.createElement('div');
-  progress.className = 'cd-wordcloud-progress';
-  progress.setAttribute('aria-hidden', 'true');
+  const actions = document.createElement('div');
+  actions.className = 'cd-wordcloud-actions';
+  actions.append(submitButton);
 
   const status = document.createElement('p');
   status.className = 'cd-wordcloud-status';
   status.hidden = true;
 
-  form.append(label, controls, progress, status);
+  form.append(label, slots, actions, status);
 
   const resetButton = document.createElement('button');
   resetButton.type = 'button';
@@ -556,24 +555,60 @@ const renderPreview = (container, data, options = {}) => {
     return cleaned.slice(0, 36);
   };
 
-  const renderProgress = (used) => {
-    const desired = maxEntries;
-    if (progress.children.length !== desired) {
-      progress.innerHTML = '';
-      for (let index = 0; index < desired; index += 1) {
-        const slot = document.createElement('span');
-        slot.className = 'cd-wordcloud-progress-slot';
-        slot.dataset.state = 'empty';
-        progress.append(slot);
+  const slotInputs = [];
+  let activeInput = null;
+
+  const ensureSlotElements = () => {
+    while (slotInputs.length < maxEntries) {
+      const index = slotInputs.length;
+      const slot = document.createElement('input');
+      slot.type = 'text';
+      slot.autocomplete = 'off';
+      slot.maxLength = 36;
+      slot.placeholder = `Word ${index + 1}`;
+      slot.className = 'cd-wordcloud-slot';
+      slot.dataset.wordcloudSlot = String(index);
+      slot.id = `${sectionId}-slot-${index}`;
+      slots.append(slot);
+      slotInputs.push(slot);
+    }
+    while (slotInputs.length > maxEntries) {
+      const slot = slotInputs.pop();
+      slot?.remove();
+    }
+  };
+
+  const syncSlots = () => {
+    ensureSlotElements();
+    const history = Array.isArray(state.history) ? state.history : [];
+    if (!Array.isArray(state.history)) {
+      state.history = history;
+    }
+    activeInput = null;
+    slotInputs.forEach((slot, index) => {
+      const submitted = history[index] || '';
+      const filled = index < state.contributions && submitted;
+      slot.value = filled ? submitted : '';
+      slot.readOnly = filled;
+      slot.disabled = true;
+      slot.dataset.state = filled ? 'filled' : 'empty';
+    });
+    if (state.contributions < maxEntries) {
+      const slot = slotInputs[state.contributions];
+      if (slot) {
+        const pending = history[state.contributions] || '';
+        slot.disabled = false;
+        slot.readOnly = false;
+        slot.value = pending;
+        slot.dataset.state = 'active';
+        activeInput = slot;
       }
     }
-    const safeUsed = Math.max(0, Math.min(used || 0, desired));
-    Array.from(progress.children).forEach((child, index) => {
-      if (!(child instanceof HTMLElement)) {
-        return;
-      }
-      child.dataset.state = index < safeUsed ? 'filled' : 'empty';
-    });
+    if (activeInput) {
+      label.setAttribute('for', activeInput.id);
+    } else {
+      label.removeAttribute('for');
+    }
   };
 
   const renderCloud = () => {
@@ -633,12 +668,13 @@ const renderPreview = (container, data, options = {}) => {
 
   const updateFormState = () => {
     const remaining = remainingContributions();
-    const disabled = remaining <= 0;
-    input.disabled = disabled;
-    submitButton.disabled = disabled;
-    renderProgress(maxEntries - remaining);
-    if (!disabled && status.dataset.tone === 'limit') {
-      clearStatus();
+    syncSlots();
+    submitButton.disabled = remaining <= 0;
+    if (remaining > 0 && activeInput) {
+      if (status.dataset.tone === 'limit') {
+        clearStatus();
+      }
+      activeInput.focus();
     }
     return remaining;
   };
@@ -646,21 +682,23 @@ const renderPreview = (container, data, options = {}) => {
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     clearStatus();
-    const remaining = remainingContributions();
-    if (remaining <= 0) {
+    const targetInput = activeInput;
+    if (!targetInput) {
       showStatus("Thanks! You've used all your contributions in this preview.", 'limit');
       return;
     }
 
-    const cleaned = normaliseWord(input.value);
+    const cleaned = normaliseWord(targetInput.value);
     if (!cleaned) {
       showStatus('Enter a word or short phrase before submitting.', 'error');
+      targetInput.focus();
       return;
     }
 
     const key = slugify(cleaned);
     if (!key) {
       showStatus('Please choose letters and numbers only.', 'error');
+      targetInput.focus();
       return;
     }
 
@@ -672,8 +710,14 @@ const renderPreview = (container, data, options = {}) => {
     } else {
       state.entries.set(key, { key, text: cleaned, count: 1 });
     }
+    if (!Array.isArray(state.history)) {
+      state.history = [];
+    }
+    state.history[state.contributions] = cleaned;
     state.contributions += 1;
-    input.value = '';
+    if (state.history.length > state.contributions) {
+      state.history.length = state.contributions;
+    }
 
     renderCloud();
 
@@ -692,11 +736,11 @@ const renderPreview = (container, data, options = {}) => {
   resetButton.addEventListener('click', () => {
     state.entries.clear();
     state.contributions = 0;
-    input.value = '';
+    state.history = [];
     updateFormState();
     clearStatus();
     renderCloud();
-    input.focus();
+    activeInput?.focus();
   });
 
   section.append(header, form, resetButton, cloud);
@@ -760,12 +804,11 @@ const embedTemplate = (data, containerId, context = {}) => {
         } word${config.maxEntries === 1 ? '' : 's'} per device.</p>
       </header>
       <form class="cd-wordcloud-form" data-wordcloud-form>
-        <label class="cd-wordcloud-label" for="${containerId}-input">Add your word</label>
-        <div class="cd-wordcloud-input">
-          <input id="${containerId}-input" type="text" maxlength="36" autocomplete="off" placeholder="e.g. Curious" required />
+        <label class="cd-wordcloud-label" data-wordcloud-label>Add your word</label>
+        <div class="cd-wordcloud-slots" data-wordcloud-slots></div>
+        <div class="cd-wordcloud-actions">
           <button type="submit">Submit</button>
         </div>
-        <div class="cd-wordcloud-progress" data-wordcloud-progress aria-hidden="true"></div>
       </form>
       <div class="cd-wordcloud-status" data-wordcloud-status role="status" aria-live="polite" hidden></div>
       <div class="cd-wordcloud-cloud" data-wordcloud-entries aria-live="polite"></div>
@@ -802,69 +845,69 @@ const embedTemplate = (data, containerId, context = {}) => {
     }
     .cd-wordcloud-form {
       display: grid;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
     .cd-wordcloud-label {
       font-weight: 600;
       font-size: 0.9rem;
       color: rgba(15, 23, 42, 0.75);
     }
-    .cd-wordcloud-input {
-      display: flex;
-      gap: 0.6rem;
-      align-items: center;
+    .cd-wordcloud-slots {
+      display: grid;
+      gap: 0.5rem;
     }
-    .cd-wordcloud-input input {
-      flex: 1;
-      border-radius: 999px;
+    .cd-wordcloud-slot {
+      width: 100%;
+      border-radius: 14px;
       border: 1px solid rgba(15, 23, 42, 0.15);
       padding: 0.65rem 1rem;
       font-size: 1rem;
       font-family: inherit;
       outline: none;
-      transition: border-color 160ms ease, box-shadow 160ms ease;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+      background: rgba(255, 255, 255, 0.8);
     }
-    .cd-wordcloud-input input:focus {
+    .cd-wordcloud-slot[data-state="active"] {
       border-color: rgba(99, 102, 241, 0.6);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
     }
-    .cd-wordcloud-input button {
+    .cd-wordcloud-slot[data-state="filled"] {
+      border-color: rgba(99, 102, 241, 0.35);
+      background: rgba(99, 102, 241, 0.12);
+      color: rgba(79, 70, 229, 0.95);
+    }
+    .cd-wordcloud-slot:disabled {
+      cursor: not-allowed;
+      opacity: 0.75;
+    }
+    .cd-wordcloud-slot[data-state="filled"]:disabled {
+      opacity: 1;
+      cursor: default;
+    }
+    .cd-wordcloud-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .cd-wordcloud-actions button {
       border: none;
       border-radius: 999px;
       background: #6366f1;
       color: #fff;
       font-size: 0.95rem;
-      padding: 0.65rem 1.2rem;
+      padding: 0.65rem 1.6rem;
       cursor: pointer;
       font-weight: 600;
       transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
     }
-    .cd-wordcloud-input button:disabled {
+    .cd-wordcloud-actions button:disabled {
       cursor: not-allowed;
       opacity: 0.6;
       box-shadow: none;
       transform: none;
     }
-    .cd-wordcloud-input button:not(:disabled):hover {
+    .cd-wordcloud-actions button:not(:disabled):hover {
       transform: translateY(-1px);
       box-shadow: 0 12px 22px rgba(79, 70, 229, 0.25);
-    }
-    .cd-wordcloud-progress {
-      display: inline-flex;
-      gap: 0.35rem;
-      align-items: center;
-      padding: 0.1rem 0;
-    }
-    .cd-wordcloud-progress-slot {
-      width: 0.75rem;
-      height: 0.75rem;
-      border-radius: 999px;
-      background: rgba(99, 102, 241, 0.22);
-      transition: background 160ms ease, transform 160ms ease;
-    }
-    .cd-wordcloud-progress-slot[data-state="filled"] {
-      background: rgba(79, 70, 229, 0.9);
-      transform: scale(1.05);
     }
     .cd-wordcloud-status {
       font-size: 0.9rem;
@@ -908,11 +951,10 @@ const embedTemplate = (data, containerId, context = {}) => {
       font-style: italic;
     }
     @media (max-width: 640px) {
-      .cd-wordcloud-input {
-        flex-direction: column;
-        align-items: stretch;
+      .cd-wordcloud-actions {
+        justify-content: stretch;
       }
-      .cd-wordcloud-input button {
+      .cd-wordcloud-actions button {
         width: 100%;
       }
     }
@@ -924,12 +966,13 @@ const embedTemplate = (data, containerId, context = {}) => {
       const container = document.getElementById('${containerId}');
       if (!container) return;
       const form = container.querySelector('[data-wordcloud-form]');
-      const input = container.querySelector('[data-wordcloud-form] input');
+      const slotsEl = container.querySelector('[data-wordcloud-slots]');
+      const labelEl = container.querySelector('[data-wordcloud-label]');
       const statusEl = container.querySelector('[data-wordcloud-status]');
       const entriesEl = container.querySelector('[data-wordcloud-entries]');
-      if (!form || !input || !statusEl || !entriesEl) return;
+      if (!form || !slotsEl || !labelEl || !statusEl || !entriesEl) return;
       const submitButton = form.querySelector('button[type="submit"]');
-      const progressEl = form.querySelector('[data-wordcloud-progress]');
+      if (!submitButton) return;
 
       const maxEntries = Math.max(1, Math.min(config.maxEntries || 3, 6));
       const maxWordsDisplayed = Math.max(10, Math.min(config.maxWordsDisplayed || 60, 150));
@@ -947,16 +990,45 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
       })();
 
-      const getContributionCount = () => {
-        if (!safeLocalStorage) return 0;
-        const raw = safeLocalStorage.getItem(storageKey);
-        const parsed = Number.parseInt(raw || '0', 10);
-        return Number.isNaN(parsed) ? 0 : parsed;
+      let transientState = { count: 0, entries: [] };
+
+      const normaliseEntries = (value) => {
+        const count = Math.max(0, Math.min(maxEntries, Number.isFinite(value?.count) ? value.count : 0));
+        const entries = Array.isArray(value?.entries) ? value.entries.slice(0, maxEntries) : [];
+        entries.length = count;
+        return { count, entries };
       };
 
-      const setContributionCount = (value) => {
-        if (!safeLocalStorage) return;
-        safeLocalStorage.setItem(storageKey, String(value));
+      const getContributionState = () => {
+        if (!safeLocalStorage) {
+          return normaliseEntries(transientState);
+        }
+        const raw = safeLocalStorage.getItem(storageKey);
+        if (!raw) {
+          return { count: 0, entries: [] };
+        }
+        try {
+          return normaliseEntries(JSON.parse(raw));
+        } catch (error) {
+          const parsed = Number.parseInt(raw, 10);
+          if (Number.isNaN(parsed)) {
+            return { count: 0, entries: [] };
+          }
+          return normaliseEntries({ count: parsed, entries: [] });
+        }
+      };
+
+      const setContributionState = (value) => {
+        const normalised = normaliseEntries(value || {});
+        if (safeLocalStorage) {
+          try {
+            safeLocalStorage.setItem(storageKey, JSON.stringify(normalised));
+          } catch (error) {
+            transientState = normalised;
+          }
+        } else {
+          transientState = normalised;
+        }
       };
 
       const showStatus = (message, tone = 'info') => {
@@ -968,6 +1040,29 @@ const embedTemplate = (data, containerId, context = {}) => {
       const clearStatus = () => {
         statusEl.hidden = true;
         delete statusEl.dataset.tone;
+      };
+
+      const slotInputs = [];
+      let activeInput = null;
+
+      const ensureSlots = () => {
+        while (slotInputs.length < maxEntries) {
+          const index = slotInputs.length;
+          const slot = document.createElement('input');
+          slot.type = 'text';
+          slot.autocomplete = 'off';
+          slot.maxLength = 36;
+          slot.placeholder = 'Word ' + (index + 1);
+          slot.className = 'cd-wordcloud-slot';
+          slot.dataset.wordcloudSlot = String(index);
+          slot.id = '${containerId}-slot-' + index;
+          slotsEl.append(slot);
+          slotInputs.push(slot);
+        }
+        while (slotInputs.length > maxEntries) {
+          const slot = slotInputs.pop();
+          slot?.remove();
+        }
       };
 
       const normaliseWord = (value) => {
@@ -1001,56 +1096,63 @@ const embedTemplate = (data, containerId, context = {}) => {
         return palette[index];
       };
 
-      const syncProgress = (used) => {
-        if (!progressEl) return;
-        const desiredSlots = maxEntries;
-        if (progressEl.children.length !== desiredSlots) {
-          progressEl.innerHTML = '';
-          for (let index = 0; index < desiredSlots; index += 1) {
-            const slot = document.createElement('span');
-            slot.className = 'cd-wordcloud-progress-slot';
-            slot.dataset.state = 'empty';
-            progressEl.append(slot);
+      const applyContributionState = () => {
+        ensureSlots();
+        const state = getContributionState();
+        const used = Math.max(0, Math.min(maxEntries, Number.isFinite(state.count) ? state.count : 0));
+        const entries = Array.isArray(state.entries) ? state.entries.slice(0, maxEntries) : [];
+        let mutated = state.count !== used;
+        if (entries.length !== used) {
+          entries.length = used;
+          mutated = true;
+        }
+        activeInput = null;
+        slotInputs.forEach((slot, index) => {
+          const submitted = entries[index] || '';
+          const filled = index < used && submitted;
+          slot.value = filled ? submitted : '';
+          slot.readOnly = filled;
+          slot.disabled = true;
+          slot.dataset.state = filled ? 'filled' : 'empty';
+        });
+        if (used < maxEntries) {
+          const slot = slotInputs[used];
+          if (slot) {
+            slot.disabled = false;
+            slot.readOnly = false;
+            slot.value = '';
+            slot.dataset.state = 'active';
+            activeInput = slot;
           }
         }
-        const safeUsed = Math.max(0, Math.min(used || 0, desiredSlots));
-        Array.from(progressEl.children).forEach((child, index) => {
-          if (!(child instanceof HTMLElement)) return;
-          child.dataset.state = index < safeUsed ? 'filled' : 'empty';
-        });
+        if (labelEl) {
+          if (activeInput) {
+            labelEl.setAttribute('for', activeInput.id);
+          } else {
+            labelEl.removeAttribute('for');
+          }
+        }
+        submitButton.disabled = !activeInput;
+        if (!activeInput) {
+          showStatus('Thanks! You\'ve used all your contributions on this device.', 'limit');
+        } else if (!statusEl.hidden && statusEl.dataset.tone === 'limit') {
+          clearStatus();
+        }
+        if (mutated) {
+          setContributionState({ count: used, entries });
+        }
+        return used;
       };
 
-      const renderWords = (wordsMap, pendingWords) => {
+      const renderWords = (wordsMap) => {
         entriesEl.innerHTML = '';
-        const combined = new Map();
-
-        Object.entries(wordsMap || {}).forEach(([key, value]) => {
-          if (!key) return;
-          const text = typeof value?.text === 'string' && value.text ? value.text : key;
-          const count = Number.isFinite(value?.count) ? value.count : 0;
-          if (count > 0 && text.trim().length) {
-            combined.set(key, { key, text, count });
-          }
-        });
-
-        if (pendingWords instanceof Map) {
-          pendingWords.forEach((entry) => {
-            if (!entry || !entry.key) {
-              return;
-            }
-            const existing = combined.get(entry.key) || { key: entry.key, text: entry.text || entry.key, count: 0 };
-            const increment = Number.isFinite(entry.count) ? entry.count : 0;
-            const nextCount = existing.count + Math.max(0, increment);
-            if (nextCount <= 0) {
-              combined.delete(entry.key);
-              return;
-            }
-            const nextText = typeof entry.text === 'string' && entry.text ? entry.text : existing.text || entry.key;
-            combined.set(entry.key, { key: entry.key, text: nextText, count: nextCount });
-          });
-        }
-
-        const entries = Array.from(combined.values()).filter((item) => item.count > 0 && item.text.trim().length);
+        const entries = Object.entries(wordsMap || {})
+          .map(([key, value]) => ({
+            key,
+            text: typeof value?.text === 'string' ? value.text : key,
+            count: Number.isFinite(value?.count) ? value.count : 0
+          }))
+          .filter((item) => item.count > 0 && item.text.trim().length);
 
         if (!entries.length) {
           const empty = document.createElement('p');
@@ -1081,43 +1183,9 @@ const embedTemplate = (data, containerId, context = {}) => {
         });
       };
 
-      const pendingWords = new Map();
-      let remoteWords = {};
-      let offlineMode = false;
-
-      const addPendingWord = (key, text) => {
-        if (!key) {
-          return () => {};
-        }
-        const existing = pendingWords.get(key) || { key, text: text || key, count: 0 };
-        const next = {
-          key,
-          text: typeof text === 'string' && text ? text : existing.text || key,
-          count: (existing.count || 0) + 1
-        };
-        pendingWords.set(key, next);
-        return () => {
-          const current = pendingWords.get(key);
-          if (!current) {
-            return;
-          }
-          const updated = { ...current, count: (current.count || 0) - 1 };
-          if (updated.count <= 0) {
-            pendingWords.delete(key);
-          } else {
-            pendingWords.set(key, updated);
-          }
-        };
-      };
-
-      const refreshWords = () => {
-        renderWords(remoteWords, pendingWords);
-      };
-
       const applySeedWords = () => {
         if (!Array.isArray(config.seedWords) || !config.seedWords.length) {
-          remoteWords = {};
-          refreshWords();
+          renderWords({});
           return;
         }
         const seedEntries = {};
@@ -1130,8 +1198,7 @@ const embedTemplate = (data, containerId, context = {}) => {
           const count = Number.isFinite(word.count) ? word.count : 1;
           seedEntries[key] = { text, count };
         });
-        remoteWords = seedEntries;
-        refreshWords();
+        renderWords(seedEntries);
       };
 
       applySeedWords();
@@ -1163,11 +1230,9 @@ const embedTemplate = (data, containerId, context = {}) => {
 
           onSnapshot(docRef, (docSnap) => {
             const data = docSnap.data();
-            remoteWords = data && data.words ? data.words : {};
-            if (!docSnap.metadata?.hasPendingWrites) {
-              pendingWords.clear();
+            if (data && data.words) {
+              renderWords(data.words);
             }
-            refreshWords();
           });
 
           addWord = async ({ key, text }) => {
@@ -1180,12 +1245,10 @@ const embedTemplate = (data, containerId, context = {}) => {
           };
 
           firestoreReady = true;
-          offlineMode = false;
           return true;
         } catch (error) {
           console.warn('Word cloud realtime updates unavailable', error);
           firestoreReady = false;
-          offlineMode = true;
           showStatus('Live word cloud updates are unavailable right now.', 'error');
           return false;
         }
@@ -1193,93 +1256,54 @@ const embedTemplate = (data, containerId, context = {}) => {
 
       let initPromise = initFirestore();
 
-      const maybeDisableForm = () => {
-        let count = getContributionCount();
-        if (!Number.isFinite(count) || count < 0) {
-          count = 0;
-        }
-        if (count > maxEntries) {
-          count = maxEntries;
-          setContributionCount(count);
-        }
-        const remaining = Math.max(0, maxEntries - count);
-        const disabled = remaining <= 0;
-        input.disabled = disabled;
-        if (submitButton) submitButton.disabled = disabled;
-        syncProgress(count);
-        if (disabled) {
-          showStatus('Thanks! You\'ve used all your contributions on this device.', 'limit');
-        } else if (!statusEl.hidden && statusEl.dataset.tone === 'limit') {
-          clearStatus();
-        }
-        return remaining;
-      };
-
-      maybeDisableForm();
+      applyContributionState();
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         clearStatus();
-        const remainingBefore = maybeDisableForm();
-        if (remainingBefore === 0) {
+        if (!activeInput) {
+          applyContributionState();
           return;
         }
-        const raw = input.value;
+        const raw = activeInput.value;
         const cleaned = normaliseWord(raw);
         if (!cleaned) {
           showStatus('Enter a word or short phrase before submitting.', 'error');
+          activeInput.focus();
           return;
         }
         const key = slugify(cleaned);
         if (!key) {
           showStatus('Please choose letters and numbers only.', 'error');
+          activeInput.focus();
           return;
         }
-        const rollbackPending = addPendingWord(key, cleaned);
-        refreshWords();
-
-        let syncedToCloud = false;
-        let usedOfflineFallback = false;
-
         try {
-          const initResult = await initPromise;
-          if (!initResult || !firestoreReady || typeof addWord !== 'function') {
-            offlineMode = true;
-            usedOfflineFallback = true;
-          } else {
-            await addWord({ key, text: cleaned });
-            syncedToCloud = true;
+          await initPromise;
+          if (!firestoreReady || typeof addWord !== 'function') {
+            throw new Error('Firestore unavailable');
+          }
+          await addWord({ key, text: cleaned });
+          const current = getContributionState();
+          const usedBefore = Math.max(0, Math.min(maxEntries, Number.isFinite(current.count) ? current.count : 0));
+          const entries = Array.isArray(current.entries) ? current.entries.slice(0, maxEntries) : [];
+          entries[usedBefore] = cleaned;
+          const nextCount = Math.min(maxEntries, usedBefore + 1);
+          entries.length = nextCount;
+          setContributionState({ count: nextCount, entries });
+          const usedAfter = applyContributionState();
+          const remainingAfter = Math.max(0, maxEntries - usedAfter);
+          if (remainingAfter > 0 && activeInput) {
+            const message =
+              remainingAfter === 1
+                ? 'Added to the cloud! You can submit one more word from this device.'
+                : 'Added to the cloud! ' + remainingAfter + ' more submissions left on this device.';
+            showStatus(message, 'info');
+            activeInput.focus();
           }
         } catch (error) {
-          console.warn('Unable to prepare word cloud submission', error);
-          offlineMode = true;
-          usedOfflineFallback = true;
-        }
-
-        if (!offlineMode && !syncedToCloud) {
-          rollbackPending();
-          refreshWords();
+          console.warn('Unable to submit word cloud entry', error);
           showStatus('Unable to submit right now. Please try again.', 'error');
-          return;
-        }
-
-        const count = Math.min(maxEntries, getContributionCount() + 1);
-        setContributionCount(count);
-        const remainingAfter = maybeDisableForm();
-        input.value = '';
-
-        if (offlineMode && usedOfflineFallback) {
-          const message =
-            remainingAfter > 0
-              ? 'Added here while offline. The shared cloud will update when connectivity returns.'
-              : 'Saved on this device. The shared cloud will update when connectivity returns.';
-          showStatus(message, remainingAfter > 0 ? 'info' : 'limit');
-        } else if (remainingAfter > 0) {
-          const message =
-            remainingAfter === 1
-              ? 'Added to the cloud! You can submit one more word from this device.'
-              : 'Added to the cloud! ' + remainingAfter + ' more submissions left on this device.';
-          showStatus(message, 'info');
         }
       });
     })();
@@ -1288,17 +1312,17 @@ const embedTemplate = (data, containerId, context = {}) => {
 };
 
 const learningTip = {
-  intro: 'Word clouds surface collective thinking in seconds and make emerging themes visible for discussion.',
-  when: 'Use them to prime background knowledge, capture emotional reactions, or revisit a topic mid-lesson to check how understanding has shifted.',
+  intro: 'Word clouds surface collective thinking quickly and make emerging themes visible even when learners contribute at different times.',
+  when: 'Use them to prime background knowledge, capture emotional reactions, or revisit a topic mid-module to check how understanding has shifted across the cohort.',
   considerations: [
-    'Offer a specific prompt so responses cluster around a meaningful theme.',
-    'Let participants add a few words each, then pause to interpret patterns together.',
-    'Address duplicates by weaving them into the synthesis—shared language signals shared understanding.'
+    'Offer a specific prompt and deadline so asynchronous responses cluster around a meaningful theme.',
+    'Explain when you will summarise patterns or post a debrief so learners know how their contributions will be used.',
+    'Address duplicates in the follow-up analysis—shared language signals shared understanding worth highlighting back to the group.'
   ],
   examples: [
-    'Before a seminar discussion: ask students for words that capture their current understanding of a theory.',
-    'Mid-semester check-in: gather emotions about group projects to surface support needs.',
-    'Post-lecture debrief: collect key terms students plan to investigate further for the research assignment.'
+    'Pre-seminar warm-up: ask students for words that capture their current understanding of a theory before a live discussion.',
+    'Mid-semester pulse check: gather emotions about group projects to surface support needs in a follow-up announcement.',
+    'Post-module debrief: collect key terms students plan to investigate further, then curate resources in the next unit overview.'
   ]
 };
 
