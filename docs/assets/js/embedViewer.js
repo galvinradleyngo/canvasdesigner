@@ -548,80 +548,17 @@ const renderActivity = (root, payload, { embedId } = {}) => {
   document.head.append(style);
 
   if (parts.js) {
-    const appendInlineScript = () => {
-      try {
-        const script = document.createElement('script');
-        if (parts.module) {
-          script.type = 'module';
-        }
-        script.textContent = parts.js;
-        document.body.append(script);
-      } catch (error) {
-        console.error('Failed to append inline activity script', error);
-      }
-    };
-
-    const supportsBlob = typeof Blob === 'function' && typeof URL?.createObjectURL === 'function';
-
-    if (parts.module) {
-      if (!supportsBlob) {
-        appendInlineScript();
+    try {
+      const script = document.createElement('script');
+      if (parts.module) {
+        script.type = 'module';
       } else {
-        const executeModule = async () => {
-          const blob = new Blob([parts.js], { type: 'text/javascript' });
-          const blobUrl = URL.createObjectURL(blob);
-          try {
-            await import(/* webpackIgnore: true */ blobUrl);
-          } finally {
-            try {
-              URL.revokeObjectURL(blobUrl);
-            } catch (error) {
-              // Ignore cleanup failures.
-            }
-          }
-        };
-
-        executeModule().catch((error) => {
-          console.error('Failed to execute activity module script', error);
-          appendInlineScript();
-        });
-      }
-    } else {
-      if (!supportsBlob) {
-        appendInlineScript();
-      } else {
-        const blob = new Blob([parts.js], { type: 'text/javascript' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        const cleanup = () => {
-          try {
-            URL.revokeObjectURL(blobUrl);
-          } catch (error) {
-            // Ignore cleanup failures.
-          }
-        };
-
-        const script = document.createElement('script');
         script.async = false;
-        script.src = blobUrl;
-
-        script.addEventListener('load', cleanup, { once: true });
-        script.addEventListener('error', (event) => {
-          cleanup();
-          if (event?.type === 'error') {
-            console.error('Failed to execute activity script from blob URL', event);
-            appendInlineScript();
-          }
-        }, { once: true });
-
-        try {
-          document.body.append(script);
-        } catch (error) {
-          cleanup();
-          console.error('Failed to append activity script element', error);
-          appendInlineScript();
-        }
       }
+      script.textContent = parts.js;
+      document.body.append(script);
+    } catch (error) {
+      console.error('Failed to append activity script element', error);
     }
   }
 
