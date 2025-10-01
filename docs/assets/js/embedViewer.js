@@ -548,9 +548,18 @@ const renderActivity = (root, payload, { embedId } = {}) => {
   document.head.append(style);
 
   if (parts.js) {
-    const script = document.createElement('script');
-    script.textContent = parts.js;
-    document.body.append(script);
+    try {
+      const script = document.createElement('script');
+      if (parts.module) {
+        script.type = 'module';
+      } else if ('async' in script) {
+        script.async = false;
+      }
+      script.textContent = parts.js;
+      document.body.append(script);
+    } catch (error) {
+      console.error('Failed to append activity script element', error);
+    }
   }
 
   setupAutoResize(root, container, { embedId });
