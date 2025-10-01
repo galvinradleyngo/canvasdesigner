@@ -1336,7 +1336,8 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
       });
     })();
-  `
+  `,
+    module: true
   };
 };
 
