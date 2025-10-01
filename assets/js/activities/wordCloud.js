@@ -544,6 +544,8 @@ const renderPreview = (container, data, options = {}) => {
     return palette[paletteIndex];
   };
 
+  const sanitizeWordPattern = /[^\p{L}\p{N}\s'-]/gu;
+
   const normaliseWord = (value) => {
     if (typeof value !== 'string') {
       return '';
@@ -552,7 +554,7 @@ const renderPreview = (container, data, options = {}) => {
     if (!trimmed) {
       return '';
     }
-    const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
+    const cleaned = trimmed.replace(sanitizeWordPattern, '');
     return cleaned.slice(0, 36);
   };
 
@@ -1038,9 +1040,10 @@ const embedTemplate = (data, containerId, context = {}) => {
         delete statusEl.dataset.tone;
       };
 
+      const sanitizeWordPattern = /[^\p{L}\p{N}\s'-]/gu;
+
       const slotInputs = [];
       let activeInput = null;
-
       const ensureSlots = () => {
         while (slotInputs.length < maxEntries) {
           const index = slotInputs.length;
@@ -1069,7 +1072,7 @@ const embedTemplate = (data, containerId, context = {}) => {
         if (!trimmed) {
           return '';
         }
-        const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
+        const cleaned = trimmed.replace(sanitizeWordPattern, '');
         return cleaned.slice(0, 36);
       };
 
