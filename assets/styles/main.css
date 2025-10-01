@@ -3079,6 +3079,277 @@ textarea:focus {
   animation-delay: 160ms;
 }
 
+.example-nonexample-preview {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.example-nonexample-intro {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: rgba(15, 23, 42, 0.72);
+}
+
+.example-nonexample-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .example-nonexample-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.example-nonexample-column {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+}
+
+.example-nonexample-column.is-example {
+  border-color: rgba(16, 185, 129, 0.38);
+}
+
+.example-nonexample-column.is-nonexample {
+  border-color: rgba(239, 68, 68, 0.32);
+}
+
+.example-nonexample-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(59, 130, 246, 0.18);
+  color: rgba(30, 64, 175, 0.92);
+  width: fit-content;
+}
+
+.example-nonexample-column.is-example .example-nonexample-tag {
+  background: rgba(16, 185, 129, 0.2);
+  color: rgba(6, 95, 70, 0.92);
+}
+
+.example-nonexample-column.is-nonexample .example-nonexample-tag {
+  background: rgba(239, 68, 68, 0.18);
+  color: rgba(153, 27, 27, 0.92);
+}
+
+.example-nonexample-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.9);
+}
+
+.example-nonexample-figure {
+  margin: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.example-nonexample-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.example-nonexample-description {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(30, 41, 59, 0.85);
+}
+
+.example-nonexample-description.is-placeholder {
+  font-style: italic;
+  color: rgba(30, 41, 59, 0.6);
+}
+
+.example-nonexample-editor-grid {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .example-nonexample-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.example-nonexample-editor-section {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.88);
+}
+
+.example-nonexample-editor-section .field {
+  min-width: 0;
+}
+
+.example-nonexample-editor-section .field > .text-input,
+.example-nonexample-editor-section .field > .file-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.example-nonexample-editor-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.example-nonexample-editor-preview {
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  border-radius: 16px;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+.example-nonexample-editor-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.example-nonexample-editor-placeholder {
+  font-size: 0.95rem;
+  color: rgba(71, 85, 105, 0.8);
+  text-align: center;
+  padding: 0 12px;
+}
+
+.discover-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  z-index: 60;
+}
+
+.discover-modal[data-open='true'] {
+  display: flex;
+}
+
+.discover-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.discover-modal-dialog {
+  position: relative;
+  width: min(940px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 28px 24px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.94));
+  box-shadow: 0 32px 64px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+}
+
+.discover-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.discover-modal-body {
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.discover-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.discover-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  width: 100%;
+}
+
+.discover-card:hover,
+.discover-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: 0 18px 30px rgba(37, 99, 235, 0.18);
+  outline: none;
+}
+
+.discover-card.is-active {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 18px 36px rgba(16, 185, 129, 0.18);
+}
+
+.discover-card-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.discover-card-content {
+  display: grid;
+  gap: 6px;
+}
+
+.discover-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.88);
+}
+
+.discover-card-description {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgba(71, 85, 105, 0.9);
+}
+
+.discover-grid:empty::before {
+  content: 'Loading activities…';
+  display: block;
+  text-align: center;
+  padding: 32px 0;
+  color: rgba(71, 85, 105, 0.8);
+}
+
 @keyframes cd-immersive-pop {
   from {
     opacity: 0;
@@ -3237,6 +3508,47 @@ textarea:focus {
   .hotspot-popover {
     width: min(320px, calc(100vw - 32px));
     min-width: auto;
+  }
+
+  .example-nonexample-column {
+    padding: 1rem;
+  }
+
+  .example-nonexample-editor-section {
+    padding: 1rem;
+  }
+
+  .example-nonexample-editor-preview {
+    min-height: 140px;
+  }
+
+  .discover-modal {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  .discover-modal-dialog {
+    width: 100%;
+    max-height: 88vh;
+    padding: 24px 20px 20px;
+    border-radius: 20px;
+  }
+
+  .discover-modal-body {
+    padding-right: 0;
+  }
+
+  .discover-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .discover-card {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .discover-card-icon {
+    font-size: 1.5rem;
   }
 }
 

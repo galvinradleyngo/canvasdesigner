@@ -9,6 +9,7 @@ import { immersiveText } from './immersiveText.js';
 import { wordCloud } from './wordCloud.js';
 import { debate } from './debate.js';
 import { captionThis } from './captionThis.js';
+import { exampleNonExample } from './exampleNonExample.js';
 
 export const activities = {
   [flipCards.id]: flipCards,
@@ -21,7 +22,8 @@ export const activities = {
   [immersiveText.id]: immersiveText,
   [wordCloud.id]: wordCloud,
   [debate.id]: debate,
-  [captionThis.id]: captionThis
+  [captionThis.id]: captionThis,
+  [exampleNonExample.id]: exampleNonExample
 };
 
 export const defaultActivityId = flipCards.id;
