@@ -1,4 +1,5 @@
 import { clone, uid, escapeHtml } from '../utils.js';
+import { getFirebaseConfig, getResponsesCollectionName } from '../firebaseSettings.js';
 
 const DEFAULT_PROMPT = 'What word or short phrase captures your reaction to today\'s lesson?';
 const DEFAULT_INSTRUCTIONS = 'Submit up to three contributions. Watch the cloud grow as classmates share.';
@@ -784,14 +785,8 @@ const embedTemplate = (data, containerId, context = {}) => {
     seedWords: Array.from(seedMap.values())
   };
 
-  const firebaseConfig = {
-    apiKey: 'AIzaSyBLj8Ql3rEOLmIiVW6IDa8uJNGFLNbhA6U',
-    authDomain: 'tdt-sandbox.firebaseapp.com',
-    projectId: 'tdt-sandbox',
-    storageBucket: 'tdt-sandbox.firebasestorage.app',
-    messagingSenderId: '924451875699',
-    appId: '1:924451875699:web:46464d31b27c4c62b3f306'
-  };
+  const firebaseConfig = getFirebaseConfig();
+  const responsesCollection = getResponsesCollectionName();
 
   return {
     html: `
@@ -963,6 +958,7 @@ const embedTemplate = (data, containerId, context = {}) => {
     (() => {
       const config = ${serializeForScript(config)};
       const firebaseConfig = ${serializeForScript(firebaseConfig)};
+      const responsesCollection = ${serializeForScript(responsesCollection)};
       const container = document.getElementById('${containerId}');
       if (!container) return;
       const form = container.querySelector('[data-wordcloud-form]');
@@ -1215,7 +1211,7 @@ const embedTemplate = (data, containerId, context = {}) => {
 
           const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
           const db = getFirestore(app);
-          const docRef = doc(db, 'wordCloudResponses', config.responseId);
+          const docRef = doc(db, responsesCollection, config.responseId);
 
           const snapshot = await getDoc(docRef);
           if (!snapshot.exists()) {
