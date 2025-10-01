@@ -534,7 +534,7 @@ const renderActivity = (root, payload, { embedId } = {}) => {
 
     const appendBlobScript = () => {
       if (typeof Blob !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-        return false;
+        return appendInlineScript();
       }
 
       let blobUrl;
@@ -584,14 +584,12 @@ const renderActivity = (root, payload, { embedId } = {}) => {
       } catch (error) {
         cleanupUrl();
         console.error('Failed to append activity script from blob URL', error);
-        return false;
+        return appendInlineScript();
       }
     };
 
     if (!appendBlobScript()) {
-      if (!appendInlineScript()) {
-        console.error('Failed to execute activity script payload');
-      }
+      console.error('Failed to execute activity script payload');
     }
   }
 
