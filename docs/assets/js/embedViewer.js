@@ -549,6 +549,9 @@ const renderActivity = (root, payload, { embedId } = {}) => {
 
   if (parts.js) {
     const script = document.createElement('script');
+    if (parts.module) {
+      script.type = 'module';
+    }
     script.textContent = parts.js;
     document.body.append(script);
   }
