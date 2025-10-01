@@ -30,6 +30,16 @@ The `firestore.rules` file restricts document writes in the `canvasDesignerActiv
 - To encode a new password locally, run `node -e "console.log(Buffer.from('<new-password>', 'utf8').toString('base64'))"` and replace the encoded value in the code.
 - After updating the code, redeploy the site so the new password takes effect.
 
+### Runtime overrides
+
+If your deployment uses different Firebase projects or Firestore collection names, set any of the following configuration hooks before loading the app or viewer:
+
+- `window.CANVASDESIGNER_FIREBASE_CONFIG` – object containing Firebase web config keys (`apiKey`, `projectId`, etc.).
+- `window.CANVASDESIGNER_FIREBASE_SERVICE_ACCOUNT` – object with the service `email` plus either `password` or `passwordBase64`.
+- `window.CANVASDESIGNER_FIRESTORE_COLLECTIONS` – object with `activities` and `responses` collection names.
+
+For scripted deployments, export the matching environment variables instead (`CANVASDESIGNER_FIREBASE_PROJECT_ID`, `CANVASDESIGNER_FIRESTORE_ACTIVITIES_COLLECTION`, and so on). The authoring app, hosted viewer, and word cloud embed all read from these hooks so they stay aligned with your Firestore rules.
+
 ## 5. Embedding in Canvas
 1. In the app, build your activity and open the **Embed code** panel.
 2. Click **Copy** to copy the generated snippet.

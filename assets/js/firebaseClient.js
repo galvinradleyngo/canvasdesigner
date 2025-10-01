@@ -4,36 +4,15 @@ import {
   getAuth,
   signInWithEmailAndPassword
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getFirebaseConfig, getServiceAccountConfig } from './firebaseSettings.js';
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyBLj8Ql3rEOLmIiVW6IDa8uJNGFLNbhA6U',
-  authDomain: 'tdt-sandbox.firebaseapp.com',
-  projectId: 'tdt-sandbox',
-  storageBucket: 'tdt-sandbox.firebasestorage.app',
-  messagingSenderId: '924451875699',
-  appId: '1:924451875699:web:46464d31b27c4c62b3f306'
-};
+const firebaseConfig = getFirebaseConfig();
+const { email: SERVICE_USER_EMAIL, password: SERVICE_USER_PASSWORD } = getServiceAccountConfig();
 
 let appInstance;
 let firestoreInstance;
 let authInstance;
 let authReadyPromise;
-
-const decodeBase64 = (value) => {
-  if (typeof value !== 'string') {
-    return '';
-  }
-  if (typeof globalThis !== 'undefined' && typeof globalThis.atob === 'function') {
-    return globalThis.atob(value);
-  }
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(value, 'base64').toString('utf-8');
-  }
-  return value;
-};
-
-const SERVICE_USER_EMAIL = 'canvasdesigner-service@tdt-sandbox.firebaseapp.com';
-const SERVICE_USER_PASSWORD = decodeBase64('c2FsdGlzYXNpbg==');
 
 export const getFirebaseApp = () => {
   if (!appInstance) {

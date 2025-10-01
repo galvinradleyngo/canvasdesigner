@@ -1,4 +1,5 @@
 import { activities } from './activities/index.js';
+import { getFirebaseConfig, getActivitiesCollectionName } from './firebaseSettings.js';
 
 const VIEW_ROOT_ID = 'cd-embed-viewer-root';
 const REQUEST_MESSAGE_TYPE = 'canvas-designer:request-payload';
@@ -7,9 +8,10 @@ const RESIZE_MESSAGE_TYPE = 'canvas-designer:embed-resize';
 const PARENT_RESPONSE_TIMEOUT = 8000;
 const DEFAULT_MIN_HEIGHT = 420;
 
-const FIRESTORE_PROJECT_ID = 'tdt-sandbox';
-const FIRESTORE_COLLECTION = 'canvasDesignerActivities';
-const FIRESTORE_API_KEY = 'AIzaSyBLj8Ql3rEOLmIiVW6IDa8uJNGFLNbhA6U';
+const firebaseConfig = getFirebaseConfig();
+const FIRESTORE_PROJECT_ID = firebaseConfig.projectId || 'tdt-sandbox';
+const FIRESTORE_COLLECTION = getActivitiesCollectionName();
+const FIRESTORE_API_KEY = firebaseConfig.apiKey || 'AIzaSyBLj8Ql3rEOLmIiVW6IDa8uJNGFLNbhA6U';
 const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/${FIRESTORE_COLLECTION}`;
 
 const baseStyles = (containerId) => `

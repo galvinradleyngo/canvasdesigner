@@ -8,8 +8,9 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 import { clone, coalesce } from './utils.js';
 import { getFirestoreDb, ensureAuth } from './firebaseClient.js';
+import { getActivitiesCollectionName } from './firebaseSettings.js';
 
-const COLLECTION_NAME = 'canvasDesignerActivities';
+const COLLECTION_NAME = getActivitiesCollectionName();
 
 const mapSnapshotToProject = (snapshot) => {
   if (!snapshot) return null;
