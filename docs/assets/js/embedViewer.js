@@ -609,7 +609,9 @@ const renderActivity = (root, payload, { embedId } = {}) => {
             cleanupUrl();
             if (event?.type === 'error') {
               console.error('Failed to execute activity script from blob URL', event);
-              appendInlineScript();
+              if (!appendInlineScript()) {
+                console.error('Failed to execute activity script payload');
+              }
             }
           },
           { once: true }
