@@ -172,7 +172,7 @@ const buildEditor = (container, data, onUpdate) => {
       if (column.imageUrl) {
         const image = document.createElement('img');
         image.src = column.imageUrl;
-        image.alt = '';
+        image.alt = column.altText || '';
         preview.append(image);
       } else {
         const placeholder = document.createElement('div');
