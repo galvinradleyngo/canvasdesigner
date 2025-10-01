@@ -552,7 +552,7 @@ const renderActivity = (root, payload, { embedId } = {}) => {
       const script = document.createElement('script');
       if (parts.module) {
         script.type = 'module';
-      } else {
+      } else if ('async' in script) {
         script.async = false;
       }
       script.textContent = parts.js;
