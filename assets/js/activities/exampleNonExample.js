@@ -263,7 +263,13 @@ const buildEditor = (container, data, onUpdate) => {
         if (!working[key].imageUrl) return;
         working[key].imageUrl = '';
         working[key].altText = '';
-        emit();
+        removeButton.disabled = true;
+        imageInput.value = '';
+        if (altInput) {
+          altInput.value = '';
+        }
+        renderPreview();
+        emit(false);
       });
       section.append(removeButton);
 
