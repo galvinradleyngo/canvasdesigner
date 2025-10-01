@@ -510,9 +510,53 @@ const renderActivity = (root, payload, { embedId } = {}) => {
   document.head.append(style);
 
   if (parts.js) {
-    const script = document.createElement('script');
-    script.textContent = parts.js;
-    document.body.append(script);
+    const cleanupUrl = (url) => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        // Ignore cleanup failures.
+      }
+    };
+
+    const appendInlineScript = () => {
+      const script = document.createElement('script');
+      if (parts.module) {
+        script.type = 'module';
+      }
+      script.textContent = parts.js;
+      document.body.append(script);
+    };
+
+    try {
+      if (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') {
+        const blob = new Blob([parts.js], { type: 'text/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        if (parts.module) {
+          import(blobUrl)
+            .catch((error) => {
+              console.error('Failed to execute module activity script', error);
+            })
+            .finally(() => cleanupUrl(blobUrl));
+        } else {
+          const script = document.createElement('script');
+          if (parts.module) {
+            script.type = 'module';
+          }
+          script.src = blobUrl;
+          script.async = false;
+          const handleDone = () => cleanupUrl(blobUrl);
+          script.addEventListener('load', handleDone, { once: true });
+          script.addEventListener('error', handleDone, { once: true });
+          document.body.append(script);
+        }
+      } else {
+        appendInlineScript();
+      }
+    } catch (error) {
+      console.error('Failed to inject activity script', error);
+      appendInlineScript();
+    }
   }
 
   setupAutoResize(root, container, { embedId });
