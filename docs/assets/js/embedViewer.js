@@ -548,85 +548,14 @@ const renderActivity = (root, payload, { embedId } = {}) => {
   document.head.append(style);
 
   if (parts.js) {
-    const createScript = () => {
-      const script = document.createElement('script');
-      if (parts.module) {
-        script.type = 'module';
-      } else if ('async' in script) {
-        script.async = false;
-      }
-      return script;
-    };
-
-    const appendInlineScript = () => {
-      try {
-        const script = createScript();
-        script.textContent = parts.js;
-        document.body.append(script);
-        return true;
-      } catch (error) {
-        console.error('Failed to append activity script element', error);
-        return false;
-      }
-    };
-
-    const appendBlobScript = () => {
-      if (typeof Blob !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-        return false;
-      }
-
-      let blobUrl;
-      const cleanupUrl = () => {
-        if (!blobUrl) {
-          return;
-        }
-        try {
-          URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-          // Ignore cleanup failures.
-        }
-        blobUrl = undefined;
-      };
-
-      try {
-        const blob = new Blob([parts.js], { type: 'text/javascript' });
-        blobUrl = URL.createObjectURL(blob);
-
-        const script = createScript();
-        script.src = blobUrl;
-
-        script.addEventListener(
-          'load',
-          () => {
-            cleanupUrl();
-          },
-          { once: true }
-        );
-
-        script.addEventListener(
-          'error',
-          (event) => {
-            cleanupUrl();
-            if (event?.type === 'error') {
-              console.error('Failed to execute activity script from blob URL', event);
-              appendInlineScript();
-            }
-          },
-          { once: true }
-        );
-
-        document.body.append(script);
-        return true;
-      } catch (error) {
-        cleanupUrl();
-        console.error('Failed to append activity script from blob URL', error);
-        return false;
-      }
-    };
-
-    if (!appendBlobScript()) {
-      appendInlineScript();
+    const script = document.createElement('script');
+    if (parts.module) {
+      script.type = 'module';
+    } else if ('async' in script) {
+      script.async = false;
     }
+    script.textContent = parts.js;
+    document.body.append(script);
   }
 
   setupAutoResize(root, container, { embedId });
