@@ -510,9 +510,70 @@ const renderActivity = (root, payload, { embedId } = {}) => {
   document.head.append(style);
 
   if (parts.js) {
-    const script = document.createElement('script');
-    script.textContent = parts.js;
-    document.body.append(script);
+    const cleanupUrl = (url) => {
+      try {
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+      } catch (error) {
+        // Ignore cleanup failures.
+      }
+    };
+
+    const appendInlineScript = () => {
+      try {
+        const script = document.createElement('script');
+        if (parts.module) {
+          script.type = 'module';
+        } else if ('async' in script) {
+          script.async = false;
+        }
+        script.textContent = parts.js;
+        document.body.append(script);
+      } catch (error) {
+        console.error('Failed to append activity script element', error);
+      }
+    };
+
+    const appendBlobScript = () => {
+      try {
+        if (typeof Blob !== 'function' || typeof URL?.createObjectURL !== 'function') {
+          return false;
+        }
+
+        const blob = new Blob([parts.js], { type: 'text/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        const script = document.createElement('script');
+        if (parts.module) {
+          script.type = 'module';
+        } else if ('async' in script) {
+          script.async = false;
+        }
+        script.src = blobUrl;
+
+        const handleLoad = () => cleanupUrl(blobUrl);
+        const handleError = (event) => {
+          cleanupUrl(blobUrl);
+          if (event?.type === 'error') {
+            console.error('Failed to execute activity script from blob URL', event);
+            appendInlineScript();
+          }
+        };
+
+        script.addEventListener('load', handleLoad, { once: true });
+        script.addEventListener('error', handleError, { once: true });
+        document.body.append(script);
+        return true;
+      } catch (error) {
+        console.error('Failed to append activity script from blob URL', error);
+        return false;
+      }
+    };
+
+    if (!appendBlobScript()) {
+      appendInlineScript();
+    }
   }
 
   setupAutoResize(root, container, { embedId });
