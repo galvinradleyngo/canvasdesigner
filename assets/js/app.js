@@ -1,4 +1,5 @@
 import { activities, defaultActivityId } from './activities/index.js';
+import { activityCatalog } from './activityCatalog.js';
 import { clone, formatDate, uid } from './utils.js';
 import { listProjects, saveProject, deleteProject, getProject } from './storage.js';
 import { generateEmbed } from './embed.js';
@@ -25,7 +26,8 @@ const lazyActivityLoaders = {
   immersiveText: async () => (await import('./activities/immersiveText.js')).immersiveText,
   wordCloud: async () => (await import('./activities/wordCloud.js')).wordCloud,
   debate: async () => (await import('./activities/debate.js')).debate,
-  captionThis: async () => (await import('./activities/captionThis.js')).captionThis
+  captionThis: async () => (await import('./activities/captionThis.js')).captionThis,
+  exampleNonExample: async () => (await import('./activities/exampleNonExample.js')).exampleNonExample
 };
 
 const pendingActivityLoads = new Map();
@@ -113,7 +115,12 @@ const elements = {
   tipConsiderations: document.getElementById('activityTipConsiderations'),
   tipConsiderationsSection: document.getElementById('activityTipConsiderationsSection'),
   tipExamples: document.getElementById('activityTipExamples'),
-  tipExamplesSection: document.getElementById('activityTipExamplesSection')
+  tipExamplesSection: document.getElementById('activityTipExamplesSection'),
+  discoverBtn: document.getElementById('discoverActivitiesBtn'),
+  discoverPanel: document.getElementById('discoverPanel'),
+  discoverDialog: document.getElementById('discoverDialog'),
+  discoverCloseBtn: document.getElementById('discoverCloseBtn'),
+  discoverList: document.getElementById('discoverList')
 };
 
 const focusableModalSelector = [
@@ -128,6 +135,13 @@ const focusableModalSelector = [
 const modalState = {
   lastFocusedElement: null
 };
+
+const discoverState = {
+  lastFocusedElement: null,
+  cards: new Map()
+};
+
+const isDiscoverOpen = () => elements.discoverPanel && elements.discoverPanel.dataset.open === 'true';
 
 let previewHidden = false;
 let tipsExpanded = false;
@@ -216,6 +230,178 @@ const focusElement = (element) => {
   } catch (error) {
     element.focus();
   }
+};
+
+const updateDiscoverActiveCard = () => {
+  discoverState.cards.forEach((card, id) => {
+    if (!card) return;
+    card.classList.toggle('is-active', id === state.type);
+  });
+};
+
+const handleDiscoverSelection = (activityId) => {
+  if (!activityId) {
+    setDiscoverOpen(false);
+    return;
+  }
+  const select = elements.activitySelect;
+  setDiscoverOpen(false);
+  if (!select) {
+    return;
+  }
+  if (select.value !== activityId) {
+    select.value = activityId;
+  }
+  const event = new Event('change', { bubbles: true });
+  select.dispatchEvent(event);
+};
+
+const buildDiscoverList = () => {
+  if (!elements.discoverList) {
+    return;
+  }
+  elements.discoverList.innerHTML = '';
+  discoverState.cards.clear();
+
+  activityCatalog.forEach((item) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'discover-card';
+    card.dataset.activityId = item.id;
+    card.setAttribute('role', 'listitem');
+
+    const icon = document.createElement('span');
+    icon.className = 'discover-card-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = item.icon || '';
+
+    const content = document.createElement('span');
+    content.className = 'discover-card-content';
+
+    const title = document.createElement('span');
+    title.className = 'discover-card-title';
+    title.textContent = item.label;
+
+    const description = document.createElement('span');
+    description.className = 'discover-card-description';
+    description.textContent = item.description;
+
+    content.append(title, description);
+    card.append(icon, content);
+
+    card.addEventListener('click', () => {
+      handleDiscoverSelection(item.id);
+    });
+
+    elements.discoverList.append(card);
+    discoverState.cards.set(item.id, card);
+  });
+
+  updateDiscoverActiveCard();
+};
+
+const setDiscoverOpen = (open) => {
+  if (!elements.discoverPanel) {
+    return;
+  }
+
+  const current = isDiscoverOpen();
+  if (current === open) {
+    return;
+  }
+
+  const nextState = open ? 'true' : 'false';
+  elements.discoverPanel.dataset.open = nextState;
+  elements.discoverPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+  if (open) {
+    discoverState.lastFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (document.body) {
+      document.body.classList.add('modal-open');
+    }
+    const dialog = elements.discoverDialog || elements.discoverPanel;
+    const focusable = getFocusableElements(dialog);
+    const target = focusable.length ? focusable[0] : dialog;
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        focusElement(target);
+      });
+    } else {
+      focusElement(target);
+    }
+    updateDiscoverActiveCard();
+  } else {
+    const embedOpen = elements.embedModal && elements.embedModal.dataset.open === 'true';
+    if (document.body && !embedOpen) {
+      document.body.classList.remove('modal-open');
+    }
+    const returnTarget =
+      discoverState.lastFocusedElement && document.contains(discoverState.lastFocusedElement)
+        ? discoverState.lastFocusedElement
+        : elements.discoverBtn;
+    discoverState.lastFocusedElement = null;
+    if (returnTarget) {
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => {
+          focusElement(returnTarget);
+        });
+      } else {
+        focusElement(returnTarget);
+      }
+    }
+  }
+};
+
+const handleDiscoverKeydown = (event) => {
+  if (!isDiscoverOpen()) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    setDiscoverOpen(false);
+    return;
+  }
+
+  if (event.key !== 'Tab') {
+    return;
+  }
+
+  const dialog = elements.discoverDialog || elements.discoverPanel;
+  const focusable = getFocusableElements(dialog);
+
+  if (!focusable.length) {
+    event.preventDefault();
+    focusElement(dialog);
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const activeElement = document.activeElement;
+  const focusIsInside = activeElement && dialog.contains(activeElement);
+
+  if (event.shiftKey) {
+    if (!focusIsInside || activeElement === first) {
+      event.preventDefault();
+      focusElement(last);
+    }
+    return;
+  }
+
+  if (!focusIsInside || activeElement === last) {
+    event.preventDefault();
+    focusElement(first);
+  }
+};
+
+const openDiscoverPanel = () => {
+  setDiscoverOpen(true);
+};
+
+const closeDiscoverPanel = () => {
+  setDiscoverOpen(false);
 };
 
 const normaliseText = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -350,6 +536,8 @@ const updateActivityPicker = () => {
     const label = activity && activity.label ? activity.label : 'activity';
     elements.activitySummary.textContent = `Currently editing the ${label} template.`;
   }
+
+  updateDiscoverActiveCard();
 };
 
 const refreshEmbed = () => {
@@ -750,7 +938,7 @@ const setEmbedModalOpen = (open) => {
       focusElement(target);
     }
   } else {
-    if (document.body) {
+    if (document.body && !isDiscoverOpen()) {
       document.body.classList.remove('modal-open');
     }
 
@@ -947,6 +1135,27 @@ const bindEvents = () => {
     });
   }
 
+  if (elements.discoverBtn) {
+    elements.discoverBtn.addEventListener('click', openDiscoverPanel);
+  }
+
+  if (elements.discoverCloseBtn) {
+    elements.discoverCloseBtn.addEventListener('click', closeDiscoverPanel);
+  }
+
+  if (elements.discoverPanel) {
+    elements.discoverPanel.addEventListener('keydown', handleDiscoverKeydown);
+    elements.discoverPanel.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (target.dataset.discoverDismiss === 'true' || target === elements.discoverPanel) {
+        closeDiscoverPanel();
+      }
+    });
+  }
+
   if (elements.animationToggle) {
     elements.animationToggle.addEventListener('change', () => {
       refreshPreview();
@@ -974,6 +1183,7 @@ const bindEvents = () => {
 
 const init = async () => {
   await ensureActivityRegistered(state.type);
+  buildDiscoverList();
   refreshActivityView();
   elements.titleInput.value = state.title;
   if (elements.descriptionInput) {
