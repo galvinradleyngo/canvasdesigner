@@ -570,24 +570,26 @@ const renderActivity = (root, payload, { embedId } = {}) => {
         const blob = new Blob([parts.js], { type: 'text/javascript' });
         const blobUrl = URL.createObjectURL(blob);
 
+        const script = document.createElement('script');
         if (parts.module) {
-          import(blobUrl)
-            .catch((error) => {
-              console.error('Failed to execute module activity script', error);
-            })
-            .finally(() => cleanupUrl(blobUrl));
+          script.type = 'module';
         } else {
-          const script = document.createElement('script');
-          if (parts.module) {
-            script.type = 'module';
-          }
-          script.src = blobUrl;
           script.async = false;
-          const handleDone = () => cleanupUrl(blobUrl);
-          script.addEventListener('load', handleDone, { once: true });
-          script.addEventListener('error', handleDone, { once: true });
-          document.body.append(script);
         }
+        script.src = blobUrl;
+
+        const handleLoad = () => cleanupUrl(blobUrl);
+        const handleError = (event) => {
+          cleanupUrl(blobUrl);
+          if (event?.type === 'error') {
+            console.error('Failed to execute activity script from blob URL', event);
+            appendInlineScript();
+          }
+        };
+
+        script.addEventListener('load', handleLoad, { once: true });
+        script.addEventListener('error', handleError, { once: true });
+        document.body.append(script);
       } else {
         appendInlineScript();
       }
