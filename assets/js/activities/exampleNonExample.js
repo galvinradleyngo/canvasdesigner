@@ -99,6 +99,7 @@ const buildEditor = (container, data, onUpdate) => {
     try {
       const dataUrl = await compressImageFile(file, IMAGE_COMPRESSION);
       working[key].imageUrl = dataUrl;
+      working[key].altText = '';
       emit();
     } catch (error) {
       console.error('Unable to process uploaded image.', error);
@@ -208,6 +209,9 @@ const buildEditor = (container, data, onUpdate) => {
       imageInput.value = column.imageUrl;
       imageInput.addEventListener('input', () => {
         working[key].imageUrl = imageInput.value;
+        if (!imageInput.value) {
+          working[key].altText = '';
+        }
         emit(false);
       });
       imageField.append(imageInput);
