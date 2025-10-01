@@ -959,7 +959,6 @@ const embedTemplate = (data, containerId, context = {}) => {
       }
     }
   `,
-    module: true,
     js: `
     (() => {
       const config = ${serializeForScript(config)};
