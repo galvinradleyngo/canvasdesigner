@@ -236,6 +236,7 @@ const buildEditor = (container, data, onUpdate) => {
       removeButton.addEventListener('click', () => {
         if (!working[key].imageUrl) return;
         working[key].imageUrl = '';
+        working[key].altText = '';
         emit();
       });
       section.append(removeButton);
