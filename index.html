@@ -22,6 +22,7 @@
         </div>
         <div class="header-actions">
           <button id="newProjectBtn" class="ghost-button" type="button">New activity</button>
+          <button id="discoverActivitiesBtn" class="ghost-button" type="button">Discover activities</button>
           <button class="ghost-button" type="button" data-preview-toggle="true" aria-pressed="false">
             Hide preview
           </button>
@@ -46,17 +47,7 @@
               <label class="activity-picker-label" for="activitySelect">Activity template</label>
               <div class="activity-picker">
                 <select id="activitySelect" class="activity-picker-select" aria-label="Choose an activity template">
-                  <option value="flipCards">Flip cards</option>
-                  <option value="accordion">Accordion</option>
-                  <option value="timeline">Timeline</option>
-                  <option value="wordCloud">Word cloud</option>
-                  <option value="dragDrop">Drag &amp; Drop</option>
-                  <option value="hotspots">Hotspots</option>
-                  <option value="immersiveText">Immersive text</option>
-                  <option value="branchingScenarios">Branching scenarios</option>
-                  <option value="imageCarousel">Image carousel</option>
-                  <option value="captionThis">Caption this</option>
-                  <option value="debate">Structured debate</option>
+                  <option value="" disabled selected>Loading activity templates…</option>
                 </select>
                 <span class="activity-picker-icon" aria-hidden="true"></span>
               </div>
@@ -148,6 +139,39 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <div id="discoverPanel" class="discover-modal" data-open="false" aria-hidden="true">
+      <div class="discover-modal-backdrop" data-discover-dismiss="true" aria-hidden="true"></div>
+      <div
+        id="discoverDialog"
+        class="discover-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="discoverTitle"
+        aria-describedby="discoverDescription"
+        tabindex="-1"
+      >
+        <div class="discover-modal-header">
+          <div>
+            <h2 id="discoverTitle" class="panel-title">Discover activities</h2>
+            <p id="discoverDescription" class="hint">
+              Browse every template, preview its purpose, and jump straight into creating.
+            </p>
+          </div>
+          <button
+            id="discoverCloseBtn"
+            class="ghost-button modal-close"
+            type="button"
+            aria-label="Close discover panel"
+          >
+            Close
+          </button>
+        </div>
+        <div class="discover-modal-body">
+          <div id="discoverList" class="discover-grid" role="list"></div>
+        </div>
+      </div>
     </div>
 
     <div id="embedModal" class="modal" data-open="false" aria-hidden="true">
