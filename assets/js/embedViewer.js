@@ -587,7 +587,9 @@ const renderActivity = (root, payload, { embedId } = {}) => {
     };
 
     if (!appendBlobScript()) {
-      appendInlineScript();
+      if (!appendInlineScript()) {
+        console.error('Failed to execute activity script payload');
+      }
     }
   }
 
