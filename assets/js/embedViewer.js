@@ -510,9 +510,70 @@ const renderActivity = (root, payload, { embedId } = {}) => {
   document.head.append(style);
 
   if (parts.js) {
-    const script = document.createElement('script');
-    script.textContent = parts.js;
-    document.body.append(script);
+    const appendInlineScript = () => {
+      try {
+        const inlineScript = document.createElement('script');
+        if (parts.module) {
+          inlineScript.type = 'module';
+        } else if ('async' in inlineScript) {
+          inlineScript.async = false;
+        }
+        inlineScript.textContent = parts.js;
+        document.body.append(inlineScript);
+      } catch (error) {
+        console.error('Failed to append activity script element', error);
+      }
+    };
+
+    try {
+      if (typeof Blob === 'function' && typeof URL?.createObjectURL === 'function') {
+        const blob = new Blob([parts.js], { type: 'text/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        const script = document.createElement('script');
+        if (parts.module) {
+          script.type = 'module';
+        } else if ('async' in script) {
+          script.async = false;
+        }
+        script.src = blobUrl;
+
+        const cleanup = () => {
+          try {
+            URL.revokeObjectURL(blobUrl);
+          } catch (error) {
+            // Ignore cleanup failures.
+          }
+        };
+
+        script.addEventListener(
+          'load',
+          () => {
+            cleanup();
+          },
+          { once: true }
+        );
+
+        script.addEventListener(
+          'error',
+          (event) => {
+            cleanup();
+            if (event?.type === 'error') {
+              console.error('Failed to execute activity script from blob URL', event);
+              appendInlineScript();
+            }
+          },
+          { once: true }
+        );
+
+        document.body.append(script);
+      } else {
+        appendInlineScript();
+      }
+    } catch (error) {
+      console.error('Failed to inject activity script', error);
+      appendInlineScript();
+    }
   }
 
   setupAutoResize(root, container, { embedId });

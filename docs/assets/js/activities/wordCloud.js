@@ -1134,7 +1134,7 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
         submitButton.disabled = !activeInput;
         if (!activeInput) {
-          showStatus('Thanks! You\'ve used all your contributions on this device.', 'limit');
+          showStatus("Thanks! You've used all your contributions on this device.", 'limit');
         } else if (!statusEl.hidden && statusEl.dataset.tone === 'limit') {
           clearStatus();
         }
@@ -1307,7 +1307,8 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
       });
     })();
-  `
+  `,
+    module: true
   };
 };
 
