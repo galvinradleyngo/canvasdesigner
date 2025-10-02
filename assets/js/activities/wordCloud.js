@@ -545,6 +545,7 @@ const renderPreview = (container, data, options = {}) => {
   };
 
   const sanitizeWordPattern = /[^\p{L}\p{N}\s'-]/gu;
+  const allowedCharacterPattern = /[\p{L}\p{N}\s'-]/u;
 
   const normaliseWord = (value) => {
     if (typeof value !== 'string') {
@@ -554,7 +555,8 @@ const renderPreview = (container, data, options = {}) => {
     if (!trimmed) {
       return '';
     }
-    const cleaned = trimmed.replace(sanitizeWordPattern, '');
+    const sanitized = trimmed.replace(sanitizeWordPattern, '');
+    const cleaned = Array.from(sanitized).filter((char) => allowedCharacterPattern.test(char)).join('');
     return cleaned.slice(0, 36);
   };
 
@@ -1041,6 +1043,7 @@ const embedTemplate = (data, containerId, context = {}) => {
       };
 
       const sanitizeWordPattern = /[^\p{L}\p{N}\s'-]/gu;
+      const allowedCharacterPattern = /[\p{L}\p{N}\s'-]/u;
 
       const slotInputs = [];
       let activeInput = null;
@@ -1072,7 +1075,8 @@ const embedTemplate = (data, containerId, context = {}) => {
         if (!trimmed) {
           return '';
         }
-        const cleaned = trimmed.replace(sanitizeWordPattern, '');
+        const sanitized = trimmed.replace(sanitizeWordPattern, '');
+        const cleaned = Array.from(sanitized).filter((char) => allowedCharacterPattern.test(char)).join('');
         return cleaned.slice(0, 36);
       };
 
