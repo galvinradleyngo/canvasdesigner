@@ -544,6 +544,8 @@ const renderPreview = (container, data, options = {}) => {
     return palette[paletteIndex];
   };
 
+  const allowedCharacterPattern = /[\p{L}\p{N}\s'-]/u;
+
   const normaliseWord = (value) => {
     if (typeof value !== 'string') {
       return '';
@@ -552,7 +554,9 @@ const renderPreview = (container, data, options = {}) => {
     if (!trimmed) {
       return '';
     }
-    const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
+    const cleaned = Array.from(trimmed)
+      .filter((char) => allowedCharacterPattern.test(char))
+      .join('');
     return cleaned.slice(0, 36);
   };
 
@@ -1061,6 +1065,8 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
       };
 
+      const allowedCharacterPattern = /[\p{L}\p{N}\s'-]/u;
+
       const normaliseWord = (value) => {
         if (typeof value !== 'string') {
           return '';
@@ -1069,7 +1075,9 @@ const embedTemplate = (data, containerId, context = {}) => {
         if (!trimmed) {
           return '';
         }
-        const cleaned = trimmed.replace(/[^\p{L}\p{N}\s'-]/gu, '');
+        const cleaned = Array.from(trimmed)
+          .filter((char) => allowedCharacterPattern.test(char))
+          .join('');
         return cleaned.slice(0, 36);
       };
 
