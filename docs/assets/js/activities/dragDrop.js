@@ -91,6 +91,15 @@ const createEmptyPlaceholder = (message, { className = '' } = {}) => {
   };
 };
 
+const shuffleArray = (array) => {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
+
 const buildEmbedStyles = (containerId) => `
       #${containerId} .cd-dragdrop {
         display: grid;
@@ -740,8 +749,10 @@ const renderPreview = (container, data) => {
     }
   };
 
+  const randomizedItems = shuffleArray(items);
+
   const resetBoard = () => {
-    items.forEach((item) => {
+    randomizedItems.forEach((item) => {
       placeItem(item.id, null);
     });
     feedback.hidden = true;
@@ -768,7 +779,7 @@ const renderPreview = (container, data) => {
     return card;
   };
 
-  items.forEach((item) => {
+  randomizedItems.forEach((item) => {
     const card = createCard(item);
     poolBody.append(card);
   });
@@ -791,7 +802,9 @@ const embedTemplate = (data, containerId) => {
 
   const { buckets, items, prompt, instructions } = normalized;
 
-  const cardsHtml = items
+  const shuffledItems = shuffleArray(items);
+
+  const cardsHtml = shuffledItems
     .map(
       (item) => `
         <div class="cd-dragdrop-item" draggable="true" data-item-id="${escapeHtml(item.id)}" data-correct="${escapeHtml(
