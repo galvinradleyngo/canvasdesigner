@@ -1025,7 +1025,7 @@ const shareLinkState = {
 
 const generateShareLink = () => {
   if (!state.id) {
-    return '';
+    return null;
   }
   
   const ensureTrailingSlash = (value) => (value.endsWith('/') ? value : `${value}/`);
@@ -1170,12 +1170,13 @@ const handleShareLinkModalKeydown = (event) => {
 };
 
 const openShareLinkModal = () => {
-  if (!state.id) {
+  const shareLink = generateShareLink();
+  
+  if (!shareLink) {
     showStatus('Please save your activity first to generate a share link.', 'warning');
     return;
   }
   
-  const shareLink = generateShareLink();
   if (elements.shareLinkUrl) {
     elements.shareLinkUrl.value = shareLink;
   }
