@@ -101,6 +101,12 @@ const elements = {
   embedSnippet: document.getElementById('embedSnippet'),
   embedModal: document.getElementById('embedModal'),
   embedModalDialog: document.getElementById('embedModalDialog'),
+  showShareLinkBtn: document.getElementById('showShareLinkBtn'),
+  closeShareLinkModalBtn: document.getElementById('closeShareLinkModalBtn'),
+  copyShareLinkBtn: document.getElementById('copyShareLinkBtn'),
+  shareLinkUrl: document.getElementById('shareLinkUrl'),
+  shareLinkModal: document.getElementById('shareLinkModal'),
+  shareLinkModalDialog: document.getElementById('shareLinkModalDialog'),
   statusToast: document.getElementById('statusToast'),
   animationToggle: document.getElementById('animationToggle'),
   appMain: document.querySelector('.app-main'),
@@ -1013,6 +1019,173 @@ const closeEmbedModal = () => {
   setEmbedModalOpen(false);
 };
 
+const shareLinkState = {
+  lastFocusedElement: null
+};
+
+const generateShareLink = () => {
+  if (!state.id) {
+    return '';
+  }
+  
+  const ensureTrailingSlash = (value) => (value.endsWith('/') ? value : `${value}/`);
+  
+  // Use the same viewer base URL logic as embed.js
+  let viewerBase;
+  
+  if (typeof window !== 'undefined') {
+    const override = window.CANVASDESIGNER_VIEWER_BASE_URL;
+    if (typeof override === 'string' && override.trim()) {
+      try {
+        const url = new URL(override.trim(), window.location?.href || undefined);
+        viewerBase = ensureTrailingSlash(url.toString());
+      } catch (error) {
+        console.warn('Invalid CANVASDESIGNER_VIEWER_BASE_URL override', error);
+      }
+    }
+  }
+  
+  if (!viewerBase && typeof window !== 'undefined' && window.location) {
+    const { protocol, origin, pathname } = window.location;
+    if (protocol === 'http:' || protocol === 'https:') {
+      const basePath = pathname.endsWith('/') ? pathname : pathname.replace(/[^/]*$/, '');
+      viewerBase = ensureTrailingSlash(`${origin}${basePath}`);
+    }
+  }
+  
+  if (!viewerBase) {
+    viewerBase = 'https://galvinradleyngo.github.io/canvasdesigner/';
+  }
+  
+  const viewerUrl = new URL('docs/embed.html', viewerBase);
+  viewerUrl.searchParams.set('projectId', state.id);
+  
+  return viewerUrl.toString();
+};
+
+const setShareLinkModalOpen = (open) => {
+  if (!elements.shareLinkModal) {
+    return;
+  }
+
+  const currentState = elements.shareLinkModal.dataset.open === 'true';
+  if (open === currentState) {
+    return;
+  }
+
+  const nextState = open ? 'true' : 'false';
+  elements.shareLinkModal.dataset.open = nextState;
+  elements.shareLinkModal.setAttribute('aria-hidden', open ? 'false' : 'true');
+
+  if (elements.showShareLinkBtn) {
+    elements.showShareLinkBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  if (open) {
+    shareLinkState.lastFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    if (document.body) {
+      document.body.classList.add('modal-open');
+    }
+
+    const dialog = elements.shareLinkModalDialog || elements.shareLinkModal;
+    const focusable = getFocusableElements(dialog);
+    const target = focusable.length ? focusable[0] : dialog;
+
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        focusElement(target);
+      });
+    } else {
+      focusElement(target);
+    }
+  } else {
+    const embedOpen = elements.embedModal && elements.embedModal.dataset.open === 'true';
+    const discoverOpen = isDiscoverOpen();
+    if (document.body && !embedOpen && !discoverOpen) {
+      document.body.classList.remove('modal-open');
+    }
+
+    const returnTarget =
+      shareLinkState.lastFocusedElement && document.contains(shareLinkState.lastFocusedElement)
+        ? shareLinkState.lastFocusedElement
+        : elements.showShareLinkBtn;
+
+    shareLinkState.lastFocusedElement = null;
+
+    if (returnTarget) {
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => {
+          focusElement(returnTarget);
+        });
+      } else {
+        focusElement(returnTarget);
+      }
+    }
+  }
+};
+
+const handleShareLinkModalKeydown = (event) => {
+  if (!elements.shareLinkModal || elements.shareLinkModal.dataset.open !== 'true') {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    setShareLinkModalOpen(false);
+    return;
+  }
+
+  if (event.key !== 'Tab') {
+    return;
+  }
+
+  const dialog = elements.shareLinkModalDialog || elements.shareLinkModal;
+  const focusable = getFocusableElements(dialog);
+
+  if (!focusable.length) {
+    event.preventDefault();
+    focusElement(dialog);
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const activeElement = document.activeElement;
+  const focusIsInside = activeElement && dialog.contains(activeElement);
+
+  if (event.shiftKey) {
+    if (!focusIsInside || activeElement === first) {
+      event.preventDefault();
+      focusElement(last);
+    }
+    return;
+  }
+
+  if (!focusIsInside || activeElement === last) {
+    event.preventDefault();
+    focusElement(first);
+  }
+};
+
+const openShareLinkModal = () => {
+  if (!state.id) {
+    showStatus('Please save your activity first to generate a share link.', 'warning');
+    return;
+  }
+  
+  const shareLink = generateShareLink();
+  if (elements.shareLinkUrl) {
+    elements.shareLinkUrl.value = shareLink;
+  }
+  setShareLinkModalOpen(true);
+};
+
+const closeShareLinkModal = () => {
+  setShareLinkModalOpen(false);
+};
+
 const bindEvents = () => {
   if (elements.activitySelect) {
     elements.activitySelect.addEventListener('change', async (event) => {
@@ -1135,6 +1308,36 @@ const bindEvents = () => {
     });
   }
 
+  if (elements.copyShareLinkBtn) {
+    elements.copyShareLinkBtn.addEventListener('click', () => {
+      if (!elements.shareLinkUrl) {
+        return;
+      }
+      copyToClipboard(elements.shareLinkUrl.value);
+    });
+  }
+
+  if (elements.showShareLinkBtn) {
+    elements.showShareLinkBtn.addEventListener('click', openShareLinkModal);
+  }
+
+  if (elements.closeShareLinkModalBtn) {
+    elements.closeShareLinkModalBtn.addEventListener('click', closeShareLinkModal);
+  }
+
+  if (elements.shareLinkModal) {
+    elements.shareLinkModal.addEventListener('keydown', handleShareLinkModalKeydown);
+    elements.shareLinkModal.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (target.dataset.modalDismiss === 'true' || target === elements.shareLinkModal) {
+        closeShareLinkModal();
+      }
+    });
+  }
+
   if (elements.discoverBtn) {
     elements.discoverBtn.addEventListener('click', openDiscoverPanel);
   }
@@ -1191,6 +1394,7 @@ const init = async () => {
   }
   bindEvents();
   setEmbedModalOpen(false);
+  setShareLinkModalOpen(false);
   await refreshSavedProjects();
   showStatus('Ready to create!');
 };
