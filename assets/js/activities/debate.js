@@ -60,7 +60,7 @@ const createSide = (overrides = {}, index = 0) => {
     id: uid('debate-side'),
     name: preset?.name || `Side ${index + 1}`,
     statement: preset?.statement || 'Summarise this perspective in one sentence.',
-    arguments: normaliseArguments(preset?.arguments || [], index * 3)
+    arguments: []
   };
   const side = { ...base, ...overrides };
   if (!side.id || typeof side.id !== 'string') {
@@ -157,7 +157,7 @@ const ensureWorkingState = (data) => {
 const template = () => ({
   question: DEFAULT_QUESTION,
   instructions: DEFAULT_INSTRUCTIONS,
-  sides: normaliseSides(SIDE_PRESETS)
+  sides: normaliseSides(SIDE_PRESETS.map((preset) => ({ ...preset, arguments: [] })))
 });
 
 const example = () => ({
@@ -280,7 +280,7 @@ const buildEditor = (container, data, onUpdate) => {
       if (!side.arguments.length) {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
-        empty.innerHTML = '<p>No arguments yet. Add at least one talking point to model the structure.</p>';
+        empty.innerHTML = '<p>No arguments yet. Use the + button to model a talking point when you are ready.</p>';
         argumentsSection.append(empty);
       } else {
         side.arguments.forEach((argument, argumentIndex) => {
@@ -297,11 +297,7 @@ const buildEditor = (container, data, onUpdate) => {
           removeBtn.type = 'button';
           removeBtn.className = 'muted-button';
           removeBtn.textContent = 'Remove';
-          removeBtn.disabled = side.arguments.length <= 1;
           removeBtn.addEventListener('click', () => {
-            if (working.sides[index].arguments.length <= 1) {
-              return;
-            }
             working.sides[index].arguments.splice(argumentIndex, 1);
             emit();
           });
@@ -427,7 +423,10 @@ const renderPreview = (container, data) => {
     const addButton = document.createElement('button');
     addButton.type = 'button';
     addButton.className = 'debate-preview-add-button';
-    addButton.textContent = '＋ Add argument';
+    addButton.textContent = '+';
+    const addButtonLabel = `Add argument for ${side.name || 'this side'}`;
+    addButton.setAttribute('aria-label', addButtonLabel);
+    addButton.title = addButtonLabel;
 
     const addForm = document.createElement('form');
     addForm.className = 'debate-preview-add-form';
@@ -481,7 +480,7 @@ const renderPreview = (container, data) => {
       if (!combined.length) {
         const empty = document.createElement('p');
         empty.className = 'debate-preview-empty';
-        empty.textContent = 'No arguments yet. Use the plus button to add one.';
+        empty.textContent = 'No arguments yet. Use the + button to add one.';
         list.append(empty);
         return;
       }
@@ -808,7 +807,7 @@ const embedTemplate = (data, containerId) => {
         if (!argumentsList.length) {
           const empty = document.createElement('p');
           empty.className = 'cd-debate-simple-empty';
-          empty.textContent = 'No arguments yet. Add one to get started.';
+          empty.textContent = 'No arguments yet. Use the + button to add one.';
           list.appendChild(empty);
           return;
         }
