@@ -2716,11 +2716,16 @@ textarea:focus {
   border: 1px solid rgba(79, 70, 229, 0.28);
   font-weight: 500;
   cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   transition: transform 120ms ease, box-shadow 120ms ease, border 120ms ease;
 }
 
 .cd-dragdrop-item.is-dragging {
   opacity: 0.75;
+  cursor: grabbing;
   transform: scale(1.02);
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
 }

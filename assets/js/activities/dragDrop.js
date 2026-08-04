@@ -176,10 +176,15 @@ const buildEmbedStyles = (containerId) => `
         border: 1px solid rgba(79, 70, 229, 0.28);
         font-weight: 500;
         cursor: grab;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
         transition: transform 120ms ease, box-shadow 120ms ease;
       }
       #${containerId} .cd-dragdrop-item.is-dragging {
         opacity: 0.75;
+        cursor: grabbing;
         transform: scale(1.02);
         box-shadow: 0 16px 30px rgba(15, 23, 42, 0.18);
       }
@@ -647,6 +652,7 @@ const renderPreview = (container, data) => {
 
   const placements = new Map();
   const cards = new Map();
+  let activePointerDrag = null;
 
   const placeItem = (itemId, bucketId) => {
     const cardEl = cards.get(itemId);
@@ -674,6 +680,78 @@ const renderPreview = (container, data) => {
       placeItem(itemId, bucketId);
     });
   };
+
+  const getBucketIdForDropZone = (zoneEl) => {
+    if (!zoneEl) return null;
+    const dropZone = zoneEl.dataset.dropZone || '';
+    return dropZone === 'pool' ? null : dropZone;
+  };
+
+  const getDropZoneFromPoint = (clientX, clientY) => {
+    const hovered = document.elementFromPoint(clientX, clientY);
+    if (!hovered) return null;
+    const zone = hovered.closest('.cd-dragdrop-zone-body');
+    if (!zone || !wrapper.contains(zone)) return null;
+    return zone;
+  };
+
+  const clearDropZoneHighlights = () => {
+    wrapper.querySelectorAll('.cd-dragdrop-zone-body.is-over').forEach((zone) => {
+      zone.classList.remove('is-over');
+    });
+  };
+
+  const stopPointerDrag = (event) => {
+    if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) {
+      return;
+    }
+
+    const { card, itemId, startBucketId, currentZone } = activePointerDrag;
+    const targetBucketId = currentZone ? getBucketIdForDropZone(currentZone) : startBucketId;
+
+    clearDropZoneHighlights();
+    document.removeEventListener('pointermove', handlePointerMove);
+    document.removeEventListener('pointerup', stopPointerDrag);
+    document.removeEventListener('pointercancel', stopPointerDrag);
+
+    card.style.position = '';
+    card.style.left = '';
+    card.style.top = '';
+    card.style.width = '';
+    card.style.zIndex = '';
+    card.style.pointerEvents = '';
+    card.style.margin = '';
+    card.classList.remove('is-dragging');
+
+    placeItem(itemId, targetBucketId);
+    activePointerDrag = null;
+  };
+
+  function handlePointerMove(event) {
+    if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) {
+      return;
+    }
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+
+    const nextLeft = event.clientX - activePointerDrag.offsetX;
+    const nextTop = event.clientY - activePointerDrag.offsetY;
+    activePointerDrag.card.style.left = `${nextLeft}px`;
+    activePointerDrag.card.style.top = `${nextTop}px`;
+
+    const hoveredZone = getDropZoneFromPoint(event.clientX, event.clientY);
+    if (hoveredZone === activePointerDrag.currentZone) {
+      return;
+    }
+
+    clearDropZoneHighlights();
+    if (hoveredZone) {
+      hoveredZone.classList.add('is-over');
+    }
+    activePointerDrag.currentZone = hoveredZone;
+  }
 
   makeDropTarget(poolBody, null);
 
@@ -774,6 +852,41 @@ const renderPreview = (container, data) => {
     card.addEventListener('dragend', () => {
       card.classList.remove('is-dragging');
     });
+    card.addEventListener('pointerdown', (event) => {
+      if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+        return;
+      }
+      if (activePointerDrag) {
+        return;
+      }
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+
+      const rect = card.getBoundingClientRect();
+      activePointerDrag = {
+        card,
+        itemId: item.id,
+        pointerId: event.pointerId,
+        startBucketId: placements.has(item.id) ? placements.get(item.id) : null,
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top,
+        currentZone: null
+      };
+
+      card.classList.add('is-dragging');
+      card.style.position = 'fixed';
+      card.style.left = `${rect.left}px`;
+      card.style.top = `${rect.top}px`;
+      card.style.width = `${rect.width}px`;
+      card.style.zIndex = '9999';
+      card.style.pointerEvents = 'none';
+      card.style.margin = '0';
+
+      document.addEventListener('pointermove', handlePointerMove, { passive: false });
+      document.addEventListener('pointerup', stopPointerDrag);
+      document.addEventListener('pointercancel', stopPointerDrag);
+    });
     cards.set(item.id, card);
     placements.set(item.id, null);
     return card;
@@ -862,6 +975,7 @@ const embedTemplate = (data, containerId) => {
         if (!widget) return;
         const placements = new Map();
         const dropTargets = new Map();
+        let activePointerDrag = null;
 
         const cards = widget.querySelectorAll('.cd-dragdrop-item');
         cards.forEach((card) => {
@@ -873,6 +987,41 @@ const embedTemplate = (data, containerId) => {
           });
           card.addEventListener('dragend', () => {
             card.classList.remove('is-dragging');
+          });
+          card.addEventListener('pointerdown', (event) => {
+            if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+              return;
+            }
+            if (activePointerDrag) {
+              return;
+            }
+            if (event.cancelable) {
+              event.preventDefault();
+            }
+
+            const rect = card.getBoundingClientRect();
+            activePointerDrag = {
+              card,
+              itemId,
+              pointerId: event.pointerId,
+              startBucketId: placements.has(itemId) ? placements.get(itemId) : null,
+              offsetX: event.clientX - rect.left,
+              offsetY: event.clientY - rect.top,
+              currentZone: null
+            };
+
+            card.classList.add('is-dragging');
+            card.style.position = 'fixed';
+            card.style.left = rect.left + 'px';
+            card.style.top = rect.top + 'px';
+            card.style.width = rect.width + 'px';
+            card.style.zIndex = '9999';
+            card.style.pointerEvents = 'none';
+            card.style.margin = '0';
+
+            document.addEventListener('pointermove', handlePointerMove, { passive: false });
+            document.addEventListener('pointerup', stopPointerDrag);
+            document.addEventListener('pointercancel', stopPointerDrag);
           });
         });
 
@@ -903,6 +1052,80 @@ const embedTemplate = (data, containerId) => {
           card.classList.remove('is-correct', 'is-incorrect');
           target.appendChild(card);
           placements.set(itemId, bucketId);
+        };
+
+        const getBucketIdForDropZone = (zone) => {
+          if (!zone) return null;
+          const dropZone = zone.dataset.dropZone || '';
+          return dropZone === 'pool' ? null : dropZone;
+        };
+
+        const clearDropZoneHighlights = () => {
+          widget.querySelectorAll('.cd-dragdrop-zone-body.is-over').forEach((zone) => {
+            zone.classList.remove('is-over');
+          });
+        };
+
+        const getDropZoneFromPoint = (clientX, clientY) => {
+          const hovered = document.elementFromPoint(clientX, clientY);
+          if (!hovered) return null;
+          const zone = hovered.closest('.cd-dragdrop-zone-body');
+          if (!zone || !widget.contains(zone)) return null;
+          return zone;
+        };
+
+        function handlePointerMove(event) {
+          if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) {
+            return;
+          }
+          if (event.cancelable) {
+            event.preventDefault();
+          }
+
+          const nextLeft = event.clientX - activePointerDrag.offsetX;
+          const nextTop = event.clientY - activePointerDrag.offsetY;
+          activePointerDrag.card.style.left = nextLeft + 'px';
+          activePointerDrag.card.style.top = nextTop + 'px';
+
+          const hoveredZone = getDropZoneFromPoint(event.clientX, event.clientY);
+          if (hoveredZone === activePointerDrag.currentZone) {
+            return;
+          }
+
+          clearDropZoneHighlights();
+          if (hoveredZone) {
+            hoveredZone.classList.add('is-over');
+          }
+          activePointerDrag.currentZone = hoveredZone;
+        }
+
+        const stopPointerDrag = (event) => {
+          if (!activePointerDrag || event.pointerId !== activePointerDrag.pointerId) {
+            return;
+          }
+
+          const card = activePointerDrag.card;
+          const itemId = activePointerDrag.itemId;
+          const startBucketId = activePointerDrag.startBucketId;
+          const currentZone = activePointerDrag.currentZone;
+          const bucketId = currentZone ? getBucketIdForDropZone(currentZone) : startBucketId;
+
+          clearDropZoneHighlights();
+          document.removeEventListener('pointermove', handlePointerMove);
+          document.removeEventListener('pointerup', stopPointerDrag);
+          document.removeEventListener('pointercancel', stopPointerDrag);
+
+          card.style.position = '';
+          card.style.left = '';
+          card.style.top = '';
+          card.style.width = '';
+          card.style.zIndex = '';
+          card.style.pointerEvents = '';
+          card.style.margin = '';
+          card.classList.remove('is-dragging');
+
+          placeItem(itemId, bucketId);
+          activePointerDrag = null;
         };
 
         const feedback = widget.querySelector('[data-feedback]');
