@@ -277,8 +277,9 @@ const applyFrameHeight = (height, { embedId } = {}) => {
 
   const targetHeight = Math.max(Math.ceil(height), DEFAULT_MIN_HEIGHT);
   const embedded = isEmbeddedContext();
+  const hasResizeContract = Boolean(embedId);
 
-  if (!embedded) {
+  if (!embedded || !hasResizeContract) {
     const doc = document.documentElement;
     if (doc) {
       doc.style.height = '';
@@ -294,6 +295,20 @@ const applyFrameHeight = (height, { embedId } = {}) => {
       document.body.style.maxHeight = '';
       document.body.style.overflow = '';
       document.body.style.overflowY = 'auto';
+    }
+
+    if (embedded && !hasResizeContract) {
+      try {
+        const frame = window.frameElement;
+        if (frame && frame.style) {
+          frame.style.height = '';
+          frame.style.minHeight = '';
+          frame.style.maxHeight = '';
+          frame.style.overflow = '';
+        }
+      } catch (error) {
+        // Ignore cross-origin restrictions when we can't reach the frame element.
+      }
     }
 
     return;
