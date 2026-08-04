@@ -262,12 +262,42 @@ const showMessage = (root, message) => {
   root.append(notice);
 };
 
+const isEmbeddedContext = () => {
+  try {
+    return window.parent !== window || Boolean(window.frameElement);
+  } catch (error) {
+    return Boolean(window.frameElement);
+  }
+};
+
 const applyFrameHeight = (height, { embedId } = {}) => {
   if (!Number.isFinite(height)) {
     return;
   }
 
   const targetHeight = Math.max(Math.ceil(height), DEFAULT_MIN_HEIGHT);
+  const embedded = isEmbeddedContext();
+
+  if (!embedded) {
+    const doc = document.documentElement;
+    if (doc) {
+      doc.style.height = '';
+      doc.style.minHeight = '';
+      doc.style.maxHeight = '';
+      doc.style.overflow = '';
+      doc.style.overflowY = 'auto';
+    }
+
+    if (document.body) {
+      document.body.style.height = '';
+      document.body.style.minHeight = '';
+      document.body.style.maxHeight = '';
+      document.body.style.overflow = '';
+      document.body.style.overflowY = 'auto';
+    }
+
+    return;
+  }
 
   const doc = document.documentElement;
   if (doc) {
