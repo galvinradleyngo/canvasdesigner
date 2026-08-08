@@ -992,6 +992,27 @@ const embedTemplate = (data, containerId, context = {}) => {
 
       let transientState = { count: 0, entries: [] };
 
+      const normaliseWordsMap = (value) => {
+        const result = {};
+        if (value && typeof value === 'object') {
+          Object.keys(value).forEach((key) => {
+            const entry = value[key];
+            if (!entry) {
+              return;
+            }
+            const text = typeof entry.text === 'string' ? entry.text : key;
+            const count = Number.isFinite(entry.count) ? entry.count : 0;
+            if (!text && count <= 0) {
+              return;
+            }
+            result[key] = { text, count: Math.max(0, count) };
+          });
+        }
+        return result;
+      };
+
+      let latestWords = {};
+
       const normaliseEntries = (value) => {
         const count = Math.max(0, Math.min(maxEntries, Number.isFinite(value?.count) ? value.count : 0));
         const entries = Array.isArray(value?.entries) ? value.entries.slice(0, maxEntries) : [];
@@ -1149,8 +1170,9 @@ const embedTemplate = (data, containerId, context = {}) => {
       };
 
       const renderWords = (wordsMap) => {
+        latestWords = normaliseWordsMap(wordsMap);
         entriesEl.innerHTML = '';
-        const entries = Object.entries(wordsMap || {})
+        const entries = Object.entries(latestWords)
           .map(([key, value]) => ({
             key,
             text: typeof value?.text === 'string' ? value.text : key,
@@ -1253,7 +1275,14 @@ const embedTemplate = (data, containerId, context = {}) => {
         } catch (error) {
           console.warn('Word cloud realtime updates unavailable', error);
           firestoreReady = false;
-          showStatus('Live word cloud updates are unavailable right now.', 'error');
+          addWord = async ({ key, text }) => {
+            const current = { ...latestWords };
+            const existing = current[key] || {};
+            const nextText = typeof text === 'string' && text.trim() ? text : existing.text || key;
+            const nextCount = Math.max(0, Number.isFinite(existing.count) ? existing.count : 0) + 1;
+            current[key] = { text: nextText, count: nextCount };
+            renderWords(current);
+          };
           return false;
         }
       };
@@ -1284,7 +1313,7 @@ const embedTemplate = (data, containerId, context = {}) => {
         }
         try {
           await initPromise;
-          if (!firestoreReady || typeof addWord !== 'function') {
+          if (typeof addWord !== 'function') {
             throw new Error('Firestore unavailable');
           }
           await addWord({ key, text: cleaned });
